@@ -75,7 +75,7 @@ void StorageManager::GetVectorIndexCount(int64_t &vector_index_count) {
   if (s.ok()) {
     vector_index_count = std::stoll(value);
   } else if (s.IsNotFound()) {
-    vector_index_count = -1;
+    vector_index_count = 0;
   } else {
     LOG(ERROR) << "rocksdb get error:" << s.ToString() << ", key=" << key_str;
     vector_index_count = -2;

@@ -58,7 +58,7 @@ bool file_exist(const std::string &path);
 
 int make_dir(const char *path);
 
-int remove_dir(const char *dir);
+int remove_dir(const char *dir, bool delete_self = true);
 
 int move_dir(const char *src, const char *dst, bool backup = false);
 
