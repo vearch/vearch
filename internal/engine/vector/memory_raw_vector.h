@@ -52,7 +52,7 @@ class MemoryRawVector : public RawVector {
   int GetVector(int64_t vid, const uint8_t *&vec,
                 bool &deleteable) const override;
 
-  int ExtendSegments();
+  virtual int ExtendSegments();
 
  protected:
   uint8_t **segments_;

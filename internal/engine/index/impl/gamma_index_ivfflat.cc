@@ -397,7 +397,7 @@ bool GammaIVFFlatIndex::Add(int n, const uint8_t *vec) {
   indexed_vec_count_ += n;
 #ifdef PERFORMANCE_TESTING
   add_count_ += n;
-  if (add_count_ >= 10000) {
+  if (add_count_ >= ADD_COUNT_THRESHOLD) {
     double t1 = faiss::getmillisecs();
     LOG(DEBUG) << "Add time [" << (t1 - t0) / n << "]ms, count "
                << indexed_vec_count_ << " wanted n=" << n

@@ -52,7 +52,7 @@ func (s *Store) startTruncateJob(initLastFlushIndex int64) {
 		config.Conf().PS.RaftTruncateCount = 100000
 	}
 
-	log.Info("start truncate job! truncate count: %d", config.Conf().PS.RaftTruncateCount)
+	log.Info("start truncate job for partition[%d]! truncate count: %d, initLastFlushIndex: %d", s.Partition.Id, config.Conf().PS.RaftTruncateCount, initLastFlushIndex)
 	appTruncateIndex := initLastFlushIndex
 	go func() {
 		defer func() {
@@ -76,16 +76,16 @@ func (s *Store) startTruncateJob(initLastFlushIndex int64) {
 
 			flushSn, err := s.Engine.Reader().ReadSN(s.Ctx)
 			if err != nil {
-				log.Error("truncate getsn: %s", err.Error())
+				log.Error("truncate for partition[%d] get sn: %s", s.Partition.Id, err.Error())
 				continue
 			}
 			if (flushSn - appTruncateIndex - config.Conf().PS.RaftTruncateCount) > 0 {
 				newTrucIndex := flushSn - config.Conf().PS.RaftTruncateCount
 				if err = truncateFunc(newTrucIndex); err != nil {
-					log.Warn("truncate: %s", err.Error())
+					log.Warn("truncate partition[%d]: %s", s.Partition.Id, err.Error())
 					continue
 				}
-				log.Info("truncate raft success! current sn: %d, last sn:%d", newTrucIndex, appTruncateIndex)
+				log.Info("truncate for partition[%d] raft success! current sn: %d, last sn:%d", s.Partition.Id, newTrucIndex, appTruncateIndex)
 				appTruncateIndex = newTrucIndex
 				continue
 			}
@@ -117,8 +117,9 @@ func (s *Store) startFlushJob() {
 		s.Engine.GetEngineStatus(&engineStatus)
 		lastIndexNum := engineStatus.MinIndexedNum
 		lastMaxDocid := engineStatus.MaxDocid
+		lastCheckTime := s.LastFlushTime
 
-		log.Info("start flush job, flush time interval=%d, count threshold=%d, min index num=%d, max docid=%d", fti, fct, lastIndexNum, lastMaxDocid)
+		log.Info("start flush job for partition[%d], flush time interval=%d, count threshold=%d, min index num=%d, max docid=%d", s.Partition.Id, fti, fct, lastIndexNum, lastMaxDocid)
 		flushFunc := func() {
 			if s.Sn == 0 {
 				return
@@ -135,16 +136,23 @@ func (s *Store) startFlushJob() {
 			t := time.Now()
 			tempSn := s.Sn
 			if t.Sub(s.LastFlushTime).Seconds() > float64(fti) && (tempSn-s.LastFlushSn > int64(fct) || status.MinIndexedNum-lastIndexNum > fct || status.MaxDocid-lastMaxDocid > fct) {
-				log.Info("begin to flush, current time: %s, sn: %d, min indexed num=%d, max docid=%d",
-					t.Format(time.RFC3339), tempSn, status.MinIndexedNum, status.MaxDocid)
+				log.Info("begin to flush for partition[%d], current time: %s, sn: %d, min indexed num=%d, max docid=%d",
+					s.Partition.Id, t.Format(time.RFC3339), tempSn, status.MinIndexedNum, status.MaxDocid)
 				if err := s.Engine.Writer().Flush(s.Ctx, tempSn); err != nil {
-					log.Error(err.Error())
+					log.Error("flush partition[%d] failed: %v", s.Partition.Id, err.Error())
 					return
 				}
 				s.LastFlushSn = tempSn
 				s.LastFlushTime = t
 				lastIndexNum = status.MinIndexedNum
 				lastMaxDocid = status.MaxDocid
+				lastCheckTime = t
+			} else {
+				if t.Sub(lastCheckTime).Seconds() > float64(fti) {
+					log.Debug("skip flush for partition[%d], last flush time: %s, sn: %d, LastFlushSn: %d, min indexed num=%d, max docid=%d",
+						s.Partition.Id, s.LastFlushTime.Format(time.RFC3339), tempSn, s.LastFlushSn, status.MinIndexedNum, status.MaxDocid)
+					lastCheckTime = t
+				}
 			}
 		}
 

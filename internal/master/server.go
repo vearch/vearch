@@ -186,7 +186,15 @@ func (s *Server) Start() (err error) {
 		log.Error("start WatchServerJob failed, err: %v", err)
 		os.Exit(1)
 	}
-	log.Debug("start WatchServerJob success!")
+	log.Info("start WatchServerJob success!")
+
+	// start watch space
+	err = s.WatchSpaceJob(s.ctx, s.client)
+	if err != nil {
+		log.Error("start WatchSpaceJob failed, err: %v", err)
+		os.Exit(1)
+	}
+	log.Info("start WatchSpaceJob success!")
 
 	master := config.Conf().GetMasters().Self()
 	resp, err := s.client.Master().MemberList(context.Background())

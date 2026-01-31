@@ -16,6 +16,7 @@
 
 #include "field_range_index.h"
 #include "util/utils.h"
+#include "common/gamma_common_data.h"
 
 using std::move;
 using std::string;
@@ -257,7 +258,7 @@ int Table::Add(const std::string &key,
     doc_id_map_[docid] = key;
   }
 
-  if (docid % 10000 == 0) {
+  if (docid % ADD_COUNT_THRESHOLD == 0) {
     LOG(DEBUG) << name_ << " add item _id [" << key << "], num [" << docid
                << "]";
   }

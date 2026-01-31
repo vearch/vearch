@@ -201,9 +201,7 @@ Status VectorManager::CreateVectorIndex(
   return Status::OK();
 }
 
-void VectorManager::DestroyVectorIndexes() { DestroyVectorIndexes(""); }
-
-void VectorManager::DestroyVectorIndexes(const std::string &index_dir) {
+void VectorManager::DestroyVectorIndexes() {
   pthread_rwlock_wrlock(&index_rwmutex_);
   for (const auto &[name, index] : vector_indexes_) {
     if (index != nullptr) {
@@ -212,18 +210,6 @@ void VectorManager::DestroyVectorIndexes(const std::string &index_dir) {
   }
   vector_indexes_.clear();
   pthread_rwlock_unlock(&index_rwmutex_);
-
-  // Delete index files from disk
-  std::string delete_dir = index_dir;
-  if (delete_dir.empty()) {
-    delete_dir = root_path_ + "/retrieval_model_index";
-  }
-
-  if (utils::remove_dir(delete_dir.c_str()) != 0) {
-    LOG(WARNING) << desc_ << "failed to remove index directory: " << delete_dir;
-  } else {
-    LOG(INFO) << desc_ << "removed index directory: " << delete_dir;
-  }
 
   LOG(INFO) << desc_ << "vector indexes cleared.";
 }
@@ -241,6 +227,11 @@ Status VectorManager::RemoveVectorIndex(const std::string &field_name) {
     if (vec_name == field_name) {
       indexes_to_remove.push_back(name);
     }
+  }
+
+  if (indexes_to_remove.empty()) {
+    LOG(DEBUG) << desc_ << "no vector index found for field: " << field_name;
+    return Status::OK();
   }
 
   // Remove the found indexes
@@ -262,18 +253,13 @@ Status VectorManager::RemoveVectorIndex(const std::string &field_name) {
   // Delete index files from disk
   std::string delete_dir = root_path_ + "/retrieval_model_index";
 
-  if (utils::remove_dir(delete_dir.c_str()) != 0) {
-    LOG(WARNING) << desc_ << "failed to remove index directory: " << delete_dir;
+  if (utils::remove_dir(delete_dir.c_str(), false) != 0) {
+    LOG(WARNING) << desc_ << "failed to clean index directory: " << delete_dir;
   } else {
-    LOG(INFO) << desc_ << "removed index directory: " << delete_dir;
+    LOG(INFO) << desc_ << "clean index directory: " << delete_dir;
   }
 
-  if (indexes_to_remove.empty()) {
-    LOG(WARNING) << desc_ << "no vector index found for field: " << field_name;
-    return Status::IOError("no vector index found for field: " + field_name);
-  }
-
-  LOG(INFO) << desc_ << "successfully removed " << indexes_to_remove.size()
+  LOG(INFO) << desc_ << "successfully cleaned " << indexes_to_remove.size()
             << " vector index(es) for field: " << field_name;
   return Status::OK();
 }
@@ -654,7 +640,9 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
           index_model->indexed_count_ += count_per_index;
           index_is_dirty = true;
           if (enable_realtime_) {
-            auto vector_buffer_it = vector_memory_buffers_.find(name);
+            std::string vec_name, index_type;
+            GetVectorNameAndIndexType(name, vec_name, index_type);
+            auto vector_buffer_it = vector_memory_buffers_.find(vec_name);
             if (vector_buffer_it != vector_memory_buffers_.end()) {
               RawVector *raw_vector_buffer = vector_buffer_it->second;
               if (raw_vector_buffer != nullptr) {
@@ -1226,6 +1214,13 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
       }
       int64_t vector_index_count = 0;
       vec->GetVectorIndexCount(vector_index_count);
+      if (vector_index_count < 0) {
+        vector_index_count = 0;
+        LOG(WARNING) << desc_ << "vector [" << name
+                  << "] get wrong index count, vec_num=" << vec_num
+                  << ", real_load_num=" << real_load_num << ", "
+                  << "vector_index_count=" << vector_index_count;
+      }
       vec_index_counts[name] = vector_index_count;
 
       LOG(INFO) << desc_ << "vector [" << name

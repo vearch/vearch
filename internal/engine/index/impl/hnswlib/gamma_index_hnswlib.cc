@@ -332,7 +332,7 @@ int GammaIndexHNSWLIB::AddVertices(size_t n0, size_t n, const float *x) {
   }
 #ifdef PERFORMANCE_TESTING
   add_count_ += n;
-  if (add_count_ >= 10000) {
+  if (add_count_ >= ADD_COUNT_THRESHOLD) {
     LOG(DEBUG) << "adding elements on top of " << n0 << ", average add time "
                << (utils::getmillisecs() - t0) / n << " ms" << ", wanted n=" << n
                << ", real add=" << n_add;

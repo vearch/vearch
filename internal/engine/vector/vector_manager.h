@@ -43,7 +43,6 @@ class VectorManager {
                            std::map<std::string, IndexModel *> &vector_indexes);
 
   void DestroyVectorIndexes();
-  void DestroyVectorIndexes(const std::string &index_dir);
 
   /**
    * @brief Remove vector index for a specific field

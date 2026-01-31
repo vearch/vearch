@@ -113,6 +113,30 @@ func Profiler(key string, startTime time.Time, httpCode int, dbName string, spac
 	collector.RequestCount.WithLabelValues(config.Conf().Global.Name, key, httpCodeStr, dbName, spaceName).Add(float64(1))
 }
 
+func RemoveUselessSpaceAndPartitionMetrics(dbName string, spaceName string, pids []entity.PartitionID) {
+	if collector == nil || collector.spaceDocs == nil || collector.spaceSize == nil {
+		log.Warn("Monitoring system not initialized, metrics will not be recorded")
+		return
+	}
+
+	if !collector.isMaster() {
+		return
+	}
+
+	collector.spaceDocs.DeleteLabelValues(config.Conf().Global.Name, dbName, spaceName)
+	collector.spaceSize.DeleteLabelValues(config.Conf().Global.Name, dbName, spaceName)
+	collector.clusterHealth.DeleteLabelValues(config.Conf().Global.Name, dbName, spaceName)
+
+	if collector.partitionDocs == nil || collector.partitionSize == nil {
+		log.Warn("Monitoring system not initialized, metrics will not be recorded")
+		return
+	}
+	for _, pid := range pids {
+		collector.partitionDocs.DeleteLabelValues(cast.ToString(pid))
+		collector.partitionSize.DeleteLabelValues(cast.ToString(pid))
+	}
+}
+
 func DataNodeProfiler(key string, startTime time.Time, code int, ip string, nodeID uint32, partitionID uint32) {
 	if collector == nil || collector.DataNodeRequestDuration == nil || collector.DataNodeRequestCount == nil {
 		log.Warn("Monitoring system not initialized, metrics will not be recorded")
@@ -226,14 +250,14 @@ func newMetricCollector(masterClient *client.Client, etcdServer *etcdserver.Etcd
 				Name: "vearch_partition_documents",
 				Help: "Number of documents in Vearch partition",
 			},
-			[]string{"cluster", "partition_id"},
+			[]string{"partition_id"},
 		),
 		partitionSize: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "vearch_partition_size_bytes",
 				Help: "Size of Vearch partition in bytes",
 			},
-			[]string{"cluster", "partition_id"},
+			[]string{"partition_id"},
 		),
 		leaderCount: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
@@ -459,11 +483,15 @@ func (ms *MonitorService) Collect(ch chan<- prometheus.Metric) {
 				// Update partition document count and size
 				if space, ok := spacePartitionIDMap[p.PartitionID]; ok {
 					docNumMap[space] += p.DocNum
+				} else {
+					ms.partitionDocs.DeleteLabelValues(cast.ToString(p.PartitionID))
+					ms.partitionSize.DeleteLabelValues(cast.ToString(p.PartitionID))
+					continue
 				}
 
 				// Set partition-level metrics
-				ms.partitionDocs.WithLabelValues(s.Ip, cast.ToString(p.PartitionID)).Set(float64(p.DocNum))
-				ms.partitionSize.WithLabelValues(s.Ip, cast.ToString(p.PartitionID)).Set(float64(p.Size))
+				ms.partitionDocs.WithLabelValues(cast.ToString(p.PartitionID)).Set(float64(p.DocNum))
+				ms.partitionSize.WithLabelValues(cast.ToString(p.PartitionID)).Set(float64(p.Size))
 
 				// Accumulate space size
 				if space, ok := spacePartitionIDMap[p.PartitionID]; ok {

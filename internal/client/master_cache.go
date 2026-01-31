@@ -104,7 +104,7 @@ func cachePartitionKey(space string, pid entity.PartitionID) string {
 	return space + "/" + strconv.FormatInt(int64(pid), 10)
 }
 
-func cacheSpaceKey(db, space string) string {
+func CacheSpaceKey(db, space string) string {
 	return db + "/" + space
 }
 
@@ -211,7 +211,7 @@ func (cliCache *clientCache) reloadRoleCache(ctx context.Context, sync bool, rol
 
 // find a space by db and space name, if not exist so query it from etcd
 func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string) (*entity.Space, error) {
-	key := cacheSpaceKey(db, space)
+	key := CacheSpaceKey(db, space)
 
 	get, found := cliCache.spaceCache.Get(key)
 	if found {
@@ -236,7 +236,7 @@ func (cliCache *clientCache) SpaceByCache(ctx context.Context, db, space string)
 }
 
 func (cliCache *clientCache) reloadSpaceCache(ctx context.Context, sync bool, db string, spaceName string) error {
-	key := cacheSpaceKey(db, spaceName)
+	key := CacheSpaceKey(db, spaceName)
 
 	fun := func() error {
 		log.Info("to reload db:[%s] space:[%s]", db, spaceName)
@@ -467,7 +467,7 @@ func (cliCache *clientCache) startCacheJob(ctx context.Context) error {
 			if err != nil {
 				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("find db by id err: %s, data: %s", err.Error(), string(value)))
 			}
-			ckey := cacheSpaceKey(dbName, space.Name)
+			ckey := CacheSpaceKey(dbName, space.Name)
 			if oldValue, b := cliCache.spaceCache.Get(ckey); !b || space.Version > oldValue.(*entity.Space).Version {
 				spaceCacheLock.Lock()
 				cliCache.spaceCache.Set(ckey, space, cache.NoExpiration)
@@ -788,7 +788,7 @@ func (cliCache *clientCache) initSpace(ctx context.Context) error {
 		}
 
 		spaceCacheLock.Lock()
-		if err := cliCache.spaceCache.Add(cacheSpaceKey(db, s.Name), s, cache.NoExpiration); err != nil {
+		if err := cliCache.spaceCache.Add(CacheSpaceKey(db, s.Name), s, cache.NoExpiration); err != nil {
 			log.Error(err.Error())
 		} else {
 			cliCache.spaceIDCache.Set(cast.ToString(s.Id), s, cache.NoExpiration)
@@ -902,7 +902,7 @@ func (cliCache *clientCache) initRouter(ctx context.Context) error {
 
 func (cliCache *clientCache) DeleteSpaceCache(ctx context.Context, db, space string) {
 	spaceCacheLock.Lock()
-	cliCache.spaceCache.Delete(cacheSpaceKey(db, space))
+	cliCache.spaceCache.Delete(CacheSpaceKey(db, space))
 	spaceCacheLock.Unlock()
 }
 
