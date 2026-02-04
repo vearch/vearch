@@ -111,6 +111,9 @@ func (s *Server) Start() (err error) {
 		return err
 	}
 
+	// start backup service (including backup monitor and version manager)
+	service.Backup().Start()
+
 	monitorService := &monitorService{}
 	if config.Conf().Global.SelfManageEtcd {
 		monitorService = newMonitorService(service, &etcdserver.EtcdServer{})

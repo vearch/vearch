@@ -69,6 +69,7 @@ type Server struct {
 	concurrentNum            int
 	rpcTimeOut               int
 	backupStatus             map[uint32]int
+	backupManager            BackupManager
 }
 
 // NewServer creates a server instance

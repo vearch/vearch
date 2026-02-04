@@ -129,25 +129,6 @@ type SpaceInfo struct {
 	Errors        []string         `json:"errors,omitempty"`
 }
 
-type BackupSpaceRequest struct {
-	Command  string      `json:"command,omitempty"`
-	BackupID int         `json:"backup_id,omitempty"`
-	Part     PartitionID `json:"part"`
-	S3Param  struct {
-		Region     string `json:"region"`
-		BucketName string `json:"bucket_name"`
-		EndPoint   string `json:"endpoint"`
-		AccessKey  string `json:"access_key"`
-		SecretKey  string `json:"secret_key"`
-		UseSSL     bool   `json:"use_ssl"`
-	} `json:"s3_param,omitempty"`
-}
-
-type BackupSpaceResponse struct {
-	BackupID  int   `json:"backup_id,omitempty"`
-	BackupIDs []int `json:"backup_ids,omitempty"`
-}
-
 type SpaceProperties struct {
 	FieldType  vearchpb.FieldType   `json:"field_type"`
 	Type       string               `json:"type"`

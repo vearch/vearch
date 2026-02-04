@@ -26,6 +26,8 @@ import (
 
 	"github.com/cubefs/cubefs/depends/tiglabs/raft/proto"
 	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/client"
 	"github.com/vearch/vearch/v3/internal/config"
@@ -54,6 +56,7 @@ const (
 	paramHeaderAuthKey  = "Authorization"
 	paramNodeID         = "node_id"
 	paramRequestID      = "X-Request-Id"
+	versionID           = "version_id"
 	defaultResourceName = "default"
 )
 
@@ -290,6 +293,10 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", paramDbName, paramSpaceName), c.updateSpace)
 	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s", paramDbName, paramSpaceName), c.backupSpace)
 	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s", paramDbName), c.backupDb)
+	groupAuth.GET(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s/versions/:%s/progress", paramDbName, paramSpaceName, versionID), c.getBackupProgress)
+	groupAuth.GET(fmt.Sprintf("/restore/dbs/:%s/spaces/:%s/progress", paramDbName, paramSpaceName), c.getRestoreProgress)
+	groupAuth.DELETE(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s/versions/:%s", paramDbName, paramSpaceName, versionID), c.deleteBackupVersion)
+	groupAuth.DELETE(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s/versions/:%s/direct", paramDbName, paramSpaceName, versionID), c.deleteBackupVersionDirect)
 
 	// modify engine config handler
 	groupAuth.POST("/config/:"+paramDbName+"/:"+paramSpaceName, c.modifySpaceConfig)
@@ -857,7 +864,8 @@ func (ca *clusterAPI) backupDb(c *gin.Context) {
 
 	res := &entity.BackupSpaceResponse{}
 	for _, space := range spaces {
-		res, err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, space.Name, backup)
+		//res, err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, space.Name, backup)
+		res, err = ca.masterService.Backup().SpaceSnapshot(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, space.Name, backup)
 		if err != nil {
 			err = fmt.Errorf("backup space %s failed, err: %s", space.Name, err.Error())
 			httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
@@ -895,13 +903,230 @@ func (ca *clusterAPI) backupSpace(c *gin.Context) {
 
 	res := &entity.BackupSpaceResponse{}
 
-	res, err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, spaceName, backup)
+	//res, err = ca.masterService.Backup().BackupSpace(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, spaceName, backup)
+	res, err = ca.masterService.Backup().SpaceSnapshot(c, ca.masterService.DB(), ca.masterService.Space(), ca.masterService.Config(), dbName, spaceName, backup)
 	if err != nil {
 		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 		return
 	} else {
 		httpCode = response.New(c).JsonSuccess(res)
 	}
+}
+
+// getBackupProgress gets backup progress
+func (ca *clusterAPI) getBackupProgress(c *gin.Context) {
+	dbName := c.Param(paramDbName)
+	spaceName := c.Param(paramSpaceName)
+	versionIDParam := c.Param(versionID)
+	log.Info("getBackupProgress handler called: dbName=%s, spaceName=%s, versionID=%s, path=%s",
+		dbName, spaceName, versionIDParam, c.Request.URL.Path)
+	if dbName == "" || spaceName == "" || versionIDParam == "" {
+		log.Warn("getBackupProgress: missing parameters, dbName=%s, spaceName=%s, versionID=%s",
+			dbName, spaceName, versionIDParam)
+		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("dbName, spaceName and versionID are required")))
+		return
+	}
+	// Call BackupService to get backup progress
+	progress, err := ca.masterService.Backup().GetBackupProgress(c, dbName, spaceName, versionIDParam)
+	if err != nil {
+		log.Error("getBackupProgress failed: %v", err)
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
+	log.Info("getBackupProgress success: total=%d, completed=%d, ratio=%.2f",
+		progress.TotalTasks, progress.CompletedTasks, progress.SuccessRatio)
+	response.New(c).JsonSuccess(progress)
+}
+
+// getRestoreProgress gets restore progress
+func (ca *clusterAPI) getRestoreProgress(c *gin.Context) {
+	dbName := c.Param(paramDbName)
+	spaceName := c.Param(paramSpaceName)
+	log.Info("getRestoreProgress handler called: dbName=%s, spaceName=%s, path=%s",
+		dbName, spaceName, c.Request.URL.Path)
+	if dbName == "" || spaceName == "" {
+		log.Warn("getRestoreProgress: missing parameters, dbName=%s, spaceName=%s",
+			dbName, spaceName)
+		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("dbName and spaceName are required")))
+		return
+	}
+	// Call BackupService to get restore progress
+	progress, err := ca.masterService.Backup().GetRestoreProgress(c, dbName, spaceName)
+	if err != nil {
+		log.Error("getRestoreProgress failed: %v", err)
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
+	log.Info("getRestoreProgress success: status=%s, total=%d, completed=%d, ratio=%.2f",
+		progress.Status, progress.TotalTasks, progress.CompletedTasks, progress.SuccessRatio)
+	response.New(c).JsonSuccess(progress)
+}
+func (ca *clusterAPI) deleteBackupVersion(c *gin.Context) {
+	dbName := c.Param(paramDbName)
+	spaceName := c.Param(paramSpaceName)
+	versionID := c.Param(versionID)
+	log.Info("deleteBackupVersion handler called: dbName=%s, spaceName=%s, versionID=%s", dbName, spaceName, versionID)
+	if dbName == "" || spaceName == "" || versionID == "" {
+		log.Warn("deleteBackupVersion: missing parameters, dbName=%s, spaceName=%s, versionID=%s", dbName, spaceName, versionID)
+		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("dbName, spaceName and versionID are required")))
+		return
+	}
+	data, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+	backup := &entity.BackupSpaceRequest{}
+	if err := json.Unmarshal(data, backup); err != nil {
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+	if backup.S3Param.BucketName == "" || backup.S3Param.EndPoint == "" {
+		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("S3 parameters (bucket_name, endpoint, access_key, secret_key) are required")))
+		return
+	}
+	err = ca.masterService.Backup().DeleteBackupVersion(c, dbName, spaceName, versionID, backup)
+	if err != nil {
+		log.Error("deleteBackupVersion failed: %v", err)
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
+	log.Info("deleteBackupVersion success: dbName=%s, spaceName=%s, versionID=%s", dbName, spaceName, versionID)
+	response.New(c).JsonSuccess(map[string]string{
+		"message":    "Backup version deleted successfully",
+		"db_name":    dbName,
+		"space_name": spaceName,
+		"version_id": versionID,
+	})
+}
+func (ca *clusterAPI) deleteBackupVersionDirect(c *gin.Context) {
+	dbName := c.Param(paramDbName)
+	spaceName := c.Param(paramSpaceName)
+	versionID := c.Param(versionID)
+	log.Info("deleteBackupVersionDirect handler called: dbName=%s, spaceName=%s, versionID=%s", dbName, spaceName, versionID)
+	if dbName == "" || spaceName == "" || versionID == "" {
+		log.Warn("deleteBackupVersionDirect: missing parameters, dbName=%s, spaceName=%s, versionID=%s", dbName, spaceName, versionID)
+		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("dbName, spaceName and versionID are required")))
+		return
+	}
+	data, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+	backup := &entity.BackupSpaceRequest{}
+	if err := json.Unmarshal(data, backup); err != nil {
+		response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+	if backup.S3Param.BucketName == "" || backup.S3Param.EndPoint == "" {
+		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("S3 parameters (bucket_name, endpoint, access_key, secret_key) are required")))
+		return
+	}
+	minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
+		Secure: backup.S3Param.UseSSL,
+		Region: backup.S3Param.Region,
+	})
+	if err != nil {
+		log.Error("deleteBackupVersionDirect: failed to create minio client: %v", err)
+		response.New(c).JsonError(errors.NewErrInternal(fmt.Errorf("failed to create S3 client: %v", err)))
+		return
+	}
+	clusterName := config.Conf().Global.Name
+	if clusterName == "" {
+		clusterName = "default-cluster"
+	}
+	backupPrefix := strings.Join([]string{clusterName, "backup", dbName, spaceName, versionID}, "/")
+	if !strings.HasSuffix(backupPrefix, "/") {
+		backupPrefix += "/"
+	}
+	objectCh := minioClient.ListObjects(c, backup.S3Param.BucketName, minio.ListObjectsOptions{
+		Prefix:    backupPrefix,
+		Recursive: false,
+		MaxKeys:   1,
+	})
+	backupExists := false
+	for object := range objectCh {
+		if object.Err != nil {
+			log.Warn("deleteBackupVersionDirect: error listing objects: %v", object.Err)
+			continue
+		}
+		backupExists = true
+		break
+	}
+	if !backupExists {
+		log.Warn("deleteBackupVersionDirect: backup version %s not found for space %s/%s, prefix=%s", versionID, dbName, spaceName, backupPrefix)
+		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("backup version %s not found for space %s/%s", versionID, dbName, spaceName)))
+		return
+	}
+	log.Info("deleteBackupVersionDirect: deleting backup directory from S3, prefix=%s, bucket=%s", backupPrefix, backup.S3Param.BucketName)
+	deletedCount, err := ca.deleteS3Directory(c, minioClient, backup.S3Param.BucketName, backupPrefix)
+	if err != nil {
+		log.Error("deleteBackupVersionDirect failed: %v", err)
+		response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
+	if deletedCount == 0 {
+		log.Warn("deleteBackupVersionDirect: no objects deleted for backup version %s, space %s/%s", versionID, dbName, spaceName)
+		response.New(c).JsonError(errors.NewErrBadRequest(fmt.Errorf("backup version %s not found for space %s/%s: no objects to delete", versionID, dbName, spaceName)))
+		return
+	}
+	log.Info("deleteBackupVersionDirect success: dbName=%s, spaceName=%s, versionID=%s, deletedCount=%d", dbName, spaceName, versionID, deletedCount)
+	response.New(c).JsonSuccess(map[string]interface{}{
+		"message":       "Backup version directory deleted successfully from S3",
+		"db_name":       dbName,
+		"space_name":    spaceName,
+		"version_id":    versionID,
+		"deleted_count": deletedCount,
+		"prefix":        backupPrefix,
+	})
+}
+func (ca *clusterAPI) deleteS3Directory(ctx context.Context, minioClient *minio.Client, bucketName, prefix string) (int, error) {
+	objectCh := minioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	})
+	var objectsToDelete []minio.ObjectInfo
+	var deleteErrors []error
+	for object := range objectCh {
+		if object.Err != nil {
+			log.Error("deleteS3Directory: error listing objects: %v", object.Err)
+			return 0, fmt.Errorf("failed to list objects: %v", object.Err)
+		}
+		objectsToDelete = append(objectsToDelete, object)
+	}
+	if len(objectsToDelete) == 0 {
+		log.Info("deleteS3Directory: no objects found with prefix %s", prefix)
+		return 0, nil
+	}
+	log.Info("deleteS3Directory: found %d objects to delete with prefix %s", len(objectsToDelete), prefix)
+	batchSize := 1000
+	for i := 0; i < len(objectsToDelete); i += batchSize {
+		end := i + batchSize
+		if end > len(objectsToDelete) {
+			end = len(objectsToDelete)
+		}
+		batch := objectsToDelete[i:end]
+		objectsCh := make(chan minio.ObjectInfo, len(batch))
+		for _, obj := range batch {
+			objectsCh <- obj
+		}
+		close(objectsCh)
+		errorCh := minioClient.RemoveObjects(ctx, bucketName, objectsCh, minio.RemoveObjectsOptions{})
+		for err := range errorCh {
+			if err.Err != nil {
+				log.Error("deleteS3Directory: failed to delete object %s: %v", err.ObjectName, err.Err)
+				deleteErrors = append(deleteErrors, fmt.Errorf("failed to delete %s: %v", err.ObjectName, err.Err))
+			}
+		}
+	}
+	if len(deleteErrors) > 0 {
+		log.Error("deleteS3Directory: encountered %d errors during deletion", len(deleteErrors))
+		return len(objectsToDelete) - len(deleteErrors), fmt.Errorf("encountered %d errors during deletion: %v", len(deleteErrors), deleteErrors[0])
+	}
+	log.Info("deleteS3Directory: successfully deleted %d objects with prefix %s", len(objectsToDelete), prefix)
+	return len(objectsToDelete), nil
 }
 
 func (ca *clusterAPI) ResourceLimit(c *gin.Context) {

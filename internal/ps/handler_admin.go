@@ -42,6 +42,7 @@ import (
 	"github.com/vearch/vearch/v3/internal/pkg/server/rpc/handler"
 	json "github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	backuppkg "github.com/vearch/vearch/v3/internal/ps/backup"
 	"github.com/vearch/vearch/v3/internal/router/document"
 )
 
@@ -75,6 +76,9 @@ func ExportToRpcAdminHandler(server *Server) {
 		{client.ResourceLimitHandler, &ResourceLimitHandler{server: server}, false},
 		{client.MemoryLimitHandler, &MemoryLimitHandler{server: server}, false},
 		{client.RequestCancelHandler, &RequestCancelHandler{server: server}, false},
+		{client.IncrementBackupHandler, &IncrementBackupHandler{server: server}, false},
+		{client.BackupStatusHandler, &BackupStatusHandler{server: server}, false},
+		{client.DeleteBackupHandler, &DeleteBackupHandler{server: server}, false},
 	}
 
 	for _, h := range handlers {
@@ -1079,4 +1083,194 @@ func (qch *RequestCancelHandler) Execute(ctx context.Context, req *vearchpb.Part
 	}
 
 	return err
+}
+
+type BackupStatusHandler struct {
+	server *Server
+}
+
+func (bsh *BackupStatusHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
+	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
+
+	query := new(entity.BackupStatusQuery)
+	if err := json.Unmarshal(req.Data, query); err != nil {
+		log.Error("Failed to unmarshal backup status query: %v", err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
+	}
+
+	pid := req.PartitionID
+	log.Info("PS received status query: spaceKey=%s, backupID=%s, partitionID=%d, myNodeID=%d",
+		query.SpaceKey, query.BackupID, pid, bsh.server.nodeID)
+
+	backupMgr := bsh.server.GetBackupManager()
+	if backupMgr == nil {
+		log.Error("Backup manager not initialized")
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+			fmt.Errorf("backup manager not initialized"))
+	}
+
+	status, errorMsg, exists := backupMgr.GetBackupTaskStatus(query.SpaceKey, query.BackupID, pid)
+	log.Info("BackupTaskStatus result: spaceKey=%s, backupID=%s, partitionID=%d, status=%d, exists=%v, errorMsg=%s",
+		query.SpaceKey, query.BackupID, pid, status, exists, errorMsg)
+
+	response := &entity.BackupStatusResponse{
+		Exists:       exists,
+		Status:       status,
+		ErrorMessage: errorMsg,
+	}
+
+	reply.Data, err = json.Marshal(response)
+	if err != nil {
+		log.Error("Failed to marshal backup status response: %v", err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+	}
+
+	log.Info("Returning backup status response: exists=%v, status=%d, errorMsg=%s", exists, status, errorMsg)
+	return nil
+}
+
+type DeleteBackupHandler struct {
+	server *Server
+}
+
+// Execute handles delete backup version request
+func (dbh *DeleteBackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
+	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
+
+	request := new(entity.DeleteBackupVersionRequest)
+	if err := json.Unmarshal(req.Data, request); err != nil {
+		log.Error("Failed to unmarshal delete backup request: %v", err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
+	}
+
+	pid := req.PartitionID
+	log.Info("PS received delete backup request: spaceKey=%s, versionID=%s, partitionID=%d, myNodeID=%d",
+		request.SpaceKey, request.VersionID, pid, dbh.server.nodeID)
+
+	// Get backup manager
+	backupMgr := dbh.server.GetBackupManager()
+	if backupMgr == nil {
+		log.Error("Backup manager not initialized")
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+			fmt.Errorf("backup manager not initialized"))
+	}
+
+	if err := backupMgr.DeleteBackupVersion(ctx, request.SpaceKey, request.VersionID); err != nil {
+		log.Error("Failed to delete backup version %s: %v", request.VersionID, err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+	}
+
+	log.Info("Successfully deleted backup version: spaceKey=%s, versionID=%s, partitionID=%d",
+		request.SpaceKey, request.VersionID, pid)
+	return nil
+}
+
+type IncrementBackupHandler struct {
+	server *Server
+}
+
+func (bh *IncrementBackupHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) (err error) {
+	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
+	log.Debug("begin rpc incrementBackup")
+
+	backup := new(entity.BackupOrRestoreRequest)
+	if err := json.Unmarshal(req.Data, backup); err != nil {
+		log.Error("Failed to unmarshal backup request: %v", err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
+	}
+
+	if backup.Command != "backup" && backup.Command != "restore" {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unknow command %s", backup.Command))
+	}
+
+	pid := req.PartitionID
+	log.Info("Received incremental backup request for partition %d, backup ID %s", pid, backup.BackupID)
+
+	partitionStore := bh.server.GetPartition(pid)
+	if partitionStore == nil {
+		log.Error("Partition %d not found", pid)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST,
+			fmt.Errorf("partition %d not found", pid))
+	}
+
+	space := partitionStore.GetSpace()
+
+	dbName, err := bh.server.client.Master().QueryDBId2Name(ctx, space.DBId)
+	if err != nil {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("find db by id err: %s, data: %d", err.Error(), space.DBId))
+	}
+
+	spaceKey := fmt.Sprintf("%s-%s", dbName, space.Name)
+
+	backupMgr := bh.server.GetBackupManager()
+	if backupMgr == nil {
+		log.Info("Backup manager not initialized, creating from request S3 config")
+		backupMgr, err = bh.initBackupManagerFromRequest(backup)
+		if err != nil {
+			log.Error("Failed to initialize backup manager: %v", err)
+			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+				fmt.Errorf("failed to initialize backup manager: %v", err))
+		}
+		bh.server.SetBackupManager(backupMgr)
+	}
+
+	if backup.Command == "backup" {
+		// Start backup task
+		// Get backup type, default to full backup
+		backupType := backup.BackupType
+		if backupType == "" {
+			backupType = "full"
+		}
+		if err := backupMgr.StartPartitionBackup(spaceKey, backup.BackupID, backup.VersionID, pid, backupType); err != nil {
+			log.Error("Failed to start backup for partition %d: %v", pid, err)
+			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+		}
+	} else {
+		// Start restore task
+		s3PartitionID := pid
+		if backup.S3PartitionID > 0 {
+			s3PartitionID = backup.S3PartitionID
+			log.Info("Using S3 partition ID %d for restore (current partition ID: %d)", s3PartitionID, pid)
+		}
+		sourceClusterName := backup.SourceClusterName
+		if sourceClusterName == "" {
+			sourceClusterName = config.Conf().Global.Name
+			if sourceClusterName == "" {
+				log.Error("Cluster name is required for restore operation but is empty")
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+					fmt.Errorf("cluster name is required for restore operation but is empty"))
+			}
+		}
+		if err := backupMgr.StartPartitionRestore(spaceKey, backup.BackupID, backup.VersionID, pid, s3PartitionID, sourceClusterName); err != nil {
+			log.Error("Failed to start restore for partition %d: %v", pid, err)
+			return vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, err)
+		}
+	}
+
+	log.Info("Incremental backup request accepted for partition %d, will be processed asynchronously", pid)
+
+	return nil
+}
+
+func (bh *IncrementBackupHandler) initBackupManagerFromRequest(backup *entity.BackupOrRestoreRequest) (BackupManager, error) {
+	minioClient, err := minio.New(backup.S3Param.EndPoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(backup.S3Param.AccessKey, backup.S3Param.SecretKey, ""),
+		Secure: backup.S3Param.UseSSL,
+		Region: backup.S3Param.Region,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create minio client: %v", err)
+	}
+
+	clusterName := config.Conf().Global.Name
+	if clusterName == "" {
+		log.Error("Cluster name is required for backup operation but is empty")
+		return nil, fmt.Errorf("cluster name is required for backup operation but is empty")
+	}
+	getPartitionFunc := func(id entity.PartitionID) backuppkg.PartitionStore {
+		return bh.server.GetPartition(id)
+	}
+	shardMgr := backuppkg.NewPSShardManager(getPartitionFunc, minioClient, backup.S3Param.BucketName, clusterName)
+
+	return shardMgr, nil
 }

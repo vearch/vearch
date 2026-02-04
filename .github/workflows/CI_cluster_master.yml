@@ -189,6 +189,34 @@ jobs:
         pytest test_cluster_master.py -x -k "TestClusterMasterOperate" --log-cli-level=INFO
         pytest test_vearch.py -x -k "test_vearch_basic_usage" --log-cli-level=INFO
 
+    - name: Run cluster backup and restore tests
+      run: |
+        mkdir -p test/oss_data
+        docker run -d --name minio -p 10000:9000 --network vearch_network_cluster minio/minio server test/oss_data
+        wget -q https://dl.min.io/client/mc/release/linux-amd64/mc
+        chmod +x mc
+        retry=0
+        max_retries=10
+        until ./mc alias set myminio http://127.0.0.1:10000 minioadmin minioadmin; do
+          retry=$((retry+1))
+          if [ $retry -gt $max_retries ]; then
+            echo "Failed to set minio alias after $max_retries attempts."
+            exit 1
+          fi
+          echo "Retry $retry/$max_retries: Failed to set minio alias. Retrying in 5 seconds..."
+          sleep 5
+        done
+        ./mc mb myminio/test || true
+        
+        # Run cluster backup and restore tests
+        cd test
+        pytest test_cluster_backup.py -x --log-cli-level=INFO
+        
+        # Cleanup minio
+        cd ..
+        docker stop minio || true
+        docker rm minio || true
+
     - name: Clean cluster
       run: |
         docker-compose -f cloud/docker-compose.yml --profile cluster stop
