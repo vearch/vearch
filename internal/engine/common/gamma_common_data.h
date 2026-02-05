@@ -24,8 +24,9 @@ const float GAMMA_INDEX_RECALL_RATIO = 1.0f;
 const int min_points_per_centroid = 39;
 const int default_points_per_centroid = 200;
 const int max_points_per_centroid = 256;
-const int defautMemoryBufferSegmentSize = 100000;
+const int DEFAULT_MEMORY_BUFFER_SEGMENT_SIZE = 100000;
 const int brute_force_search_threshold = 100;
+const int ADD_COUNT_THRESHOLD = 100000;
 
 enum class VectorStorageType : std::uint8_t { MemoryOnly, MemoryBuffer, RocksDB };
 

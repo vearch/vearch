@@ -23,10 +23,11 @@ search_num = 10
 class VearchCase:
     logger.info("test class")
 
-    def setup_class(self, training_threshold: int, index_type: str, store_type: str):
+    def setup_class(self, training_threshold: int, index_type: str, store_type: str, enable_realtime: bool = False):
         self.training_threshold = training_threshold
         self.index_type = index_type
         self.store_type = store_type
+        self.enable_realtime = enable_realtime
 
     logging.info("cluster_information")
 
@@ -148,6 +149,7 @@ class VearchCase:
                     },
                 },
             ],
+            "enable_realtime": self.enable_realtime,
         }
         logger.debug(router_url + "---" + json.dumps(data))
         response = create_space(router_url, db_name, data)
@@ -569,6 +571,21 @@ class VearchCase:
 def test_vearch_basic_usage(training_threshold: int, index_type: str, store_type: str):
     case = VearchCase()
     case.setup_class(training_threshold, index_type, store_type)
+    case.run_basic_usage_test()
+
+
+@pytest.mark.parametrize(
+    ["training_threshold", "index_type"],
+    [
+        [1, "FLAT"],
+        [990, "IVFPQ"],
+        [1, "HNSW"],
+        [990, "IVFFLAT"],
+    ],
+)
+def test_vearch_basic_usage_with_realtime(training_threshold: int, index_type: str):
+    case = VearchCase()
+    case.setup_class(training_threshold, index_type, "", True)
     case.run_basic_usage_test()
 
 

@@ -134,7 +134,7 @@ int make_dir(const char *path) {
   return 0;
 }
 
-int remove_dir(const char *path) {
+int remove_dir(const char *path, bool delete_self) {
   DIR *d = opendir(path);
   size_t path_len = strlen(path);
   int r = -1;
@@ -179,7 +179,7 @@ int remove_dir(const char *path) {
     closedir(d);
   }
 
-  if (!r) {
+  if (!r && delete_self) {
     r = rmdir(path);
   }
 

@@ -62,8 +62,8 @@ var (
 
 var ConfigInfo = &Config{
 	RouterCount:        0.0,
-	RequestLimitConfig: &RequestLimitCfg{},
-	MemoryLimitConfig:  &MemoryLimitCfg{},
+	RequestLimitConfig: &RequestLimitCfg{true, DefaultReadRequestLimitCount, DefaultWriteRequestLimitCount},
+	MemoryLimitConfig:  &MemoryLimitCfg{true, DefaultRouterMemoryLimitPercent, DefaultPsMemoryLimitPercent},
 }
 
 func SetRequestLimit(requestLimit *RequestLimitCfg) {
@@ -78,7 +78,6 @@ func SetRequestLimit(requestLimit *RequestLimitCfg) {
 
 		if requestLimit.TotalWriteLimit > 0 {
 			ConfigInfo.RequestLimitConfig.TotalWriteLimit = requestLimit.TotalWriteLimit
-
 		} else {
 			ConfigInfo.RequestLimitConfig.TotalWriteLimit = DefaultWriteRequestLimitCount
 		}

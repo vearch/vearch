@@ -16,7 +16,7 @@ class MemoryBufferRawVector : public MemoryRawVector {
 
   int InitStore(std::string &vec_name) override;
 
-  int SetStartSegmentId(int vid);
+  int SetStartSegmentId(int indexed_count);
 
   int GetStartSegmentId();
 
@@ -26,20 +26,23 @@ class MemoryBufferRawVector : public MemoryRawVector {
 
   int GetSegmentSize() { return segment_size_; }
 
+  int UpdateToStore(int64_t vid, uint8_t *v, int len) override;
+
   // Load data into segments from a given range
-  Status Load(int64_t start_vid, int64_t end_vid, int64_t &disk_vec_num);
+  Status Load(int64_t vec_indexed_count, int64_t vec_size, int64_t disk_vec_num);
 
   void IncrementSegmentRef(int segment_id);
   void DecrementSegmentRef(int segment_id);
 
 private:
   void ReleaseExpiredSegments(int start_segment_id_);
-  int ExtendSegments();
+  int ExtendSegments() override;
 
   std::atomic<int> start_segment_id_;          // Valid segment start ID
   std::atomic<int> indexed_count_;          
-  std::atomic<int> *segment_ref_counts_;       // Reference counts for each segment
+  std::atomic<int> *segment_ref_counts_;       // Reference counts for each segment, -1 as delete
   std::atomic<int> last_expired_segment_id_;   // Last expired segment ID
+  int add_count_;
 };
 
 }  // namespace vearch

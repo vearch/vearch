@@ -18,12 +18,22 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"fmt"
+	"runtime/debug"
+	"strings"
+	"sync"
 	"time"
 
+	"github.com/patrickmn/go-cache"
+	"github.com/spf13/cast"
 	"github.com/vearch/vearch/v3/internal/client"
+	"github.com/vearch/vearch/v3/internal/config"
 	"github.com/vearch/vearch/v3/internal/entity"
+	"github.com/vearch/vearch/v3/internal/monitor"
 	"github.com/vearch/vearch/v3/internal/pkg/log"
+	"github.com/vearch/vearch/v3/internal/pkg/vjson"
 	"github.com/vearch/vearch/v3/internal/proto/vearchpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
@@ -156,4 +166,192 @@ func (s *Server) WatchServerJob(ctx context.Context, cli *client.Client) error {
 		return err
 	}
 	return nil
+}
+
+type clientCache struct {
+	sync.Map
+	cli        *client.Client
+	cancel     context.CancelFunc
+	lock       sync.Mutex
+	spaceCache *cache.Cache
+}
+
+type watcherJob struct {
+	ctx    context.Context
+	prefix string
+	cli    *client.Client
+	wg     sync.WaitGroup
+	cache  *cache.Cache
+	put    func(key, value []byte) (err error)
+	delete func(key string) (err error)
+}
+
+func (cliCache *clientCache) initSpace(ctx context.Context) error {
+	spaces, err := cliCache.cli.Master().QuerySpacesByKey(ctx, entity.PrefixSpace)
+	if err != nil {
+		return err
+	}
+	for _, s := range spaces {
+		db, err := cliCache.cli.Master().QueryDBId2Name(ctx, s.DBId)
+		if err != nil {
+			log.Error("init spaces cache dbid to id err , err:[%s]", err.Error())
+			continue
+		}
+
+		if s.ResourceName != config.Conf().Global.ResourceName {
+			log.Debug("space name [%s] resource name don't match [%s], [%s], space init ignore. ",
+				s.Name, s.ResourceName, config.Conf().Global.ResourceName)
+			continue
+		}
+
+		cliCache.lock.Lock()
+		if err := cliCache.spaceCache.Add(client.CacheSpaceKey(db, s.Name), s, cache.NoExpiration); err != nil {
+			log.Error(err.Error())
+		}
+		cliCache.lock.Unlock()
+	}
+	return nil
+}
+
+// WatchSpaceJob watch space put and delete
+func (s *Server) WatchSpaceJob(ctx context.Context, cli *client.Client) error {
+	_, cancel := context.WithCancel(ctx)
+
+	cc := &clientCache{
+		cli:        cli,
+		cancel:     cancel,
+		spaceCache: cache.New(cache.NoExpiration, cache.NoExpiration),
+	}
+
+	// init space
+	if err := cc.initSpace(ctx); err != nil {
+		return err
+	}
+	spaceJob := watcherJob{ctx: ctx, prefix: entity.PrefixSpace, cli: cli, cache: cc.spaceCache,
+		put: func(key, value []byte) (err error) {
+			space := &entity.Space{}
+			if err := vjson.Unmarshal(value, space); err != nil {
+				return err
+			}
+			if space.ResourceName != config.Conf().Global.ResourceName {
+				log.Debug("space name [%s] resource name don't match [%s], [%s] add cache ignore.",
+					space.Name, space.ResourceName, config.Conf().Global.ResourceName)
+				return nil
+			}
+			dbName, err := cli.Master().QueryDBId2Name(ctx, space.DBId)
+			if err != nil {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("find db by id err: %s, data: %s", err.Error(), string(value)))
+			}
+			ckey := client.CacheSpaceKey(dbName, space.Name)
+			if oldValue, b := cc.spaceCache.Get(ckey); !b || space.Version > oldValue.(*entity.Space).Version {
+				cc.lock.Lock()
+				cc.spaceCache.Set(ckey, space, cache.NoExpiration)
+				log.Debug("space name [%s] , [%s], [%s] add to cache.",
+					space.Name, space.ResourceName, config.Conf().Global.ResourceName)
+				cc.lock.Unlock()
+			}
+			return nil
+		},
+		delete: func(key string) (err error) {
+			spaceSplit := strings.Split(key, "/")
+			dbIDStr := spaceSplit[len(spaceSplit)-2]
+			dbID := cast.ToInt64(dbIDStr)
+			spaceIDStr := spaceSplit[len(spaceSplit)-1]
+			spaceID := cast.ToInt64(spaceIDStr)
+			dbName, err := cli.Master().QueryDBId2Name(ctx, dbID)
+			if err != nil {
+				log.Error("find db by id err: %s, dbId: %d", err.Error(), dbID)
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("find db by id err: %s, , dbId: %d", err.Error(), dbID))
+			}
+			for k, v := range cc.spaceCache.Items() {
+				if v.Object.(*entity.Space).DBId == dbID && v.Object.(*entity.Space).Id == spaceID {
+					cc.lock.Lock()
+					pidMap := make([]entity.PartitionID, 0)
+					for _, partition := range v.Object.(*entity.Space).Partitions {
+						pidMap = append(pidMap, partition.Id)
+					}
+					log.Debug("space delete detected, db name : %s, dbID:[%d], space name : %s, space id : %d,  remove related metrics:%v", dbName, dbID, v.Object.(*entity.Space).Name, spaceID, pidMap)
+					monitor.RemoveUselessSpaceAndPartitionMetrics(dbName, v.Object.(*entity.Space).Name, pidMap)
+					cc.spaceCache.Delete(k)
+					cc.lock.Unlock()
+
+					break
+				}
+			}
+			return nil
+		},
+	}
+	spaceJob.start()
+	return nil
+}
+
+func (wj *watcherJob) start() {
+	go func() {
+		defer func() {
+			if rErr := recover(); rErr != nil {
+				log.Error("recover() err:[%v]", rErr)
+				log.Error("stack:[%s]", debug.Stack())
+			}
+		}()
+		for {
+			select {
+			case <-wj.ctx.Done():
+				log.Debug("watchjob job to stop %s", wj.prefix)
+				return
+			default:
+				log.Debug("start watcher routine %s", wj.prefix)
+			}
+
+			wj.wg.Add(1)
+			go func() {
+				defer func() {
+					if rErr := recover(); rErr != nil {
+						log.Error("recover() err:[%v]", rErr)
+						log.Error("stack:[%s]", debug.Stack())
+					}
+				}()
+				defer wj.wg.Done()
+
+				select {
+				case <-wj.ctx.Done():
+					log.Debug("watchjob job to stop %s", wj.prefix)
+					return
+				default:
+				}
+
+				watcher, err := wj.cli.Master().WatchPrefix(wj.ctx, wj.prefix)
+
+				if err != nil {
+					log.Error("watch prefix:[%s] err", wj.prefix)
+					time.Sleep(1 * time.Second)
+					return
+				}
+
+				for reps := range watcher {
+					if reps.Canceled {
+						log.Error("chan is closed by server watcher job")
+						return
+					}
+
+					for _, event := range reps.Events {
+						switch event.Type {
+						case mvccpb.PUT:
+							err := wj.put(event.Kv.Key, event.Kv.Value)
+							if err != nil {
+								log.Error("change cache %s, err: %s , content: %s", wj.prefix, err.Error(), string(event.Kv.Value))
+							}
+
+						case mvccpb.DELETE:
+							err := wj.delete(string(event.Kv.Key))
+							if err != nil {
+								log.Error("delete cache %s, err: %s , content: %s", wj.prefix, err.Error(), string(event.Kv.Value))
+							}
+						}
+					}
+				}
+			}()
+
+			wj.wg.Wait()
+		}
+	}()
 }

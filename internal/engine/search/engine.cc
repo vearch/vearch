@@ -729,7 +729,7 @@ int Engine::AddOrUpdate(Doc &doc) {
   }
 #ifdef PERFORMANCE_TESTING
   double end = utils::getmillisecs();
-  if (max_docid_ % 10000 == 0) {
+  if (max_docid_ % ADD_COUNT_THRESHOLD == 0) {
     LOG(DEBUG) << space_name_ << " table cost [" << end_table - start
                << "]ms, vec store cost [" << end - end_table
                << "]ms, max_docid_=" << max_docid_;
@@ -1178,7 +1178,9 @@ int Engine::Dump() {
     char tm_str[100];
     std::strftime(tm_str, sizeof(tm_str), date_time_format_.c_str(),
                   std::localtime(&t));
-
+    if (!utils::isFolderExist(dump_path_.c_str())) {
+      mkdir(dump_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    }
     std::string path = dump_path_ + "/" + tm_str;
     if (!utils::isFolderExist(path.c_str())) {
       mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);

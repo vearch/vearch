@@ -204,9 +204,9 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 					RequestId: c.GetHeader(paramRequestID),
 					Msg:       "get response data error",
 				}
-				res := &response.Response{}
-				res.SetHttpReply(httpReply)
-				res.SetHttpStatus(http.StatusInternalServerError)
+				httpResp = &response.Response{}
+				httpResp.SetHttpReply(httpReply)
+				httpResp.SetHttpStatus(http.StatusInternalServerError)
 			}
 			resultCh <- httpResp
 		}()
@@ -717,10 +717,14 @@ func (ca *clusterAPI) deleteSpace(c *gin.Context) {
 	dbName = c.Param(paramDbName)
 	spaceName = c.Param(paramSpaceName)
 
-	if err := ca.masterService.Space().DeleteSpace(c, ca.masterService.Alias(), dbName, spaceName); err != nil {
+	pids := make([]entity.PartitionID, 0)
+	if err := ca.masterService.Space().DeleteSpace(c, ca.masterService.Alias(), dbName, spaceName, pids); err != nil {
 		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
 	} else {
+		log.Debug("delete space success, db: %s, space: %s", dbName, spaceName)
 		httpCode = response.New(c).SuccessDelete()
+		log.Debug("remove useless space and partition metrics, db: %s, space: %s", dbName, spaceName)
+		monitor.RemoveUselessSpaceAndPartitionMetrics(dbName, spaceName, pids)
 	}
 }
 

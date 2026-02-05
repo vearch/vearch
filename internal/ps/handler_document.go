@@ -178,7 +178,7 @@ func (handler *UnaryHandler) Execute(ctx context.Context, req *vearchpb.Partitio
 		reply.PartitionID = req.PartitionID
 		reply.MessageID = req.MessageID
 		reply.Items = req.Items
-		msg := fmt.Sprintf("request time out[%dms]", timeout)
+		msg := fmt.Sprintf("request of method[%s] time out[%dms]", method, timeout)
 		reply.Err = vearchpb.NewError(vearchpb.ErrorEnum_TIMEOUT, errors.New(msg)).GetError()
 		log.Error(msg)
 		code = vearchpb.ErrorEnum_TIMEOUT

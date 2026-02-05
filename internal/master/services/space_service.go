@@ -247,7 +247,7 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 	return nil
 }
 
-func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName, spaceName string) error {
+func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName, spaceName string, pids []entity.PartitionID) error {
 	masterClient := s.client.Master()
 	databaseID, err := masterClient.QueryDBName2ID(ctx, dbName)
 	if err != nil {
@@ -280,6 +280,7 @@ func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName
 
 	// delete partition and partitionKey
 	for _, partition := range space.Partitions {
+		pids = append(pids, partition.Id)
 		for _, replicaID := range partition.Replicas {
 			if server, err := masterClient.QueryServer(ctx, replicaID); err != nil {
 				log.Error("query partition:[%d] for replica:[%d] has err:[%s]", partition.Id, replicaID, err.Error())
@@ -305,6 +306,13 @@ func (s *SpaceService) DeleteSpace(ctx context.Context, as *AliasService, dbName
 
 func (s *SpaceService) DescribeSpace(ctx context.Context, space *entity.Space, spaceInfo *entity.SpaceInfo, detail_info bool) (int, error) {
 	spaceStatus := 0
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("panic occurred: %v", r)
+			spaceInfo.Errors = append(spaceInfo.Errors, fmt.Sprintf("get space info panic"))
+			spaceStatus = 2
+		}
+	}()
 	statusColors := []string{"green", "yellow", "red"}
 	spaceInfo.Errors = make([]string, 0)
 	masterClient := s.client.Master()

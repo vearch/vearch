@@ -9,8 +9,8 @@ namespace vearch {
                            bitmap::BitmapManager *docids_bitmap, StorageManager *storage_mgr,
                            int cf_id)
     : MemoryRawVector(meta_info, store_params, docids_bitmap, storage_mgr, cf_id), 
-    start_segment_id_(0), indexed_count_(0), last_expired_segment_id_(0) {
-    segment_size_ = defautMemoryBufferSegmentSize;
+    start_segment_id_(0), indexed_count_(0), last_expired_segment_id_(0), add_count_(0) {
+    segment_size_ = DEFAULT_MEMORY_BUFFER_SEGMENT_SIZE;
   }
 
   MemoryBufferRawVector::~MemoryBufferRawVector() {
@@ -48,26 +48,41 @@ int MemoryBufferRawVector::InitStore(std::string &vec_name) {
   }
 
   LOG(INFO) << desc_ << "init memory buffer raw vector success! vector byte size="
-            << vector_byte_size_ << ", " + meta_info_->Name();
+            << vector_byte_size_ << ", vector name=" + meta_info_->Name() << ", vector size="
+            << meta_info_->Size();
   return 0;
 }
 
-int MemoryBufferRawVector::SetStartSegmentId(int vid) {
-  if (vid < indexed_count_) {
-    LOG(WARNING) << desc_ << "SetStartSegmentId vid=" << vid
-                 << " less than current indexed_count_=" << indexed_count_;
+int MemoryBufferRawVector::SetStartSegmentId(int indexed_count) {
+  if (indexed_count < indexed_count_ || indexed_count > MetaInfo()->Size()) {
+    LOG(WARNING) << desc_ << "SetStartSegmentId indexed_count=" << indexed_count
+                 << " greater than current vector size=" << MetaInfo()->Size()
+                 << ", indexed_count_=" << indexed_count_
+                 << ", start_segment_id_=" << start_segment_id_
+                 << ", nsegments_=" << nsegments_;
     return -1;
   }
-  if (vid >= MetaInfo()->Size()) {
-    LOG(WARNING) << desc_ << "SetStartSegmentId vid=" << vid
-                 << " greater than current vector size=" << MetaInfo()->Size();
-    return -2;
+
+  add_count_ += indexed_count - indexed_count_;
+  indexed_count_ = indexed_count;
+  start_segment_id_ = indexed_count / segment_size_;
+
+  if (last_expired_segment_id_ <= start_segment_id_ - 1 && segment_ref_counts_[last_expired_segment_id_].load() >= 0) {
+    ReleaseExpiredSegments(start_segment_id_ - 1);
   }
-  indexed_count_ = vid;
-  start_segment_id_ = vid / segment_size_;
-  if (last_expired_segment_id_ <= start_segment_id_ - 1) {
-    ReleaseExpiredSegments(start_segment_id_);
+  if (start_segment_id_ > 0) {
+    last_expired_segment_id_ = start_segment_id_ - 1;
   }
+
+  if (add_count_ >= ADD_COUNT_THRESHOLD) {
+    LOG(DEBUG) << desc_ << "indexed_count_=" << indexed_count_
+              << ", start_segment_id_=" << start_segment_id_
+              << ", last_expired_segment_id_=" << last_expired_segment_id_
+              << ", nsegments_=" << nsegments_
+              << ", indexed_count_=" << indexed_count_;
+    add_count_ = 0;
+  }
+
   return 0;
 }
 
@@ -95,6 +110,26 @@ void MemoryBufferRawVector::DecrementSegmentRef(int segment_id) {
   }
 }
 
+int MemoryBufferRawVector::UpdateToStore(int64_t vid, uint8_t *v, int len) {
+  // no need to update
+  if (vid < indexed_count_) {
+    return 0;
+  }
+  if (docids_bitmap_->Test(vid)) {
+    return 0;
+  }
+  if (vid >= meta_info_->Size() || vid < 0) {
+    return -1;
+  }
+  if (segment_ref_counts_[vid / segment_size_].load() >= 0) {
+    memcpy((void *)(segments_[vid / segment_size_] +
+      (size_t)vid % segment_size_ * vector_byte_size_),
+      (void *)v, vector_byte_size_);
+  }
+
+  return 0;
+}
+
 int MemoryBufferRawVector::ExtendSegments() {
   if (nsegments_ >= kMaxMemoryBufferSegments) {
     LOG(ERROR) << this->desc_ << "segment number can't be > " << kMaxMemoryBufferSegments;
@@ -113,61 +148,82 @@ int MemoryBufferRawVector::ExtendSegments() {
   return 0;
 }
 
-Status MemoryBufferRawVector::Load(int64_t start_vid, int64_t end_vid, int64_t &disk_vec_num) {
-  if (start_vid >= end_vid) {
-    LOG(ERROR) << desc_ << " start_id=" << start_vid << ", end_id=" << end_vid;
+Status MemoryBufferRawVector::Load(int64_t vec_indexed_count, int64_t vec_size, int64_t disk_vec_num) {
+  if (vec_indexed_count > vec_size || vec_indexed_count < 0) {
+    LOG(ERROR) << desc_ << " vec_indexed_count=" << vec_indexed_count << ", vec_size=" << vec_size;
     return Status::ParamError(desc_ + " invalid load range");
   }
 
-  // load from start_vid so should set start segment id
-  SetStartSegmentId(start_vid);
-  // set segment number according to start_vid
-  nsegments_ = start_segment_id_;
+  // initialize the start segment and parameters
+  if (vec_indexed_count > 0) {
+    indexed_count_ = vec_indexed_count;
+    start_segment_id_ = vec_indexed_count / segment_size_;
+    // nsegment should be start_segment_id_ + 1, because start_segment_id_ is the index of the segment, not the number of the segment
+    // but ExtendSegments will increment nsegments_ by 1, so we need to set nsegments_ to start_segment_id_
+    nsegments_ = start_segment_id_;
+    int ret = ExtendSegments();
+    if (ret != 0) {
+      LOG(ERROR) << desc_ << "extend segments failed, vec_indexed_count=" << vec_indexed_count
+                  << ", nsegments_=" << nsegments_
+                  << ", segment_size_=" << segment_size_;
+      return Status::IOError(desc_ + " extend segments failed");
+    }
+  }
 
   std::unique_ptr<rocksdb::Iterator> it = storage_mgr_->NewIterator(cf_id_);
-  std::string start_key = utils::ToRowKey(start_vid);
+  std::string start_key = utils::ToRowKey(vec_indexed_count);
   it->Seek(rocksdb::Slice(start_key));
-  std::string end_key = utils::ToRowKey(end_vid);
+  std::string end_key = utils::ToRowKey(vec_size);
 
   int64_t n_load = 0;
-  for (auto c = start_vid; c < end_vid; c++, it->Next()) {
+  for (; it->Valid() && it->key().compare(end_key) < 0; it->Next()) {
     rocksdb::Slice current_key = it->key();
-    if (current_key.compare(end_key) >= 0) {
-      break;
-    }
-    if (!it->Valid()) {
-      LOG(ERROR) << desc_
-                 << "memory vector load rocksdb iterator error, current_key="
-                 << current_key.ToString() << ", start_key=" << start_key
-                 << ", end_key=" << end_key << ", c=" << c;
-      break;
+    int64_t vid = utils::FromRowKey(current_key.ToString());
+    if (vid < 0) {
+      LOG(ERROR) << desc_ << "parse row key failed, key=" << current_key.ToString();
+      continue;
     }
     rocksdb::Slice value = it->value();
-    AddToMem(c, (uint8_t *)value.data_, VectorByteSize());
+    AddToMem(vid, (uint8_t *)value.data_, VectorByteSize());
     n_load++;
   }
 
-  MetaInfo()->size_ = end_vid;
-  disk_vec_num = n_load;
-  LOG(INFO) << desc_ << "memory raw vector want to load from [" << start_vid
-            << "] to [" << end_vid
-            << "real load [" << n_load << "]";
+  MetaInfo()->size_ = vec_size;
+  LOG(INFO) << desc_ << "memory raw vector want to load from [" << vec_indexed_count
+            << "] to [" << vec_size
+            << "] real load [" << n_load << "]"
+            << ", disk_vec_num=" << disk_vec_num
+            << ", start_segment_id_=" << start_segment_id_
+            << ", indexed_count_=" << indexed_count_
+            << ", nsegment_=" << nsegments_;
 
   return Status::OK();
 }
 
 void FreeOldBucketPos(uint8_t *old_ptr) { delete[] old_ptr; old_ptr = nullptr; }
 
-void MemoryBufferRawVector::ReleaseExpiredSegments(int start_segment_id) {
-  for (int segment_no = last_expired_segment_id_; segment_no < start_segment_id; segment_no++) {
-    if (segments_[segment_no] != nullptr && segment_ref_counts_[segment_no].load() == 0) {
+void MemoryBufferRawVector::ReleaseExpiredSegments(int end_segment_id) {
+  if (end_segment_id >= nsegments_ || last_expired_segment_id_ < 0 || last_expired_segment_id_ >= nsegments_) {
+    LOG(WARNING) << desc_
+                 << "release expired segments invalid, end_segment_id="
+                 << end_segment_id << ", nsegments_=" << nsegments_
+                 << ", last_expired_segment_id_="
+                 << last_expired_segment_id_;
+    return;
+  }
+  for (int segment_no = last_expired_segment_id_; segment_no <= end_segment_id; segment_no++) {
+    if (segment_ref_counts_[segment_no].load() == 0 && segments_[segment_no] != nullptr) {
       // delay free
       std::function<void(uint8_t *)> func_free =
           std::bind(&FreeOldBucketPos, std::placeholders::_1);
       utils::AsyncWait(1800000, func_free, segments_[segment_no]);
+      // set for deleted
+      segment_ref_counts_[segment_no].fetch_sub(1, std::memory_order_relaxed);
     }
   }
-  last_expired_segment_id_ = start_segment_id - 1;
+  LOG(DEBUG) << desc_ << "release expired segments from last_expired_segment_id_ "
+            << last_expired_segment_id_ << ", to end_segment_id "
+            << end_segment_id << ", nsegments_=" << nsegments_;
 }
 
 }  // namespace vearch

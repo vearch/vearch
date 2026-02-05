@@ -53,20 +53,15 @@ Status MemoryRawVector::Load(int64_t vec_num, int64_t &disk_vec_num) {
   string end_key = utils::ToRowKey(vec_num);
 
   int64_t n_load = 0;
-  for (auto c = 0; c < vec_num; c++, it->Next()) {
+  for (; it->Valid() && it->key().compare(end_key) < 0; it->Next()) {
     rocksdb::Slice current_key = it->key();
-    if (current_key.compare(end_key) >= 0) {
-      break;
-    }
-    if (!it->Valid()) {
-      LOG(ERROR) << desc_
-                 << "memory vector load rocksdb iterator error, current_key="
-                 << current_key.ToString() << ", start_key=" << start_key
-                 << ", end_key=" << end_key << ", c=" << c;
-      break;
+    int64_t vid = utils::FromRowKey(current_key.ToString());
+    if (vid < 0) {
+      LOG(ERROR) << desc_ << "parse row key failed, key=" << current_key.ToString();
+      continue;
     }
     rocksdb::Slice value = it->value();
-    AddToMem(c, (uint8_t *)value.data_, VectorByteSize());
+    AddToMem(vid, (uint8_t *)value.data_, VectorByteSize());
     n_load++;
   }
 
@@ -156,7 +151,10 @@ int MemoryRawVector::DeleteFromStore(int64_t vid) {
 
 int MemoryRawVector::AddToMem(int64_t vid, uint8_t *v, int len) {
   assert(len == vector_byte_size_);
-  if ((vid / segment_size_ >= nsegments_) && ExtendSegments()) return -2;
+  // load will not add consecutive
+  while (vid / segment_size_ >= nsegments_) {
+    if (ExtendSegments()) return -2;
+  }
   memcpy((void *)(segments_[vid / segment_size_] +
                   (vid % segment_size_) * vector_byte_size_),
          (void *)v, vector_byte_size_);

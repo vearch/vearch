@@ -247,6 +247,11 @@ def benchmark(index_type, xb, xq, gt, enable_realtime=True, check_realtime=True)
 
     check_filter(xq, k, enable_realtime, index_type, check_realtime)
 
+    # update
+    add(total_batch, batch_size, xb, with_id=True)
+    if total - total_batch * batch_size:
+        add(1, total - total_batch * batch_size, xb[total_batch * batch_size:], offset=total_batch * batch_size)
+
     destroy(router_url, db_name, space_name)
 
 
