@@ -297,6 +297,7 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.GET(fmt.Sprintf("/restore/dbs/:%s/spaces/:%s/progress", paramDbName, paramSpaceName), c.getRestoreProgress)
 	groupAuth.DELETE(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s/versions/:%s", paramDbName, paramSpaceName, versionID), c.deleteBackupVersion)
 	groupAuth.DELETE(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s/versions/:%s/direct", paramDbName, paramSpaceName, versionID), c.deleteBackupVersionDirect)
+	groupAuth.POST(fmt.Sprintf("/export/dbs/:%s/spaces/:%s", paramDbName, paramSpaceName), c.exportSpace)
 
 	// modify engine config handler
 	groupAuth.POST("/config/:"+paramDbName+"/:"+paramSpaceName, c.modifySpaceConfig)
@@ -961,6 +962,42 @@ func (ca *clusterAPI) getRestoreProgress(c *gin.Context) {
 		progress.Status, progress.TotalTasks, progress.CompletedTasks, progress.SuccessRatio)
 	response.New(c).JsonSuccess(progress)
 }
+
+// exportSpace exports space data to S3 in JSON format
+func (ca *clusterAPI) exportSpace(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleExportSpace"
+	httpCode := http.StatusOK
+	dbName := ""
+	spaceName := ""
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+	var err error
+	dbName = c.Param(paramDbName)
+	spaceName = c.Param(paramSpaceName)
+	data, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	log.Debug("export space json data is [%+v]", string(data))
+	exportReq := &entity.ExportSpaceRequest{}
+	err = json.Unmarshal(data, exportReq)
+	if err != nil {
+		httpCode = response.New(c).JsonError(errors.NewErrBadRequest(err))
+		return
+	}
+
+	res, err := ca.masterService.Export().ExportSpace(c, dbName, spaceName, exportReq)
+	if err != nil {
+		httpCode = response.New(c).JsonError(errors.NewErrInternal(err))
+		return
+	}
+	httpCode = response.New(c).JsonSuccess(res)
+}
+
 func (ca *clusterAPI) deleteBackupVersion(c *gin.Context) {
 	dbName := c.Param(paramDbName)
 	spaceName := c.Param(paramSpaceName)
