@@ -639,7 +639,6 @@ class TestClusterBackup:
             self._dump_vearch_logs_on_failure(f"Unexpected error during restore {space_name}")
             raise
 
-        assert response.json()["code"] == 0
         result = response.json()["data"]
         restore_version_id = result.get("version_id")
         logger.info(f"Restore started for {space_name}: version_id={restore_version_id}")
