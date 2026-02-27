@@ -202,7 +202,7 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 				httpReply := &response.HttpReply{
 					Code:      int(vearchpb.ErrorEnum_INTERNAL_ERROR),
 					RequestId: c.GetHeader(paramRequestID),
-					Msg:       "get response data error",
+					Msg:       "unsupported operation on master node or service get response data error",
 				}
 				httpResp = &response.Response{}
 				httpResp.SetHttpReply(httpReply)
