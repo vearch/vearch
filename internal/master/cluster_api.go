@@ -198,16 +198,6 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 				}
 			}
 
-			if httpResp == nil {
-				httpReply := &response.HttpReply{
-					Code:      int(vearchpb.ErrorEnum_INTERNAL_ERROR),
-					RequestId: c.GetHeader(paramRequestID),
-					Msg:       "unsupported operation on master node or service get response data error",
-				}
-				httpResp = &response.Response{}
-				httpResp.SetHttpReply(httpReply)
-				httpResp.SetHttpStatus(http.StatusInternalServerError)
-			}
 			resultCh <- httpResp
 		}()
 
@@ -220,7 +210,9 @@ func TimeoutMiddleware(defaultTimeout time.Duration) gin.HandlerFunc {
 					"msg":        "request timeout"})
 			c.Abort()
 		case res := <-resultCh:
-			c.JSON(int(res.GetHttpStatus()), res.GetHttpReply())
+			if res != nil {
+				c.JSON(int(res.GetHttpStatus()), res.GetHttpReply())
+			}
 		}
 	}
 }
