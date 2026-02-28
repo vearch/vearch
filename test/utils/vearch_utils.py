@@ -26,6 +26,7 @@ import numpy as np
 import datetime
 
 router_url = os.getenv("ROUTER_URL", "http://127.0.0.1:9001")
+master_url = os.getenv("MASTER_URL", "http://127.0.0.1:8817")
 db_name = "ts_db"
 space_name = "ts_space"
 username = "root"
@@ -348,6 +349,8 @@ def process_add_error_data(items):
     wrong_vector_feature_type = items[3][11]
     mismatch_field_type = items[3][12]
     wrong_partition_id = items[3][13]
+    upsert_with_master_url = items[3][14]
+    wrong_url_path = items[3][15]
     max_index_str_length = 1025
     max_str_length = 65536
 
@@ -355,6 +358,10 @@ def process_add_error_data(items):
         data["db_name"] = "wrong_db"
     if wrong_space:
         data["space_name"] = "wrong_space"
+    if upsert_with_master_url:
+        url = master_url + "/document/upsert"
+    if wrong_url_path:
+        url = router_url + "/document/insert"
     for j in range(batch_size):
         param_dict = {}
         param_dict["field_int"] = index * batch_size + j
@@ -410,13 +417,15 @@ def process_add_error_data(items):
 
     if not wrong_string_length:
         logger.info(json_str)
-    logger.info(rs.json())
-
-    if "data" in rs.json():
-        for result in rs.json()["data"]["document_ids"]:
-            assert result["code"] != 0
+    if upsert_with_master_url or wrong_url_path:
+        assert rs.status_code == 404
     else:
-        assert rs.status_code != 200
+        logger.info(rs.json())
+        if "data" in rs.json():
+            for result in rs.json()["data"]["document_ids"]:
+                assert result["code"] != 0
+        else:
+            assert rs.status_code != 200
 
 
 def process_add_mul_error_data(items):

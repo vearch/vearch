@@ -242,10 +242,12 @@ class TestDocumentUpsertBadCase:
             [11, "wrong_vector_feature_type"],
             [12, "mismatch_field_type"],
             [13, "wrong partition id"],
+            [14, "upsert_with_master_url"],
+            [15, "wrong_url_path"],
         ],
     )
     def test_vearch_document_upsert_badcase(self, index, wrong_type):
-        wrong_parameters = [False for i in range(14)]
+        wrong_parameters = [False for i in range(16)]
         wrong_parameters[index] = True
         batch_size = 1
         total = 1
