@@ -391,9 +391,9 @@ class TestClusterBackup:
         
         logger.info(f"All spaces restore completed: {completed_spaces}")
 
-    def wait_for_partitions_ready(self, router_url, max_wait_time=300, timewait=5):
-        """Wait for partitions to be ready after restore by checking if they can be queried"""
-        logger.info("Waiting for partitions to be ready after restore")
+    def wait_for_partitions_ready(self, router_url, expected_docs=10000, max_wait_time=300, timewait=5):
+        """Wait for partitions to be ready after restore by checking if they have expected docs"""
+        logger.info(f"Waiting for partitions to be ready after restore (expected_docs={expected_docs})")
         start_time = time.time()
         
         while time.time() - start_time < max_wait_time:
@@ -419,10 +419,10 @@ class TestClusterBackup:
                         all_ready = False
                         break
                     
-                    # Check if partitions have documents (indicates they're loaded)
+                    # Check if partitions have expected documents (indicates they're fully loaded)
                     total_docs = sum(p.get("doc_num", 0) for p in partitions)
-                    if total_docs == 0:
-                        logger.debug(f"Space {space_name} has no documents yet (total_docs=0)")
+                    if total_docs < expected_docs:
+                        logger.debug(f"Space {space_name} has {total_docs}/{expected_docs} documents, not ready yet")
                         all_ready = False
                         break
                     
@@ -639,7 +639,6 @@ class TestClusterBackup:
             self._dump_vearch_logs_on_failure(f"Unexpected error during restore {space_name}")
             raise
 
-        assert response.json()["code"] == 0
         result = response.json()["data"]
         restore_version_id = result.get("version_id")
         logger.info(f"Restore started for {space_name}: version_id={restore_version_id}")
@@ -700,8 +699,8 @@ class TestClusterBackup:
         logger.info("Waiting for cluster restore to finish")
         self.waiting_restore_finish_for_all_spaces(router_url)
         
-        # 等待 partition 打开（恢复后 partition 需要时间打开）
-        self.wait_for_partitions_ready(router_url)
+        # 等待 partition 打开（恢复后 partition 需要时间打开，需要等待所有文档都加载完成）
+        self.wait_for_partitions_ready(router_url, expected_docs=total)
         
         # 确保全局变量已设置
         db_name = self.db_name

@@ -90,15 +90,15 @@ func UpdateEngineCfg(addr string, cfg *entity.SpaceConfig, pid entity.PartitionI
 	return nil
 }
 
-func BackupSpace(addr string, backup *entity.BackupSpaceRequest, pid entity.PartitionID) error {
-	value, err := vjson.Marshal(backup)
+func ExportSpace(addr string, req *entity.ExportSpaceRequest, pid entity.PartitionID) error {
+	value, err := vjson.Marshal(req)
 	if err != nil {
 		return err
 	}
 
 	args := &vearchpb.PartitionData{PartitionID: pid, Data: value, Type: vearchpb.OpType_CREATE}
 	reply := new(vearchpb.PartitionData)
-	err = Execute(addr, BackupHandler, args, reply)
+	err = Execute(addr, ExportHandler, args, reply)
 	if err != nil {
 		return err
 	} else if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {

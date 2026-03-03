@@ -61,6 +61,25 @@ type BackupSpaceResponse struct {
 	VersionID string `json:"version_id,omitempty"`
 }
 
+// ExportSpaceRequest export space request
+type ExportSpaceRequest struct {
+	ExportID int         `json:"export_id,omitempty"`
+	Part     PartitionID `json:"part"`
+	S3Param  struct {
+		Region     string `json:"region"`
+		BucketName string `json:"bucket_name"`
+		EndPoint   string `json:"endpoint"`
+		AccessKey  string `json:"access_key"`
+		SecretKey  string `json:"secret_key"`
+		UseSSL     bool   `json:"use_ssl"`
+	} `json:"s3_param,omitempty"`
+}
+
+// ExportSpaceResponse export space response
+type ExportSpaceResponse struct {
+	ExportID int `json:"export_id,omitempty"`
+}
+
 // BackupProgressResponse backup progress response
 type BackupProgressResponse struct {
 	TotalTasks     int     `json:"total_tasks,omitempty"`     // Total number of tasks

@@ -63,6 +63,7 @@ const (
 	RebuildIndexHandler           = "RebuildIndexHandler"
 	FlushHandler                  = "FlushHandler"
 	BackupHandler                 = "BackupHandler"
+	ExportHandler                 = "ExportHandler"
 	IncrementBackupHandler        = "IncrementBackupHandler"
 	BackupStatusHandler           = "BackupStatusHandler"
 	DeleteBackupHandler           = "DeleteBackupHandler"
