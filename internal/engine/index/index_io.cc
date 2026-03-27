@@ -266,4 +266,32 @@ void read_opq(faiss::VectorTransform *vt, faiss::IOReader *f) {
   READ1(vt->is_trained);
 }
 
+void read_RaBitQuantizer(
+  faiss::RaBitQuantizer* rabitq,
+  faiss::IOReader* f,
+  bool multi_bit) {
+  READ1(rabitq->d);
+  READ1(rabitq->code_size);
+  READ1(rabitq->metric_type);
+
+  if (multi_bit) {
+    READ1(rabitq->nb_bits);
+  } else {
+    rabitq->nb_bits = 1;
+  }
+}
+
+// Write RaBitQuantizer for 1-bit format (backward compatible)
+void write_RaBitQuantizer(
+  const faiss::RaBitQuantizer* rabitq,
+  faiss::IOWriter* f,
+  bool multi_bit) {
+  WRITE1(rabitq->d);
+  WRITE1(rabitq->code_size);
+  WRITE1(rabitq->metric_type);
+  if (multi_bit) {
+    WRITE1(rabitq->nb_bits);
+  }
+}
+
 }  // namespace vearch

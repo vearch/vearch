@@ -39,7 +39,7 @@ class TestSpaceCreate:
 
     @pytest.mark.parametrize(
         ["index_type"],
-        [["FLAT"], ["IVFPQ"], ["IVFFLAT"], ["HNSW"]],
+        [["FLAT"], ["IVFPQ"], ["IVFFLAT"], ["HNSW"], ["IVFRABITQ"]],
     )
     def test_vearch_space_create_without_vector_storetype(self, index_type):
         embedding_size = 128
@@ -86,6 +86,7 @@ class TestSpaceCreate:
                             "metric_type": "InnerProduct",
                             "ncentroids": 2048,
                             "nsubvector": 32,
+                            "nb_bits": 1,
                             "nlinks": 32,
                             "efConstruction": 40,
                             "nprobe": 80,
@@ -116,7 +117,7 @@ class TestSpaceCreate:
 
     @pytest.mark.parametrize(
         ["index_type"],
-        [["FLAT"], ["IVFPQ"], ["IVFFLAT"], ["HNSW"]],
+        [["FLAT"], ["IVFPQ"], ["IVFFLAT"], ["HNSW"], ["IVFRABITQ"]],
     )
     def test_vearch_space_create_empty_index_params(self, index_type):
         embedding_size = 128
@@ -220,6 +221,16 @@ class TestSpaceCreate:
             [22, "duplicate field", "FLAT"],
             [23, "specify field _score", "FLAT"],
             [24, "empty field name", "FLAT"],
+            [25, "beyond max ncentroids", "IVFRABITQ"],
+            [26, "below min ncentroids", "IVFRABITQ"],
+            [27, "bad nprobe", "IVFRABITQ"],
+            [28, "empty index", "IVFRABITQ"],
+            [29, "null index", "IVFRABITQ"],
+            [30, "less than min_training_threshold", "IVFRABITQ"],
+            [31, "nb_bits less than 1", "IVFRABITQ"],
+            [32, "nb_bits greater than 9", "IVFRABITQ"],
+            [33, "qb less than 0", "IVFRABITQ"],
+            [34, "qb greater than 8", "IVFRABITQ"],
         ],
     )
     def test_vearch_space_create_badcase(self, wrong_index, wrong_type, index_type):
@@ -227,6 +238,8 @@ class TestSpaceCreate:
         training_threshold = 70000
         create_space_name = space_name
         replica_num = 1
+        nb_bits = 1
+        qb = 4
         if wrong_index <= 1:
             training_threshold = 1
         if wrong_index == 2:
@@ -242,9 +255,9 @@ class TestSpaceCreate:
         if wrong_index == 6:
             efConstruction = 15
         ncentroids = 2048
-        if wrong_index == 7 or wrong_index == 8:
+        if wrong_index == 7 or wrong_index == 8 or wrong_index == 25:
             ncentroids = 262145
-        if wrong_index == 9 or wrong_index == 10:
+        if wrong_index == 9 or wrong_index == 10 or wrong_index == 26:
             ncentroids = 0
         nsubvector = int(embedding_size / 2)
         if wrong_index == 11:
@@ -253,12 +266,20 @@ class TestSpaceCreate:
         if wrong_index == 12:
             metric_type = "WRONG_TYPE"
         nprobe = 80
-        if wrong_index == 13:
+        if wrong_index == 13 or wrong_index == 27:
             nprobe = 99999
-        if wrong_index == 19 or wrong_index == 20:
+        if wrong_index == 19 or wrong_index == 20 or wrong_index == 30:
             ncentroids = 10
             training_threshold = 100
             nprobe = 1
+        if wrong_index == 31:
+            nb_bits = 0
+        if wrong_index == 32:
+            nb_bits = 10
+        if wrong_index == 33:
+            qb = -1
+        if wrong_index == 34:
+            qb = 9
         space_config = {
             "name": create_space_name,
             "partition_num": 1,
@@ -296,6 +317,8 @@ class TestSpaceCreate:
                             "nsubvector": nsubvector,
                             "nlinks": nlinks,
                             "nprobe": nprobe,
+                            "nb_bits": nb_bits,
+                            "qb": qb,
                             "efConstruction": efConstruction,
                             "training_threshold": training_threshold,
                         },
@@ -303,9 +326,9 @@ class TestSpaceCreate:
                 },
             ],
         }
-        if wrong_index == 14:
+        if wrong_index == 14 or wrong_index == 28:
             space_config["fields"][5]["index"] = {}
-        if wrong_index == 15:
+        if wrong_index == 15 or wrong_index == 29:
             space_config["fields"][5].pop("index")
         if wrong_index == 16:
             field_unspported = {"name": "field_string", "type": "unsupported"}

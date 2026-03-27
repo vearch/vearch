@@ -21,7 +21,7 @@ from utils.vearch_utils import *
 from utils.data_utils import *
 import datetime
 
-__description__ = """ test case for module vector """
+__description__ = """ test case for module field """
 
 
 sift10k = DatasetSift10K()

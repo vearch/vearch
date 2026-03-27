@@ -686,7 +686,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 
 	searchResponse := replyPartition.SearchResponse
 	if r.Err == nil {
-		if searchResponse != nil && searchResponse.Head.Err != nil && searchResponse.Head.Err.GetCode() == vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED {
+		if searchResponse != nil && searchResponse.Head != nil && searchResponse.Head.Err != nil && searchResponse.Head.Err.GetCode() == vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED {
 			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, errors.New("request canceled"))
 			replyPartition.Err = searchResponse.Head.Err
 		} else if searchResponse != nil {
@@ -694,13 +694,16 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 				rpcExecute := rpcEnd.Sub(rpcStart).Seconds() * 1000
 				rpcExecuteStr := strconv.FormatFloat(rpcExecute, 'f', 4, 64)
 
-				if searchResponse.Head.Params != nil {
+				if searchResponse.Head != nil && searchResponse.Head.Params != nil {
 					searchResponse.Head.Params["rpcExecute_"+partitionIDstr] = rpcExecuteStr
 				} else {
-					costTimeMap := make(map[string]string)
-					costTimeMap["rpcExecute_"+partitionIDstr] = rpcExecuteStr
-					responseHead := &vearchpb.ResponseHead{Params: costTimeMap}
-					searchResponse.Head = responseHead
+					if searchResponse.Head == nil {
+						searchResponse.Head = &vearchpb.ResponseHead{}
+					}
+					if searchResponse.Head.Params == nil {
+						searchResponse.Head.Params = make(map[string]string)
+					}
+					searchResponse.Head.Params["rpcExecute_"+partitionIDstr] = rpcExecuteStr
 				}
 			}
 

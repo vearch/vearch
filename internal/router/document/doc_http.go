@@ -53,8 +53,8 @@ const (
 	URLParamUserName    = "user_name"
 	URLParamRoleName    = "role_name"
 	URLParamMemberId    = "member_id"
-	NodeID              = "node_id"
 	URLParamVersionID   = "version_id"
+	NodeID              = "node_id"
 	URLParamRequestID   = "X-Request-Id"
 	defaultTimeout      = 10 * time.Second
 )

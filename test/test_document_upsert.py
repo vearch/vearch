@@ -119,6 +119,131 @@ def test_vearch_document_upsert_benchmark(bulk: bool, with_id: bool, full_field:
     benchmark(0, bulk, with_id, full_field, xb, xq, gt)
 
 
+def test_vearch_document_upsert_with_and_without_id():
+    """Test batch upsert with one document having _id and one without _id, then query to verify."""
+    embedding_size = xb.shape[1]
+    
+    properties = {}
+    properties["fields"] = [
+        {"name": "field_int", "type": "integer"},
+        {"name": "field_long", "type": "long"},
+        {"name": "field_float", "type": "float"},
+        {"name": "field_double", "type": "double"},
+        {
+            "name": "field_string",
+            "type": "string",
+            "index": {"name": "field_string", "type": "SCALAR"},
+        },
+        {
+            "name": "field_vector",
+            "type": "vector",
+            "index": {
+                "name": "gamma",
+                "type": "FLAT",
+                "params": {
+                    "metric_type": "L2",
+                },
+            },
+            "dimension": embedding_size,
+            "store_type": "MemoryOnly",
+        },
+    ]
+
+    create_for_document_test(router_url, embedding_size, properties)
+
+    # Prepare two documents: one with _id, one without _id
+    url = router_url + "/document/upsert"
+    data = {
+        "db_name": db_name,
+        "space_name": space_name,
+        "documents": [
+            {
+                "_id": "test_id_001",
+                "field_int": 100,
+                "field_long": 100,
+                "field_float": 100.0,
+                "field_double": 100.0,
+                "field_string": "test_with_id",
+                "field_vector": xb[0].tolist(),
+            },
+            {
+                "field_int": 200,
+                "field_long": 200,
+                "field_float": 200.0,
+                "field_double": 200.0,
+                "field_string": "test_without_id",
+                "field_vector": xb[1].tolist(),
+            },
+        ],
+    }
+
+    rs = requests.post(url, auth=(username, password), json=data)
+    logger.info(f"Upsert response: {rs.json()}")
+    assert rs.json()["code"] == 0
+    assert rs.json()["data"]["total"] == 2
+    
+    # Get the document_ids returned
+    document_ids = rs.json()["data"]["document_ids"]
+    logger.info(f"Document IDs: {document_ids}")
+    assert len(document_ids) == 2
+
+    # Query by document_ids using document/query interface
+    query_document_ids = []
+    for document_id in document_ids:
+        query_document_ids.append(document_id["_id"])
+    query_url = router_url + "/document/query"
+    query_data = {
+        "db_name": db_name,
+        "space_name": space_name,
+        "document_ids": query_document_ids,
+        "fields": ["field_int", "field_long", "field_float", "field_double", "field_string", "field_vector"],
+    }
+
+    query_rs = requests.post(query_url, auth=(username, password), json=query_data)
+    logger.info(f"Query response: {query_rs.json()}")
+    assert query_rs.json()["code"] == 0
+    
+    documents = query_rs.json()["data"]["documents"]
+    logger.info(f"Queried documents: {documents}")
+    assert len(documents) == 2
+
+    # Verify the document with specified _id
+    doc_with_id = None
+    doc_without_id = None
+    for doc in documents:
+        if doc.get("_id") == "test_id_001":
+            doc_with_id = doc
+        else:
+            doc_without_id = doc
+
+    # Check document with _id
+    assert doc_with_id is not None, "Document with _id should exist"
+    assert doc_with_id["_id"] == "test_id_001"
+    assert doc_with_id["field_int"] == 100
+    assert doc_with_id["field_long"] == 100
+    assert doc_with_id["field_float"] == 100.0
+    assert doc_with_id["field_double"] == 100.0
+    assert doc_with_id["field_string"] == "test_with_id"
+    # Check vector values
+    assert doc_with_id["field_vector"] is not None
+    assert len(doc_with_id["field_vector"]) == embedding_size
+
+    # Check document without _id (should have auto-generated _id)
+    assert doc_without_id is not None, "Document without _id should exist"
+    assert doc_without_id["_id"] != ""
+    assert doc_without_id["field_int"] == 200
+    assert doc_without_id["field_long"] == 200
+    assert doc_without_id["field_float"] == 200.0
+    assert doc_without_id["field_double"] == 200.0
+    assert doc_without_id["field_string"] == "test_without_id"
+    # Check vector values
+    assert doc_without_id["field_vector"] is not None
+    assert len(doc_without_id["field_vector"]) == embedding_size
+
+    # Cleanup
+    destroy(router_url, db_name, space_name)
+
+
 def update(total, bulk, full_field, xb):
     embedding_size = xb.shape[1]
     batch_size = 1

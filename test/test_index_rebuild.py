@@ -162,7 +162,7 @@ class TestIndexRebuildBase:
 
     @pytest.mark.parametrize(
         ["training_threshold", "index_type"],
-        [[1, "FLAT"], [3999, "IVFPQ"], [3999, "IVFFLAT"], [1, "HNSW"]],
+        [[1, "FLAT"], [3999, "IVFPQ"], [3999, "IVFFLAT"], [3999, "IVFRABITQ"], [1, "HNSW"]],
     )
     def test_space_create(self, training_threshold, index_type):
         embedding_size = xb.shape[1]
@@ -215,6 +215,7 @@ class TestIndexRebuildBase:
                             "metric_type": "InnerProduct",
                             "ncentroids": 128,
                             "nsubvector": 32,
+                            "nb_bits": 4,
                             "nlinks": 32,
                             "efConstruction": 40,
                             "training_threshold": training_threshold,
@@ -276,7 +277,7 @@ class TestIndexRebuildWithDelete:
 
     @pytest.mark.parametrize(
         ["training_threshold", "index_type"],
-        [[1, "FLAT"], [9999, "IVFPQ"], [9999, "IVFFLAT"], [1, "HNSW"]],
+        [[1, "FLAT"], [9999, "IVFPQ"], [9999, "IVFFLAT"], [9999, "IVFRABITQ"], [1, "HNSW"]],
     )
     def test_space_create(self, training_threshold, index_type):
         embedding_size = xb.shape[1]
@@ -330,6 +331,7 @@ class TestIndexRebuildWithDelete:
                             "metric_type": "InnerProduct",
                             "ncentroids": 256,
                             "nsubvector": 32,
+                            "nb_bits": 4,
                             "nlinks": 32,
                             "efConstruction": 40,
                             "training_threshold": training_threshold,

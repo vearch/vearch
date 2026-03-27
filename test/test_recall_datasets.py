@@ -107,6 +107,7 @@ sift_xb, sift_xq, sift_gt = get_dataset_by_name("sift")
     ["IVFPQ", "MemoryOnly"],
     ["IVFPQ", "RocksDB"],
     ["IVFFLAT", "RocksDB"],
+    ["IVFRABITQ", "RocksDB"],
     ["FLAT", "MemoryOnly"]
 ])
 def test_vearch_index_recall_sift1m(index_type: str, store_type: str):
@@ -118,6 +119,7 @@ glove_xb, glove_xq, glove_gt = get_dataset_by_name("glove")
     ["IVFPQ", "MemoryOnly"],
     ["IVFPQ", "RocksDB"],
     ["IVFFLAT", "RocksDB"],
+    ["IVFRABITQ", "RocksDB"],
     ["FLAT", "MemoryOnly"]
 ])
 def test_vearch_index_recall_glove(index_type: str, store_type: str):
@@ -126,10 +128,11 @@ def test_vearch_index_recall_glove(index_type: str, store_type: str):
 gist_xb, gist_xq, gist_gt = get_dataset_by_name("gist")
 @ pytest.mark.parametrize(["index_type", "store_type"], [
     ["HNSW", "MemoryOnly"],
-    # ["IVFPQ", "MemoryOnly"],
-    # ["IVFPQ", "RocksDB"],
-    # ["IVFFLAT", "RocksDB"],
-    # ["FLAT", "MemoryOnly"]
+    ["IVFPQ", "MemoryOnly"],
+    ["IVFPQ", "RocksDB"],
+    ["IVFFLAT", "RocksDB"],
+    ["IVFRABITQ", "RocksDB"],
+    ["FLAT", "MemoryOnly"]
 ])
 def test_vearch_index_recall_gist1m(index_type: str, store_type: str):
     benchmark(index_type, store_type, "L2", gist_xb, gist_xq, gist_gt)
