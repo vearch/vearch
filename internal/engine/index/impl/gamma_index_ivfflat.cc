@@ -20,6 +20,7 @@
 
 #include <faiss/IndexFlat.h>
 #include <faiss/IndexIVFFlat.h>
+#include <faiss/IndexHNSW.h>
 #include <faiss/impl/FaissAssert.h>
 #include <faiss/utils/Heap.h>
 #include <faiss/utils/utils.h>
@@ -43,6 +44,10 @@ struct IVFFlatModelParams {
   int bucket_init_size;  // original size of RTInvertIndex bucket
   int bucket_max_size;   // max size of RTInvertIndex bucket
   int training_threshold;
+  bool has_hnsw;
+  int nlinks;          // link number for hnsw graph
+  int efConstruction;  // construction parameter for building hnsw graph
+  int efSearch;        // search parameter for search in hnsw graph
 
   IVFFlatModelParams() {
     ncentroids = 2048;
@@ -50,6 +55,10 @@ struct IVFFlatModelParams {
     metric_type = DistanceComputeType::INNER_PRODUCT;
     bucket_init_size = 1000;
     bucket_max_size = 1280000;
+    has_hnsw = false;
+    nlinks = 32;
+    efConstruction = 200;
+    efSearch = 64;
   }
 
   Status Parse(const char *str) {
@@ -127,6 +136,44 @@ struct IVFFlatModelParams {
         this->metric_type = DistanceComputeType::INNER_PRODUCT;
     }
 
+    utils::JsonParser jp_hnsw;
+    if (!jp.GetObject("hnsw", jp_hnsw)) {
+      has_hnsw = true;
+      int nlinks;
+      int efConstruction;
+      int efSearch;
+      // -1 as default
+      if (!jp_hnsw.GetInt("nlinks", nlinks)) {
+        if (nlinks < -1) {
+          std::string msg =
+              std::string("invalid nlinks = ") + std::to_string(nlinks);
+          LOG(ERROR) << msg;
+          return Status::ParamError(msg);
+        }
+        if (nlinks > 0) this->nlinks = nlinks;
+      }
+
+      if (!jp_hnsw.GetInt("efConstruction", efConstruction)) {
+        if (efConstruction < -1) {
+          std::string msg = std::string("invalid efConstruction = ") +
+                            std::to_string(efConstruction);
+          LOG(ERROR) << msg;
+          return Status::ParamError(msg);
+        }
+        if (efConstruction > 0) this->efConstruction = efConstruction;
+      }
+
+      if (!jp_hnsw.GetInt("efSearch", efSearch)) {
+        if (efSearch < -1) {
+          std::string msg =
+              std::string("invalid efSearch = ") + std::to_string(efSearch);
+          LOG(ERROR) << msg;
+          return Status::ParamError(msg);
+        }
+        if (efSearch > 0) this->efSearch = efSearch;
+      }
+    }
+
     return Status::OK();
   }
 
@@ -139,6 +186,11 @@ struct IVFFlatModelParams {
     ss << "bucket_max_size =" << bucket_max_size << ", ";
     ss << "training_threshold = " << training_threshold;
 
+    if (has_hnsw) {
+      ss << ", hnsw: nlinks=" << nlinks << ", ";
+      ss << "efConstrction=" << efConstruction << ", ";
+      ss << "efSearch=" << efSearch;
+    }
     return ss.str();
   }
 };
@@ -190,7 +242,26 @@ Status GammaIVFFlatIndex::Init(const std::string &model_parameters,
 
   LOG(INFO) << params.ToString();
 
-  quantizer = new faiss::IndexFlatL2(d);
+  metric_type_ = params.metric_type;
+  if (metric_type_ == DistanceComputeType::INNER_PRODUCT) {
+    metric_type = faiss::METRIC_INNER_PRODUCT;
+  } else {
+    metric_type = faiss::METRIC_L2;
+  }
+
+  if (params.has_hnsw == false) {
+    quantizer = new faiss::IndexFlat(d, metric_type);
+    quantizer_type_ = 0;
+  } else {
+    faiss::IndexHNSWFlat *hnsw_flat =
+        new faiss::IndexHNSWFlat(d, params.nlinks, metric_type);
+    hnsw_flat->hnsw.efSearch = params.efSearch;
+    hnsw_flat->hnsw.efConstruction = params.efConstruction;
+    hnsw_flat->hnsw.search_bounded_queue = false;
+    quantizer = hnsw_flat;
+    quantizer_type_ = 1;
+  }
+
   own_fields = false;
   code_size = sizeof(float) * d;
   is_trained = false;
@@ -211,13 +282,6 @@ Status GammaIVFFlatIndex::Init(const std::string &model_parameters,
   this->invlists =
       new realtime::RTInvertedLists(rt_invert_index_ptr_, nlist, code_size);
   own_invlists = false;
-
-  metric_type_ = params.metric_type;
-  if (metric_type_ == DistanceComputeType::INNER_PRODUCT) {
-    metric_type = faiss::METRIC_INNER_PRODUCT;
-  } else {
-    metric_type = faiss::METRIC_L2;
-  }
 
   if ((size_t)params.nprobe <= this->nlist)
     this->nprobe = params.nprobe;
@@ -332,6 +396,7 @@ int GammaIVFFlatIndex::Indexing() {
     del_train_raw_vec.set(train_raw_vec);
     size_t offset = 0;
     for (size_t i = 0; i < headers.Size(); ++i) {
+      n_get += lens[i];
       memcpy((void *)(train_raw_vec + offset), (void *)headers.Get(i),
              sizeof(float) * raw_d * lens[i]);
       offset += sizeof(float) * raw_d * lens[i];
@@ -728,6 +793,14 @@ std::string IVFFlatToString(const faiss::IndexIVFFlat *ivfl) {
      << ", metric_type=" << ivfl->metric_type << ", nlist=" << ivfl->nlist
      << ", nprobe=" << ivfl->nprobe;
 
+  faiss::IndexHNSWFlat *hnsw_flat =
+  dynamic_cast<faiss::IndexHNSWFlat *>(ivfl->quantizer);
+  if (hnsw_flat) {
+    ss << ", hnsw: efSearch=" << hnsw_flat->hnsw.efSearch
+      << ", efConstruction=" << hnsw_flat->hnsw.efConstruction
+      << ", search_bounded_queue=" << hnsw_flat->hnsw.search_bounded_queue;
+  }
+
   return ss.str();
 }
 
@@ -782,6 +855,13 @@ Status GammaIVFFlatIndex::Load(const std::string &dir, int64_t &load_num) {
   assert(h == faiss::fourcc("IvFl"));
   IndexIVFFlat *ivfl = static_cast<IndexIVFFlat *>(this);
   vearch::read_ivf_header(ivfl, f, nullptr);  // not legacy
+
+  faiss::IndexHNSWFlat *hnsw_flat =
+      dynamic_cast<faiss::IndexHNSWFlat *>(ivfl->quantizer);
+  if (hnsw_flat) {
+    hnsw_flat->hnsw.search_bounded_queue = false;
+    quantizer_type_ = 1;
+  }
 
   int64_t indexed_vec_count = 0;
   Status status = ReadInvertedLists(f, rt_invert_index_ptr_, indexed_vec_count);

@@ -195,6 +195,8 @@ struct GammaIVFFlatIndex : faiss::IndexIVFFlat, public GammaFLATIndex {
  private:
   realtime::RTInvertIndex *rt_invert_index_ptr_;
   uint64_t updated_num_;
+  // 0 is FlatL2, 1 is HNSWFlat
+  int quantizer_type_;
 #ifdef PERFORMANCE_TESTING
   int add_count_;
 #endif

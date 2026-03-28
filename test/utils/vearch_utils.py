@@ -1384,8 +1384,8 @@ def waiting_index_finish(total, timewait=5, space_name=space_name):
         for p in partitions:
             num += p["index_num"]
         if num == 0:
-            logger.info("waiting index finish, num is 0, "+response.text)
-        logger.info("index num: %d" % (num))
+            logger.debug("waiting index finish, num is 0, "+response.text)
+        logger.debug("index num: %d" % (num))
         time.sleep(timewait)
 
 
@@ -1543,6 +1543,14 @@ def get_partition(router_url: str, db_name: str, space_name: str):
     return partition_ids
 
 
+def get_partition_with_path(router_url: str, db_name: str, space_name: str):
+    """Get partition info including path."""
+    url = f"{router_url}/cache/dbs/{db_name}/spaces/{space_name}"
+    resp = requests.get(url, auth=(username, password))
+    partition_infos = resp.json()["data"]["partitions"]
+    return partition_infos
+
+
 def get_space_cache(router_url: str, db_name: str, space_name: str):
     url = f"{router_url}/cache/dbs/{db_name}/spaces/{space_name}"
     resp = requests.get(url, auth=(username, password))
@@ -1559,6 +1567,20 @@ def get_cluster_stats(router_url: str):
     url = f"{router_url}/cluster/stats"
     resp = requests.get(url, auth=(username, password))
     return resp
+
+
+def get_partition_path_from_cluster_stats(router_url: str):
+    """Get partition path from cluster stats."""
+    resp = get_cluster_stats(router_url)
+    data = resp.json().get("data", [])
+    # Find the path from fs.paths, usually the first one that contains "Data" or "datas"
+    for node_info in data:
+        fs = node_info.get("fs", {})
+        paths = fs.get("paths", [])
+        for path in paths:
+            if "datas" in path or "Data" in path:
+                return path
+    return ""
 
 
 def get_cluster_health(
@@ -1674,6 +1696,18 @@ def index_rebuild(
         "space_name": space_name,
         "drop_before_rebuild": drop_before_rebuild,
         "partition_id": partition_id,
+    }
+    logger.info(data)
+    resp = requests.post(url, auth=(username, password), json=data)
+    return resp
+
+
+def index_flush(router_url: str, db_name: str, space_name: str):
+    """Flush index to disk."""
+    url = f"{router_url}/index/flush"
+    data = {
+        "db_name": db_name,
+        "space_name": space_name,
     }
     logger.info(data)
     resp = requests.post(url, auth=(username, password), json=data)

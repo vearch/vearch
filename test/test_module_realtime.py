@@ -57,8 +57,9 @@ def create(router_url, index_type, embedding_size, enable_realtime):
         "partition_num": 1,
         "replica_num": 1,
         "fields": properties["fields"],
-        "enable_realtime": enable_realtime,
     }
+    if enable_realtime is not None:
+        space_config["enable_realtime"] = enable_realtime
     response = create_db(router_url, db_name)
     logger.info(response.json())
 
@@ -66,6 +67,10 @@ def create(router_url, index_type, embedding_size, enable_realtime):
     logger.info(response.json())
     assert response.status_code == 200
     assert response.json()["code"] == 0
+    if enable_realtime is not None:
+        assert response.json()["data"]["enable_realtime"] == enable_realtime
+    else:
+        assert response.json()["data"]["enable_realtime"] == False
 
 
 def check_recall(batch, xq, gt, k, enable_realtime):
@@ -221,7 +226,7 @@ def benchmark(index_type, xb, xq, gt, enable_realtime=True, check_realtime=True)
         total_batch = int(total / batch_size) - 1
 
     logger.info(
-        "dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %d, enable_realtime: %d, check_realtime: %d"
+        "dataset num: %d, total_batch: %d, dimension: %d, search num: %d, topK: %s, enable_realtime: %s, check_realtime: %s"
         % (
             total,
             total_batch,
@@ -264,6 +269,7 @@ gt = sift10k.get_groundtruth()
     ["enable_realtime", "check_realtime"],
     [
         [True, True],
+        [None, False],
         [True, False],
         [False, True],
         [False, False],
@@ -276,6 +282,7 @@ def test_vearch_index_flat(enable_realtime, check_realtime):
     ["enable_realtime", "check_realtime"],
     [
         [True, True],
+        [None, False],
         [True, False],
         [False, True],
         [False, False],
@@ -288,6 +295,7 @@ def test_vearch_index_ivfpq(enable_realtime, check_realtime):
     ["enable_realtime", "check_realtime"],
     [
         [True, True],
+        [None, False],
         [True, False],
         [False, True],
         [False, False],
@@ -300,6 +308,20 @@ def test_vearch_index_ivfflat_l2(enable_realtime, check_realtime):
     ["enable_realtime", "check_realtime"],
     [
         [True, True],
+        [None, False],
+        [True, False],
+        [False, True],
+        [False, False],
+    ],
+)
+def test_vearch_index_ivfrabitq_l2(enable_realtime, check_realtime):
+    benchmark("IVFRABITQ", xb, xq, gt, enable_realtime, check_realtime)
+
+@pytest.mark.parametrize(
+    ["enable_realtime", "check_realtime"],
+    [
+        [True, True],
+        [None, False],
         [True, False],
         [False, True],
         [False, False],

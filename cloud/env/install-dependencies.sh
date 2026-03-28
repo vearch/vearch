@@ -35,9 +35,9 @@ if [[ ! -f "/usr/local/lib64/libroaring.a" ]]; then
 fi
 
 if [[ ! -f "/usr/local/lib64/libfaiss.a" ]]; then
-    wget -q https://github.com/facebookresearch/faiss/archive/refs/tags/v1.10.0.tar.gz
-    tar xf v1.10.0.tar.gz
-    pushd faiss-1.10.0
+    wget -q https://github.com/facebookresearch/faiss/archive/refs/tags/v1.14.1.tar.gz
+    tar xf v1.14.1.tar.gz
+    pushd faiss-1.14.1
     if [ -z $MKLROOT ]; then
         OS_NAME=$(uname)
         ARCH=$(arch)

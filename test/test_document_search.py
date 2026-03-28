@@ -121,7 +121,7 @@ def test_vearch_document_search(
 
 @pytest.mark.parametrize(
     ["index_type"],
-    [["IVFPQ"], ["IVFFLAT"]],
+    [["IVFPQ"], ["IVFFLAT"], ["IVFRABITQ"]],
 )
 def test_vearch_document_search_brute_force_search_threshold(index_type):
     embedding_size = xb.shape[1]
@@ -176,6 +176,7 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
                     "training_threshold": 3 * brute_force_search_threshold,
                     "ncentroids": 2,
                     "nprobe": 1,
+                    "nb_bits": 4,
                 },
             },
             "dimension": embedding_size,
@@ -200,8 +201,8 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
     data["index_params"] = {"nprobe": 1}
 
     json_str = json.dumps(data)
-    logger.info(json_str)
-    url = router_url + "/document/search"
+    # logger.info(json_str)
+    url = router_url + "/document/search?trace=true"
     rs = requests.post(url, auth=(username, password), data=json_str)
     assert rs.status_code == 200
 
@@ -217,7 +218,7 @@ def test_vearch_document_search_brute_force_search_threshold(index_type):
 
 @pytest.mark.parametrize(
     ["index_type"],
-    [["IVFPQ"], ["IVFFLAT"], ["FLAT"], ["HNSW"]],
+    [["IVFPQ"], ["IVFFLAT"], ["IVFRABITQ"], ["FLAT"], ["HNSW"]],
 )
 def test_vearch_document_search_with_score_filter(index_type):
     embedding_size = xb.shape[1]
@@ -225,7 +226,6 @@ def test_vearch_document_search_with_score_filter(index_type):
     k = 10
     with_id = False
     full_field = True
-    seed = 1
     brute_force_search_threshold = 100
     total_batch = 3
 
@@ -272,6 +272,7 @@ def test_vearch_document_search_with_score_filter(index_type):
                     "training_threshold": 3 * brute_force_search_threshold,
                     "ncentroids": 2,
                     "nprobe": 1,
+                    "nb_bits": 4,
                 },
             },
             "dimension": embedding_size,
@@ -298,7 +299,7 @@ def test_vearch_document_search_with_score_filter(index_type):
     data["index_params"] = {"nprobe": 1}
 
     json_str = json.dumps(data)
-    url = router_url + "/document/search"
+    url = router_url + "/document/search?trace=true"
 
     rs = requests.post(url, auth=(username, password), data=json_str)
     logger.info(rs.json())
@@ -316,7 +317,7 @@ def test_vearch_document_search_with_score_filter(index_type):
     data["vectors"].append(vector_info)
 
     json_str = json.dumps(data)
-    url = router_url + "/document/search"
+    url = router_url + "/document/search?trace=true"
 
     rs = requests.post(url, auth=(username, password), data=json_str)
     logger.info(rs.json())
@@ -334,7 +335,7 @@ def test_vearch_document_search_with_score_filter(index_type):
     data["vectors"].append(vector_info)
 
     json_str = json.dumps(data)
-    url = router_url + "/document/search"
+    url = router_url + "/document/search?trace=true"
 
     rs = requests.post(url, auth=(username, password), data=json_str)
     logger.info(rs.json())
@@ -347,9 +348,9 @@ def test_vearch_document_search_with_score_filter(index_type):
 
 @pytest.mark.parametrize(
     ["index_type"],
-    [["IVFPQ"]],
+    [["IVFPQ"], ["IVFRABITQ"]],
 )
-def test_vearch_document_search_with_ivfpq_recall(index_type):
+def test_vearch_document_search_with_index_recall(index_type):
     embedding_size = xb.shape[1]
     batch_size = 100
     k = 10
@@ -402,6 +403,7 @@ def test_vearch_document_search_with_ivfpq_recall(index_type):
                     "training_threshold": 3 * brute_force_search_threshold,
                     "ncentroids": 2,
                     "nprobe": 1,
+                    "nb_bits": 4,
                 },
             },
             "dimension": embedding_size,
@@ -429,7 +431,7 @@ def test_vearch_document_search_with_ivfpq_recall(index_type):
     data["limit"] = 100
 
     json_str = json.dumps(data)
-    url = router_url + "/document/search"
+    url = router_url + "/document/search?trace=true"
 
     rs = requests.post(url, auth=(username, password), data=json_str)
     assert rs.json()["code"] == 0

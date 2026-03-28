@@ -22,34 +22,20 @@ from utils.data_utils import *
 __description__ = """ test case for index ivfflat """
 
 
-def create(
-    router_url,
-    embedding_size,
-    store_type="MemoryOnly",
-    ncentroids=256,
-    metric_type="L2",
-):
+def create(router_url, embedding_size, store_type="RocksDB", index_params={}):
     properties = {}
     properties["fields"] = [
         {
             "name": "field_int",
-            "type": "integer",
+            "type": "integer"
         },
         {
             "name": "field_vector",
             "type": "vector",
+            "index": True,
             "dimension": embedding_size,
             "store_type": store_type,
-            "index": {
-                "name": "gamma",
-                "type": "IVFFLAT",
-                "params": {
-                    "metric_type": metric_type,
-                    "ncentroids": ncentroids,
-                    "training_threshold": ncentroids * 39,
-                },
-            },
-            # "format": "normalization"
+            "index": {"name": "gamma", "type": "IVFFLAT", "params": index_params},
         },
     ]
 
@@ -108,7 +94,7 @@ def query(
         assert recalls[10] >= 0.9
 
 
-def benchmark(store_type, ncentroids, metric_type, xb, xq, gt):
+def benchmark(store_type, index_params, xb, xq, gt):
     embedding_size = xb.shape[1]
     batch_size = 100
     k = 100
@@ -117,10 +103,10 @@ def benchmark(store_type, ncentroids, metric_type, xb, xq, gt):
     total_batch = int(total / batch_size)
     logger.info(
         "dataset num: %d, total_batch: %d, dimension: %d, ncentroids %d, search num: %d, topK: %d"
-        % (total, total_batch, embedding_size, ncentroids, xq.shape[0], k)
+        % (total, total_batch, embedding_size, index_params["ncentroids"], xq.shape[0], k)
     )
 
-    create(router_url, embedding_size, store_type, ncentroids, metric_type)
+    create(router_url, embedding_size, store_type, index_params)
 
     add(total_batch, batch_size, xb)
     if total - total_batch * batch_size:
@@ -128,13 +114,13 @@ def benchmark(store_type, ncentroids, metric_type, xb, xq, gt):
 
     waiting_index_finish(total, 10)
 
-    if metric_type == "L2":
+    if index_params["metric_type"] == "L2":
         for nprobe in [1, 10, 20, -1]:
             for parallel_on_queries in [0, 1, -1]:
                 for query_metric_type in ["L2", "InnerProduct", ""]:
                     for batch in [0, 1]:
                         metric_is_same = (
-                            query_metric_type == "" or query_metric_type == metric_type
+                            query_metric_type == "" or query_metric_type == index_params["metric_type"]
                         )
                         query(
                             nprobe,
@@ -152,7 +138,7 @@ def benchmark(store_type, ncentroids, metric_type, xb, xq, gt):
                 for query_metric_type in ["L2", "InnerProduct", ""]:
                     for batch in [1]:
                         metric_is_same = (
-                            query_metric_type == "" or query_metric_type == metric_type
+                            query_metric_type == "" or query_metric_type == index_params["metric_type"]
                         )
                         query(
                             nprobe,
@@ -182,7 +168,34 @@ gt = sift10k.get_groundtruth()
     ],
 )
 def test_vearch_index_ivfflat_l2(store_type: str, ncentroids: int):
-    benchmark(store_type, ncentroids, "L2", xb, xq, gt)
+    index_params = {}
+    index_params["metric_type"] = "L2"
+    index_params["ncentroids"] = ncentroids
+    index_params["training_threshold"] = ncentroids * 39
+    benchmark(store_type, index_params, xb, xq, gt)
+
+
+@pytest.mark.parametrize(
+    ["store_type", "ncentroids"],
+    [
+        ["RocksDB", 256],
+        ["RocksDB", 128],
+    ],
+)
+def test_vearch_index_ivfflat_hnsw(
+    store_type: str,
+    ncentroids: int,
+):
+    index_params = {}
+    index_params["metric_type"] = "L2"
+    index_params["ncentroids"] = ncentroids
+    index_params["training_threshold"] = ncentroids * 19
+
+    index_params["hnsw"] = {}
+    index_params["hnsw"]["nlinks"] = 32
+    index_params["hnsw"]["efConstruction"] = 200
+    index_params["hnsw"]["efSearch"] = 120
+    benchmark(store_type, index_params, xb, xq, gt)
 
 
 glove25 = DatasetGlove25()
@@ -199,4 +212,9 @@ glove_gt = glove25.get_groundtruth()[:100]
     ],
 )
 def test_vearch_index_ivfflat_ip(store_type: str, ncentroids: int):
-    benchmark(store_type, ncentroids, "InnerProduct", glove_xb, glove_xq, glove_gt)
+    index_params = {}
+    index_params["metric_type"] = "InnerProduct"
+    index_params["ncentroids"] = ncentroids
+    index_params["training_threshold"] = ncentroids * 39
+    benchmark(store_type, index_params, glove_xb, glove_xq, glove_gt)
+

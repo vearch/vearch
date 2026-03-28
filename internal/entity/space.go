@@ -227,8 +227,20 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space Index json.Unmarshal err:%v", err))
 	}
 
-	indexTypeMap := map[string]string{"IVFPQ": "IVFPQ", "IVFFLAT": "IVFFLAT", "BINARYIVF": "BINARYIVF", "FLAT": "FLAT",
-		"HNSW": "HNSW", "GPU_IVFPQ": "GPU_IVFPQ", "GPU_IVFFLAT": "GPU_IVFFLAT", "SSG": "SSG", "IVFPQ_RELAYOUT": "IVFPQ_RELAYOUT", "SCANN": "SCANN", "SCALAR": "SCALAR"}
+	indexTypeMap := map[string]string{
+		"IVFPQ":          "IVFPQ",
+		"IVFFLAT":        "IVFFLAT",
+		"BINARYIVF":      "BINARYIVF",
+		"FLAT":           "FLAT",
+		"HNSW":           "HNSW",
+		"GPU_IVFPQ":      "GPU_IVFPQ",
+		"GPU_IVFFLAT":    "GPU_IVFFLAT",
+		"SSG":            "SSG",
+		"IVFPQ_RELAYOUT": "IVFPQ_RELAYOUT",
+		"SCANN":          "SCANN",
+		"SCALAR":         "SCALAR",
+		"IVFRABITQ":      "IVFRABITQ",
+	}
 	if tempIndex.Type == "" {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index type is null"))
 	}
@@ -260,7 +272,7 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 			}
 		} else if tempIndex.Type == "FLAT" {
 
-		} else if slices.Contains([]string{"BINARYIVF", "IVFFLAT", "IVFPQ", "GPU_IVFPQ", "GPU_IVFFLAT"}, tempIndex.Type) {
+		} else if slices.Contains([]string{"BINARYIVF", "IVFFLAT", "IVFPQ", "GPU_IVFPQ", "GPU_IVFFLAT", "IVFRABITQ"}, tempIndex.Type) {
 			if indexParams.Ncentroids != 0 {
 				if indexParams.Ncentroids < MinNcentroids || indexParams.Ncentroids > MaxNcentroids {
 					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index params ncentroids:%d should in [%d, %d]", indexParams.Ncentroids, MinNcentroids, MaxNcentroids))

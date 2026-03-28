@@ -23,6 +23,7 @@
 #include <thread>
 #include <vector>
 
+#include <faiss/utils/simd_levels.h>
 #include "cjson/cJSON.h"
 #include "common/gamma_common_data.h"
 #ifdef BUILD_WITH_GPU
@@ -581,6 +582,8 @@ int64_t Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
 
 Status Engine::CreateTable(TableInfo &table) {
   Status status;
+  LOG(INFO) << space_name_ << " simd level="
+            << faiss::SIMDConfig::get_level_name();
 
   storage_mgr_ = new StorageManager(index_root_path_ + "/data");
   size_t cache_size = 512 * 1024 * 1024;  // unit : byte
@@ -650,6 +653,7 @@ Status Engine::CreateTable(TableInfo &table) {
 
   LOG(INFO) << "create table [" << table_name << "] success!";
   created_table_ = true;
+  
   return Status::OK();
 }
 

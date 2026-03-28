@@ -11,6 +11,7 @@
 #include "faiss/VectorTransform.h"
 #include "faiss/impl/FaissAssert.h"
 #include "faiss/impl/HNSW.h"
+#include "faiss/impl/RaBitQuantizer.h"
 #include "faiss/impl/io.h"
 #include "faiss/index_io.h"
 #include "realtime/realtime_invert_index.h"
@@ -85,6 +86,13 @@ void read_opq(faiss::VectorTransform *vt, faiss::IOReader *f);
 void write_product_quantizer(const faiss::ProductQuantizer *pq,
                              faiss::IOWriter *f);
 void read_product_quantizer(faiss::ProductQuantizer *pq, faiss::IOReader *f);
+
+// Write RaBitQuantizer for 1-bit format (backward compatible)
+void write_RaBitQuantizer(const faiss::RaBitQuantizer* rabitq, faiss::IOWriter* f,
+                          bool multi_bit = true);
+void read_RaBitQuantizer(faiss::RaBitQuantizer* rabitq, faiss::IOReader* f,
+                          bool multi_bit = true);
+
 
 struct FileIOReader : faiss::IOReader {
   FILE *f = nullptr;
