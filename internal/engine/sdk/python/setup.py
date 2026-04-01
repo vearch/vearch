@@ -103,7 +103,7 @@ setup(
         'build': CustomBuild,
         'build_ext': CustomBuildExt,
     },
-    install_requires=['numpy>=1.16.0', 'flatbuffers==25.9.23', 'protobuf==6.33.0'],
+    install_requires=['numpy>=1.16.0', 'flatbuffers==25.9.23', 'protobuf==6.33.5'],
     package_dir={
         'vearch': 'python',
         'vearch/gamma_api': 'python/gamma_api',
