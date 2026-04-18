@@ -55,3 +55,20 @@ if [[ ! -f "/usr/local/lib64/libfaiss.a" ]]; then
     make -C build faiss -j4 && make -C build install
     popd
 fi
+
+GO_VERSION=1.22.5
+cd /env/app
+if [ $ARCH = "x86_64" ]; then
+    if [ ! -f "go$GO_VERSION.linux-amd64.tar.gz" ]; then
+        wget -q https://go.dev/dl/go$GO_VERSION.linux-amd64.tar.gz
+    fi
+    tar xf go$GO_VERSION.linux-amd64.tar.gz
+    rm -rf go$GO_VERSION.linux-amd64.tar.gz
+elif [ $ARCH = "aarch64" ]; then
+    if [ ! -f "go$GO_VERSION.linux-arm64.tar.gz" ]; then
+        wget -q https://go.dev/dl/go$GO_VERSION.linux-arm64.tar.gz
+    fi
+    tar xf go$GO_VERSION.linux-arm64.tar.gz
+    rm -rf go$GO_VERSION.linux-arm64.tar.gz
+fi
+cp -r /env/app/go /usr/local/bin/go

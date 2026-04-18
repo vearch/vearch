@@ -4,10 +4,12 @@ WORKDIR /vearch
 COPY . .
 
 RUN dnf install -y wget make cmake automake which libzstd-devel openssl-devel tbb-devel gcc-c++ && \
-    dnf --enablerepo=crb install -y blas-devel lapack-devel openblas-devel golang libuv && \
+    dnf --enablerepo=crb install -y blas-devel lapack-devel openblas-devel libuv && \
     mkdir -p /env/app/go/src/github.com/vearch && \
     ln -s /vearch /env/app/go/src/github.com/vearch && \
     git config --global --add safe.directory /vearch && \
+    export GOROOT=/usr/local/bin/go && \
+    export PATH=$PATH:$GOROOT/bin && \
     cd /env/app/go/src/github.com/vearch/vearch/build && \
     ./build.sh && \
     mkdir -p /vearch/build/lib/ && \
