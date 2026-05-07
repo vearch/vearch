@@ -30,7 +30,7 @@ xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
 
 
-def check(total, bulk, full_field, query_type, xb):
+def check(total, scalar_index_type, bulk, full_field, query_type, xb):
     embedding_size = xb.shape[1]
     batch_size = 1
     if bulk:
@@ -52,27 +52,27 @@ def check(total, bulk, full_field, query_type, xb):
         {
             "name": "field_int",
             "type": "integer",
-            "index": {"name": "field_int", "type": "SCALAR"},
+            "index": {"name": "field_int", "type": scalar_index_type},
         },
         {
             "name": "field_long",
             "type": "long",
-            "index": {"name": "field_long", "type": "SCALAR"},
+            "index": {"name": "field_long", "type": scalar_index_type},
         },
         {
             "name": "field_float",
             "type": "float",
-            "index": {"name": "field_float", "type": "SCALAR"},
+            "index": {"name": "field_float", "type": scalar_index_type},
         },
         {
             "name": "field_double",
             "type": "double",
-            "index": {"name": "field_double", "type": "SCALAR"},
+            "index": {"name": "field_double", "type": scalar_index_type},
         },
         {
             "name": "field_string",
             "type": "string",
-            "index": {"name": "field_string", "type": "SCALAR"},
+            "index": {"name": "field_string", "type": scalar_index_type},
         },
         {
             "name": "field_vector",
@@ -100,7 +100,11 @@ def check(total, bulk, full_field, query_type, xb):
 
     destroy(router_url, db_name, space_name)
 
+SCALAR_INDEX_TYPE_STRING = "SCALAR"
+INVERTED_INDEX_TYPE_STRING = "INVERTED"
+BITMAP_INDEX_TYPE_STRING = "BITMAP"
 
+@pytest.mark.parametrize("scalar_index_type", [SCALAR_INDEX_TYPE_STRING, INVERTED_INDEX_TYPE_STRING, BITMAP_INDEX_TYPE_STRING])
 @pytest.mark.parametrize(
     ["bulk", "full_field", "query_type"],
     [
@@ -116,8 +120,8 @@ def check(total, bulk, full_field, query_type, xb):
         [False, True, "by_partition_next"],
     ],
 )
-def test_vearch_document_query(bulk: bool, full_field: bool, query_type: str):
-    check(100, bulk, full_field, query_type, xb)
+def test_vearch_document_query(scalar_index_type: str, bulk: bool, full_field: bool, query_type: str):
+    check(100, scalar_index_type, bulk, full_field, query_type, xb)
 
 
 class TestDocumentQueryMultiPartition:
@@ -614,8 +618,8 @@ class TestDocumentQueryPagination:
         create_for_document_test(router_url, embedding_size, properties)
 
     def test_numberic_pagination(self):
-        total_batch = 10
-        batch_size = 10
+        total_batch = 1
+        batch_size = 100
         total = total_batch * batch_size
         add(total_batch, batch_size, self.xb, with_id=True, full_field=True)
 
@@ -718,8 +722,8 @@ class TestDocumentQueryPagination:
         assert response.json()["data"]["documents"][0]["_id"] == str(total - 2)
 
     def test_string_pagination(self):
-        total_batch = 10
-        batch_size = 10
+        total_batch = 1
+        batch_size = 100
         total = total_batch * batch_size
 
         data = {
@@ -821,8 +825,8 @@ class TestDocumentQueryPagination:
         assert response.json()["data"]["documents"][0]["_id"] == str(total - 2)
 
     def test_multi_filter_pagination(self):
-        total_batch = 10
-        batch_size = 10
+        total_batch = 1
+        batch_size = 100
         total = total_batch * batch_size
 
         data = {

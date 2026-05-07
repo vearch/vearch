@@ -126,8 +126,28 @@ func (rcv *Table) MutateEnableRealtime(n bool) bool {
 	return rcv._tab.MutateBoolSlot(18, n)
 }
 
+func (rcv *Table) Indexes(obj *IndexInfo, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *Table) IndexesLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func TableStart(builder *flatbuffers.Builder) {
-	builder.StartObject(8)
+	builder.StartObject(9)
 }
 func TableAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -158,6 +178,12 @@ func TableAddEnableIdCache(builder *flatbuffers.Builder, enableIdCache bool) {
 }
 func TableAddEnableRealtime(builder *flatbuffers.Builder, enableRealtime bool) {
 	builder.PrependBoolSlot(7, enableRealtime, false)
+}
+func TableAddIndexes(builder *flatbuffers.Builder, indexes flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(indexes), 0)
+}
+func TableStartIndexesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func TableEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

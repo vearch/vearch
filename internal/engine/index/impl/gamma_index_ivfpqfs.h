@@ -41,7 +41,6 @@
 #include "index/impl/gamma_index_ivfpq.h"
 #include "index/index_model.h"
 #include "index/realtime/realtime_invert_index.h"
-#include "table/field_range_index.h"
 #include "util/log.h"
 #include "util/utils.h"
 #include "vector/memory_raw_vector.h"

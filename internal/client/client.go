@@ -349,24 +349,36 @@ func copyMap(src map[string]string) map[string]string {
 	return dst
 }
 
+func NormalFields(space *entity.Space) map[string]string {
+	normalField := make(map[string]string)
+	for field, pro := range space.SpaceProperties {
+		format := pro.Format
+		if pro.FieldType == vearchpb.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
+			if pro.Index != nil {
+				if pro.Index.Type != "BINARYIVF" {
+					normalField[field] = field
+				}
+			} else {
+				for _, idx := range space.Indexes {
+					if idx.FieldName == field && idx.Type != "BINARYIVF" {
+						normalField[field] = field
+						break
+					}
+				}
+			}
+		}
+	}
+	return normalField
+}
+
 // Execute Execute request
 func (r *routerRequest) Execute() []*vearchpb.Item {
 	isNormal := false
 	normalField := make(map[string]string)
 	if r.md[HandlerType] == BatchHandler {
-		indexType := r.space.Index.Type
-		if indexType != "" && indexType != "BINARYIVF" {
+		normalField = NormalFields(r.space)
+		if len(normalField) > 0 {
 			isNormal = true
-		}
-
-		if isNormal {
-			spacePro := r.space.SpaceProperties
-			for field, pro := range spacePro {
-				format := pro.Format
-				if pro.FieldType == vearchpb.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
-					normalField[field] = field
-				}
-			}
 		}
 	}
 	var wg sync.WaitGroup
@@ -764,19 +776,9 @@ func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchRespon
 	var wg sync.WaitGroup
 	sendPartitionMap := r.sendMap
 	isNormal := false
-	normalField := make(map[string]string)
-	indexType := r.space.Index.Type
-	if indexType != "" && indexType != "BINARYIVF" {
+	normalField := NormalFields(r.space)
+	if len(normalField) > 0 {
 		isNormal = true
-	}
-	if isNormal {
-		spacePro := r.space.SpaceProperties
-		for field, pro := range spacePro {
-			format := pro.Format
-			if pro.FieldType == vearchpb.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
-				normalField[field] = field
-			}
-		}
 	}
 
 	trace := config.Trace

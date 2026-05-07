@@ -7,18 +7,36 @@
 
 #include "table.h"
 
+#include "table/scalar_index_utils.h"
 #include "util/utils.h"
 
 namespace vearch {
+
+namespace {
+
+inline int LegacyIsIndexToIndexType(bool is_index) {
+  return is_index ? static_cast<int>(ScalarIndexType::Index) : static_cast<int>(ScalarIndexType::Null);
+}
+
+inline int GetIndexType(const FieldInfo& f) {
+  if (f.index_type != 0) {
+    return f.index_type;
+  }
+  return LegacyIsIndexToIndexType(f.is_index);
+}
+
+}  // namespace
 
 int TableInfo::Serialize(char **out, int *out_len) {
   flatbuffers::FlatBufferBuilder builder;
 
   std::vector<flatbuffers::Offset<gamma_api::FieldInfo>> field_info_vector;
   for (const struct FieldInfo &f : fields_) {
+    const int index_type = GetIndexType(f);
+    const bool is_index = index_type != 0;
     auto field = gamma_api::CreateFieldInfo(
         builder, builder.CreateString(f.name),
-        static_cast<::DataType>(f.data_type), f.is_index);
+        static_cast<::DataType>(f.data_type), is_index, index_type);
     field_info_vector.push_back(field);
   }
 
@@ -32,6 +50,18 @@ int TableInfo::Serialize(char **out, int *out_len) {
     vector_info_vector.push_back(vectorinfo);
   }
 
+  std::vector<flatbuffers::Offset<gamma_api::IndexInfo>> index_info_vector;
+  for (const struct IndexInfo &idx : indexes_) {
+    auto field_names_vec = builder.CreateVectorOfStrings(idx.field_names);
+    auto index_info = gamma_api::CreateIndexInfo(
+        builder, builder.CreateString(idx.name),
+        builder.CreateString(idx.type),
+        builder.CreateString(idx.field_name),
+        field_names_vec,
+        builder.CreateString(idx.params));
+    index_info_vector.push_back(index_info);
+  }
+
   auto table = gamma_api::CreateTable(builder, builder.CreateString(name_),
                                       builder.CreateVector(field_info_vector),
                                       builder.CreateVector(vector_info_vector),
@@ -39,7 +69,8 @@ int TableInfo::Serialize(char **out, int *out_len) {
                                       builder.CreateString(index_params_),
                                       refresh_interval_,
                                       enable_id_cache_,
-                                      enable_realtime_);
+                                      enable_realtime_,
+                                      builder.CreateVector(index_info_vector));
   builder.Finish(table);
   *out_len = builder.GetSize();
   *out = (char *)malloc(*out_len * sizeof(char));
@@ -58,7 +89,15 @@ void TableInfo::Deserialize(const char *data, int len) {
     struct FieldInfo field_info;
     field_info.name = f->name()->str();
     field_info.data_type = static_cast<DataType>(f->data_type());
-    field_info.is_index = f->is_index();
+    // Prefer new field first
+    if (f->index_type() != 0) {
+      field_info.index_type = f->index_type();
+      field_info.is_index = field_info.index_type != 0;
+    } else {
+      // Fallback to legacy fields for upgrade compatibility
+      field_info.index_type = LegacyIsIndexToIndexType(f->is_index());
+      field_info.is_index = field_info.index_type != 0;
+    }
 
     fields_.emplace_back(field_info);
   }
@@ -80,15 +119,41 @@ void TableInfo::Deserialize(const char *data, int len) {
   index_type_ = table_->index_type()->str();
   index_params_ = table_->index_params()->str();
   utils::JsonParser params_parser;
-  params_parser.Parse(index_params_.c_str());
-  int training_threshold = 0;
-  params_parser.GetInt("training_threshold", training_threshold);
-  if (training_threshold > 0) {
-    training_threshold_ = training_threshold;
+  if (!index_params_.empty()) {
+    params_parser.Parse(index_params_.c_str());
+    int training_threshold = 0;
+    params_parser.GetInt("training_threshold", training_threshold);
+    if (training_threshold > 0) {
+      training_threshold_ = training_threshold;
+    }
   }
+
   refresh_interval_ = table_->refresh_interval();
   enable_id_cache_ = table_->enable_id_cache();
   enable_realtime_ = table_->enable_realtime();
+
+  if (table_->indexes() != nullptr) {
+    for (size_t i = 0; i < table_->indexes()->size(); ++i) {
+      auto idx = table_->indexes()->Get(i);
+      struct IndexInfo index_info;
+      index_info.name = idx->name()->str();
+      index_info.type = idx->type()->str();
+      index_info.field_name = idx->field_name()->str();
+      for (size_t j = 0; j < idx->field_names()->size(); ++j) {
+        index_info.field_names.push_back(idx->field_names()->Get(j)->str());
+      }
+      index_info.params = idx->params()->str();
+      if (index_params_.empty() && !index_info.params.empty() && !IsScalarIndexType(index_info.type)) {
+        params_parser.Parse(index_info.params.c_str());
+        int training_threshold = 0;
+        params_parser.GetInt("training_threshold", training_threshold);
+        if (training_threshold > 0 && training_threshold > training_threshold_) {
+          training_threshold_ = training_threshold;
+        }
+      }
+      indexes_.emplace_back(index_info);
+    }
+  }
 }
 
 std::string &TableInfo::Name() { return name_; }
@@ -143,6 +208,12 @@ std::string &TableInfo::IndexParams() { return index_params_; }
 
 void TableInfo::SetIndexParams(std::string &index_params) {
   index_params_ = index_params;
+}
+
+std::vector<struct IndexInfo> &TableInfo::Indexes() { return indexes_; }
+
+void TableInfo::AddIndex(struct IndexInfo &index) {
+  indexes_.emplace_back(index);
 }
 
 int TableInfo::Read(const std::string &path) {

@@ -351,12 +351,8 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
   }
   if (table_created_) return Status::ParamError("table is created");
 
-  if (table.IndexType() != "") {
-    index_types_.push_back(table.IndexType());
-    index_params_.push_back(table.IndexParams());
-  }
-
   std::vector<struct VectorInfo> &vectors_infos = table.VectorInfos();
+  std::vector<struct IndexInfo> &table_indexes = table.Indexes();
 
   for (size_t i = 0; i < vectors_infos.size(); i++) {
     Status vec_status;
@@ -364,9 +360,25 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
     struct VectorInfo &vector_info = vectors_infos[i];
     std::string &vec_name = vector_info.name;
     std::string index_type;
-    if (index_types_.size() > 0) {
-      index_type = index_types_[0];
+    std::string index_param;
+
+    // Find vector index type from table.Indexes() by matching field_name
+    for (const auto &idx : table_indexes) {
+      if (idx.field_name == vec_name && idx.type != "") {
+        index_type = idx.type;
+        index_param = idx.params;
+        break;
+      }
     }
+    if (index_type == "") {
+      std::stringstream msg;
+      msg << desc_ << vec_name << " index type is empty";
+      LOG(ERROR) << msg.str();
+      return Status::ParamError(msg.str());
+    }
+
+    index_types_.push_back(index_type);
+    index_params_.push_back(index_param);
     vec_status = CreateRawVector(vector_info, index_type, table, &vec,
                                  vector_cf_ids[i], storage_mgr);
     if (!vec_status.ok()) {

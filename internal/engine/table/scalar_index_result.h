@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <iterator>
 #include <roaring/roaring64map.hh>
 #include <string>
 #include <vector>
@@ -15,15 +16,53 @@
 
 namespace vearch {
 
-// do intersection immediately
-class RangeQueryResult {
+class ScalarIndexResult {
  public:
-  RangeQueryResult() { Clear(); }
+ ScalarIndexResult() { Clear(); }
 
-  RangeQueryResult(RangeQueryResult&& other) noexcept
+ ScalarIndexResult(ScalarIndexResult&& other) noexcept
       : b_not_in_(other.b_not_in_), doc_bitmap_(std::move(other.doc_bitmap_)) {}
 
-  RangeQueryResult& operator=(RangeQueryResult&& other) noexcept {
+  /**
+   * Construct from a Roaring64Map with offset/limit applied in one pass.
+   */
+  ScalarIndexResult(const roaring::Roaring64Map& bitmap, int offset, int limit) {
+    b_not_in_ = false;
+    auto it = bitmap.begin();
+    std::advance(it, offset);
+    for (; it != bitmap.end(); ++it) {
+      doc_bitmap_.add(*it);
+      if (limit > 0 && doc_bitmap_.cardinality() >= static_cast<uint64_t>(limit)) {
+        break;
+      }
+    }
+  }
+
+  /**
+   * Construct from a Roaring64Map (copy).
+   */
+  explicit ScalarIndexResult(const roaring::Roaring64Map& bitmap)
+      : b_not_in_(false), doc_bitmap_(bitmap) {}
+
+  /**
+   * Copy with offset/limit applied.
+   */
+  ScalarIndexResult(const ScalarIndexResult& other, int offset, int limit) {
+    b_not_in_ = other.b_not_in_;
+    if (limit == 0 || offset < 0) {
+      return;
+    }
+    auto it = other.doc_bitmap_.begin();
+    std::advance(it, offset);
+    for (; it != other.doc_bitmap_.end(); ++it) {
+      doc_bitmap_.add(*it);
+      if (limit > 0 && doc_bitmap_.cardinality() >= static_cast<uint64_t>(limit)) {
+        break;
+      }
+    }
+  }
+
+  ScalarIndexResult& operator=(ScalarIndexResult&& other) noexcept {
     if (this != &other) {
       b_not_in_ = other.b_not_in_;
       doc_bitmap_ = std::move(other.doc_bitmap_);
@@ -31,13 +70,13 @@ class RangeQueryResult {
     return *this;
   }
 
-  ~RangeQueryResult() {}
+  ~ScalarIndexResult() {}
 
-  void Intersection(const RangeQueryResult& other) {
+  void Intersection(const ScalarIndexResult& other) {
     doc_bitmap_ &= other.doc_bitmap_;
   }
 
-  void IntersectionWithNotIn(const RangeQueryResult& other) {
+  void IntersectionWithNotIn(const ScalarIndexResult& other) {
     if (b_not_in_) {
       doc_bitmap_ &= other.doc_bitmap_;
     } else {
@@ -45,11 +84,11 @@ class RangeQueryResult {
     }
   }
 
-  void Union(const RangeQueryResult& other) {
+  void Union(const ScalarIndexResult& other) {
     doc_bitmap_ |= other.doc_bitmap_;
   }
 
-  void UnionWithNotIn(const RangeQueryResult& other) {
+  void UnionWithNotIn(const ScalarIndexResult& other) {
     if (b_not_in_) {
       doc_bitmap_ |= other.doc_bitmap_;
     } else {
@@ -66,6 +105,8 @@ class RangeQueryResult {
   }
 
   int64_t Cardinality() const { return doc_bitmap_.cardinality(); }
+
+  const roaring::Roaring64Map& GetDocBitmap() const { return doc_bitmap_; }
 
   std::vector<uint64_t> GetDocIDs(size_t topn) const {
     std::vector<uint64_t> doc_ids;
@@ -104,11 +145,11 @@ class RangeQueryResult {
   roaring::Roaring64Map doc_bitmap_;
 };
 
-class MultiRangeQueryResults {
+class ScalarIndexResults {
  public:
-  MultiRangeQueryResults() { Clear(); }
+  ScalarIndexResults() { Clear(); }
 
-  ~MultiRangeQueryResults() { Clear(); }
+  ~ScalarIndexResults() { Clear(); }
 
   // Take full advantage of multi-core while recalling
   bool Has(int64_t doc) const {
@@ -127,7 +168,7 @@ class MultiRangeQueryResults {
 
   size_t Size() { return all_results_.size(); }
 
-  void Add(RangeQueryResult&& result) {
+  void Add(ScalarIndexResult&& result) {
     all_results_.emplace_back(std::move(result));
   }
 
@@ -140,7 +181,7 @@ class MultiRangeQueryResults {
   }
 
  private:
-  std::vector<RangeQueryResult> all_results_;
+  std::vector<ScalarIndexResult> all_results_;
 };
 
 }  // namespace vearch

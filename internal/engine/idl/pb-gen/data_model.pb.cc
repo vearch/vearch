@@ -303,15 +303,17 @@ const char descriptor_table_protodef_data_5fmodel_2eproto[] PROTOBUF_SECTION_VAR
   "\0028\001*r\n\tFieldType\022\007\n\003INT\020\000\022\010\n\004LONG\020\001\022\t\n\005F"
   "LOAT\020\002\022\n\n\006DOUBLE\020\003\022\n\n\006STRING\020\004\022\n\n\006VECTOR"
   "\020\005\022\010\n\004BOOL\020\006\022\010\n\004DATE\020\007\022\017\n\013STRINGARRAY\020\010*"
-  "\"\n\013FieldOption\022\010\n\004Null\020\000\022\t\n\005Index\020\001B\016H\001Z"
-  "\n./vearchpbb\006proto3"
+  "i\n\013FieldOption\022\010\n\004Null\020\000\022\t\n\005Index\020\001\022\n\n\006S"
+  "calar\020\002\022\014\n\010Inverted\020\003\022\020\n\014InvertedList\020\004\022"
+  "\n\n\006Bitmap\020\005\022\r\n\tComposite\020\006B\016H\001Z\n./vearch"
+  "pbb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_data_5fmodel_2eproto_deps[1] = {
   &::descriptor_table_errors_2eproto,
 };
 static ::_pbi::once_flag descriptor_table_data_5fmodel_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_data_5fmodel_2eproto = {
-    false, false, 1299, descriptor_table_protodef_data_5fmodel_2eproto,
+    false, false, 1370, descriptor_table_protodef_data_5fmodel_2eproto,
     "data_model.proto",
     &descriptor_table_data_5fmodel_2eproto_once, descriptor_table_data_5fmodel_2eproto_deps, 1, 9,
     schemas, file_default_instances, TableStruct_data_5fmodel_2eproto::offsets,
@@ -396,6 +398,11 @@ bool FieldOption_IsValid(int value) {
   switch (value) {
     case 0:
     case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
       return true;
     default:
       return false;

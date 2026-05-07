@@ -104,7 +104,7 @@ func parseJSON(path []string, v *fastjson.Value, space *entity.Space, proMap map
 		defer func() {
 			PutDocVal(docV)
 		}()
-		field, err := processProperty(docV, val, space.Index.Type, pro)
+		field, err := processProperty(docV, val, space.GetFieldIndexType(fieldName), pro)
 		if err != nil {
 			log.Error("processProperty parse field:[%s] err: %v", fieldName, err)
 			parseErr = err

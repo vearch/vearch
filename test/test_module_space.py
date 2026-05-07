@@ -423,9 +423,21 @@ class TestSpaceCreate:
         response = drop_space(router_url, db_name, space_name)
         assert response.json()["code"] == 0
 
+    def test_destroy_db(self):
+        drop_db(router_url, db_name)
+
+class TestSpaceDynamicIndex:
+    def setup_class(self):
+        pass
+
+    def test_prepare_db(self):
+        response = create_db(router_url, db_name)
+        assert response.json()["code"] == 0
+
     def test_vearch_space_dynamic_vector_index_management(self):
         """Test dynamic deletion and addition of vector indexes"""
         # Create space with vector index
+        space_name = "space_dynamic_vector_index_management"
         embedding_size = 128
         space_config = {
             "name": space_name,
@@ -454,9 +466,9 @@ class TestSpaceCreate:
         logger.info("Created space with vector index")
 
         total = 100
-        add(total, 100, xb, with_id=True)
+        add(total, 100, xb, with_id=True, space_name=space_name)
 
-        waiting_index_finish(total)
+        waiting_index_finish(total, space_name=space_name)
         
         time.sleep(3)
 
@@ -550,6 +562,7 @@ class TestSpaceCreate:
     def test_vearch_space_dynamic_scalar_index_management(self):
         """Test dynamic deletion and addition of scalar indexes"""
         # Create space with scalar indexes
+        space_name = "space_dynamic_scalar_index_management"
         embedding_size = 128
         space_config = {
             "name": space_name,
@@ -590,6 +603,7 @@ class TestSpaceCreate:
         }
 
         response = create_space(router_url, db_name, space_config)
+        logger.info("Create space response: %s", response.json())
         assert response.json()["code"] == 0
         logger.info("Created space with scalar indexes")
 
@@ -618,7 +632,7 @@ class TestSpaceCreate:
         assert response.json()["code"] == 0
         logger.info("Added documents with scalar field data")
 
-        waiting_index_finish(total)
+        waiting_index_finish(total, space_name=space_name)
         time.sleep(3)
 
         # Test search with scalar filter (should work with indexed fields)
@@ -1040,6 +1054,235 @@ class TestSpaceExpansion:
     def test_destroy_space(self):
         response = drop_space(router_url, db_name, space_name)
         assert response.json()["code"] == 0
+
+    def test_destroy_db(self):
+        drop_db(router_url, db_name)
+
+
+class TestSpaceIndexes:
+    def setup_class(self):
+        pass
+
+    def test_prepare_db(self):
+        response = create_db(router_url, db_name)
+        assert response.json()["code"] == 0
+
+    @pytest.mark.parametrize(
+        ["index_type"],
+        [["FLAT"]],
+    )
+    def test_vearch_space_create_with_indexes(self, index_type):
+        embedding_size = 128
+        space_config = {
+            "name": space_name,
+            "partition_num": 1,
+            "replica_num": 1,
+            "fields": [
+                {"name": "field_string", "type": "keyword"},
+                {"name": "field_int", "type": "integer"},
+                {
+                    "name": "field_float",
+                    "type": "float",
+                    "index": {
+                        "name": "field_float",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_double",
+                    "type": "double",
+                    "array": True,
+                    "index": {
+                        "name": "field_double",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_long",
+                    "type": "long",
+                    "index": {
+                        "name": "field_long_index",
+                        "type": "SCALAR",
+                    },
+                },
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "index": {"name": "gamma", "type": index_type},
+                },
+            ],
+            "indexes": [
+                {
+                    "name": "idx_string",
+                    "type": "SCALAR",
+                    "field_name": "field_string",
+                },
+                {
+                    "name": "idx_int",
+                    "type": "SCALAR",
+                    "field_name": "field_int",
+                },
+                {
+                    "name": "idx_composite",
+                    "type": "COMPOSITE",
+                    "field_names": ["field_string", "field_int", "field_float"],
+                }
+            ],
+        }
+
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+        response = describe_space(router_url, db_name, space_name)
+        logger.info(response.json())
+        assert response.json()["code"] == 0
+
+        total = 10
+        add(total, 1, xb, False, True)
+        time.sleep(3)
+
+        search_url = router_url + "/document/search"
+        data = {}
+        data["db_name"] = db_name
+        data["space_name"] = space_name
+        data["vectors"] = []
+        vector_info = {
+            "field": "field_vector",
+            "feature": xq[:1].flatten().tolist(),
+        }
+        data["vectors"].append(vector_info)
+        json_str = json.dumps(data)
+        response = requests.post(search_url, auth=(username, password), data=json_str)
+        logger.info(response.json())
+        assert len(response.json()["data"]["documents"]) == 1
+        assert len(response.json()["data"]["documents"][0]) == total
+
+        response = drop_space(router_url, db_name, space_name)
+        assert response.json()["code"] == 0
+
+    @pytest.mark.parametrize(
+        ["wrong_index", "wrong_type"],
+        [
+            [0, "not supported scalar index type in fields"],
+            [1, "not supported scalar index type in indexes"],
+            [2, "non exist field name in single scalar index"],
+            [3, "non exist field name in composite index"],
+            [4, "duplicate index in fields"],
+            [5, "duplicate index in indexes"],
+            [6, "duplicate index in fields and indexes"],
+            [7, "composite index can not set in fields"],
+            [8, "composite index fieldNames is same"],
+            [9, "vector field scalar index in fields"],
+            [10, "scalar field vector index in fields"],
+            [11, "vector field scalar index in indexes"],
+            [12, "scalar field vector index in indexes"],
+        ],
+    )
+    def test_vearch_space_create_indexes_badcase(self, wrong_index, wrong_type):
+        embedding_size = 128
+        training_threshold = 1
+        metric_type = "L2"
+        space_config = {
+            "name": space_name,
+            "partition_num": 1,
+            "replica_num": 1,
+            "fields": [
+                {"name": "field_string", "type": "keyword"},
+                {"name": "field_int", "type": "integer"},
+                {
+                    "name": "field_float",
+                    "type": "float",
+                    "index": {"name": "field_float", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_string_array",
+                    "type": "string",
+                    "index": {"name": "field_string_array", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_int_index",
+                    "type": "integer",
+                    "index": {"name": "field_int_index", "type": "SCALAR"},
+                },
+                {
+                    "name": "field_vector_normal",
+                    "type": "vector",
+                    "dimension": embedding_size,
+                    "format": "normalization",
+                    "index": {
+                        "name": "gamma",
+                        "type": "FLAT",
+                        "params": {
+                            "metric_type": metric_type,
+                            "training_threshold": training_threshold,
+                        },
+                    },
+                },
+            ],
+            "indexes": [{
+                "name": "idx_string",
+                "type": "SCALAR",
+                "field_name": "field_string",
+            }, {
+                "name": "idx_int",
+                "type": "SCALAR",
+                "field_name": "field_int",
+            }, {
+                "name": "idx_composite",
+                "type": "COMPOSITE",
+                "field_names": ["field_string", "field_int", "field_float"],
+            }]
+        }
+        if wrong_index == 0:
+            space_config["fields"][2]["index"]["type"] = "WRONG_TYPE"
+        if wrong_index == 1:
+            space_config["indexes"][2]["type"] = "WRONG_TYPE"
+        if wrong_index == 2:
+            space_config["indexes"][1]["field_name"] = "wrong_field"
+        if wrong_index == 3:
+            space_config["indexes"][2]["field_names"] = ["wrong_field", "field_int", "field_float"]
+        if wrong_index == 4:
+            space_config["fields"][2]["index"]["name"] = "idx_string"
+            space_config["fields"][2]["index"]["name"] = "idx_string"
+        if wrong_index == 5:
+            space_config["indexes"][0]["name"] = "idx_string"
+            space_config["indexes"][1]["name"] = "idx_string"
+        if wrong_index == 6:
+            space_config["fields"][2]["index"]["name"] = "idx_string"
+            space_config["indexes"][1]["name"] = "idx_string"
+        if wrong_index == 7:
+            space_config["fields"][2]["index"]["type"] = "COMPOSITE"
+        if wrong_index == 8:
+            space_config["indexes"][2]["field_names"] = ["field_string", "field_int", "field_string"]
+        # wrong_index 9: vector field with scalar index in fields
+        if wrong_index == 9:
+            space_config["fields"][5]["index"]["type"] = "SCALAR"
+        # wrong_index 10: scalar field with vector index in fields
+        if wrong_index == 10:
+            space_config["fields"][2]["index"]["type"] = "HNSW"
+        # wrong_index 11: vector field scalar index in indexes (references vector field)
+        if wrong_index == 11:
+            space_config["indexes"].append({
+                "name": "idx_vector_scalar",
+                "type": "SCALAR",
+                "field_name": "field_vector_normal",
+            })
+        # wrong_index 12: scalar field vector index in indexes (references scalar field)
+        if wrong_index == 12:
+            space_config["indexes"].append({
+                "name": "idx_string_hnsw",
+                "type": "HNSW",
+                "field_name": "field_string",
+            })
+        response = create_space(router_url, db_name, space_config)
+        logger.info(response.json())
+        assert response.json()["code"] != 0
+
+    def test_destroy_space(self):
+        response = drop_space(router_url, db_name, space_name)
+        assert response.json()["code"] != 0
 
     def test_destroy_db(self):
         drop_db(router_url, db_name)

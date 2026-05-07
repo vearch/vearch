@@ -14,13 +14,16 @@ struct FieldInfo;
 
 struct VectorInfo;
 
+struct IndexInfo;
+
 struct Table;
 
 struct FieldInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
     VT_DATA_TYPE = 6,
-    VT_IS_INDEX = 8
+    VT_IS_INDEX = 8,
+    VT_INDEX_TYPE = 10
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -31,12 +34,16 @@ struct FieldInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool is_index() const {
     return GetField<uint8_t>(VT_IS_INDEX, 0) != 0;
   }
+  int32_t index_type() const {
+    return GetField<int32_t>(VT_INDEX_TYPE, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
            verifier.VerifyString(name()) &&
            VerifyField<int8_t>(verifier, VT_DATA_TYPE) &&
            VerifyField<uint8_t>(verifier, VT_IS_INDEX) &&
+           VerifyField<int32_t>(verifier, VT_INDEX_TYPE) &&
            verifier.EndTable();
   }
 };
@@ -52,6 +59,9 @@ struct FieldInfoBuilder {
   }
   void add_is_index(bool is_index) {
     fbb_.AddElement<uint8_t>(FieldInfo::VT_IS_INDEX, static_cast<uint8_t>(is_index), 0);
+  }
+  void add_index_type(int32_t index_type) {
+    fbb_.AddElement<int32_t>(FieldInfo::VT_INDEX_TYPE, index_type, 0);
   }
   explicit FieldInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -69,8 +79,10 @@ inline flatbuffers::Offset<FieldInfo> CreateFieldInfo(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     DataType data_type = INT,
-    bool is_index = false) {
+    bool is_index = false,
+    int32_t index_type = 0) {
   FieldInfoBuilder builder_(_fbb);
+  builder_.add_index_type(index_type);
   builder_.add_name(name);
   builder_.add_is_index(is_index);
   builder_.add_data_type(data_type);
@@ -81,13 +93,15 @@ inline flatbuffers::Offset<FieldInfo> CreateFieldInfoDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *name = nullptr,
     DataType data_type = INT,
-    bool is_index = false) {
+    bool is_index = false,
+    int32_t index_type = 0) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return gamma_api::CreateFieldInfo(
       _fbb,
       name__,
       data_type,
-      is_index);
+      is_index,
+      index_type);
 }
 
 struct VectorInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -204,6 +218,113 @@ inline flatbuffers::Offset<VectorInfo> CreateVectorInfoDirect(
       store_param__);
 }
 
+struct IndexInfo FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_TYPE = 6,
+    VT_FIELD_NAME = 8,
+    VT_FIELD_NAMES = 10,
+    VT_PARAMS = 12
+  };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  const flatbuffers::String *type() const {
+    return GetPointer<const flatbuffers::String *>(VT_TYPE);
+  }
+  const flatbuffers::String *field_name() const {
+    return GetPointer<const flatbuffers::String *>(VT_FIELD_NAME);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *field_names() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_FIELD_NAMES);
+  }
+  const flatbuffers::String *params() const {
+    return GetPointer<const flatbuffers::String *>(VT_PARAMS);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_TYPE) &&
+           verifier.VerifyString(type()) &&
+           VerifyOffset(verifier, VT_FIELD_NAME) &&
+           verifier.VerifyString(field_name()) &&
+           VerifyOffset(verifier, VT_FIELD_NAMES) &&
+           verifier.VerifyVector(field_names()) &&
+           verifier.VerifyVectorOfStrings(field_names()) &&
+           VerifyOffset(verifier, VT_PARAMS) &&
+           verifier.VerifyString(params()) &&
+           verifier.EndTable();
+  }
+};
+
+struct IndexInfoBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(IndexInfo::VT_NAME, name);
+  }
+  void add_type(flatbuffers::Offset<flatbuffers::String> type) {
+    fbb_.AddOffset(IndexInfo::VT_TYPE, type);
+  }
+  void add_field_name(flatbuffers::Offset<flatbuffers::String> field_name) {
+    fbb_.AddOffset(IndexInfo::VT_FIELD_NAME, field_name);
+  }
+  void add_field_names(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> field_names) {
+    fbb_.AddOffset(IndexInfo::VT_FIELD_NAMES, field_names);
+  }
+  void add_params(flatbuffers::Offset<flatbuffers::String> params) {
+    fbb_.AddOffset(IndexInfo::VT_PARAMS, params);
+  }
+  explicit IndexInfoBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  IndexInfoBuilder &operator=(const IndexInfoBuilder &);
+  flatbuffers::Offset<IndexInfo> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<IndexInfo>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<IndexInfo> CreateIndexInfo(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<flatbuffers::String> type = 0,
+    flatbuffers::Offset<flatbuffers::String> field_name = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> field_names = 0,
+    flatbuffers::Offset<flatbuffers::String> params = 0) {
+  IndexInfoBuilder builder_(_fbb);
+  builder_.add_params(params);
+  builder_.add_field_names(field_names);
+  builder_.add_field_name(field_name);
+  builder_.add_type(type);
+  builder_.add_name(name);
+  return builder_.Finish();
+}
+
+inline flatbuffers::Offset<IndexInfo> CreateIndexInfoDirect(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    const char *type = nullptr,
+    const char *field_name = nullptr,
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *field_names = nullptr,
+    const char *params = nullptr) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto type__ = type ? _fbb.CreateString(type) : 0;
+  auto field_name__ = field_name ? _fbb.CreateString(field_name) : 0;
+  auto field_names__ = field_names ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*field_names) : 0;
+  auto params__ = params ? _fbb.CreateString(params) : 0;
+  return gamma_api::CreateIndexInfo(
+      _fbb,
+      name__,
+      type__,
+      field_name__,
+      field_names__,
+      params__);
+}
+
 struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NAME = 4,
@@ -213,7 +334,8 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_INDEX_PARAMS = 12,
     VT_REFRESH_INTERVAL = 14,
     VT_ENABLE_ID_CACHE = 16,
-    VT_ENABLE_REALTIME = 18
+    VT_ENABLE_REALTIME = 18,
+    VT_INDEXES = 20
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -239,6 +361,9 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool enable_realtime() const {
     return GetField<uint8_t>(VT_ENABLE_REALTIME, 0) != 0;
   }
+  const flatbuffers::Vector<flatbuffers::Offset<IndexInfo>> *indexes() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<IndexInfo>> *>(VT_INDEXES);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
@@ -256,6 +381,9 @@ struct Table FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<int32_t>(verifier, VT_REFRESH_INTERVAL) &&
            VerifyField<uint8_t>(verifier, VT_ENABLE_ID_CACHE) &&
            VerifyField<uint8_t>(verifier, VT_ENABLE_REALTIME) &&
+           VerifyOffset(verifier, VT_INDEXES) &&
+           verifier.VerifyVector(indexes()) &&
+           verifier.VerifyVectorOfTables(indexes()) &&
            verifier.EndTable();
   }
 };
@@ -287,6 +415,9 @@ struct TableBuilder {
   void add_enable_realtime(bool enable_realtime) {
     fbb_.AddElement<uint8_t>(Table::VT_ENABLE_REALTIME, static_cast<uint8_t>(enable_realtime), 0);
   }
+  void add_indexes(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<IndexInfo>>> indexes) {
+    fbb_.AddOffset(Table::VT_INDEXES, indexes);
+  }
   explicit TableBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -308,8 +439,10 @@ inline flatbuffers::Offset<Table> CreateTable(
     flatbuffers::Offset<flatbuffers::String> index_params = 0,
     int32_t refresh_interval = 1000,
     bool enable_id_cache = false,
-    bool enable_realtime = false) {
+    bool enable_realtime = false,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<IndexInfo>>> indexes = 0) {
   TableBuilder builder_(_fbb);
+  builder_.add_indexes(indexes);
   builder_.add_refresh_interval(refresh_interval);
   builder_.add_index_params(index_params);
   builder_.add_index_type(index_type);
@@ -330,12 +463,14 @@ inline flatbuffers::Offset<Table> CreateTableDirect(
     const char *index_params = nullptr,
     int32_t refresh_interval = 1000,
     bool enable_id_cache = false,
-    bool enable_realtime = false) {
+    bool enable_realtime = false,
+    const std::vector<flatbuffers::Offset<IndexInfo>> *indexes = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto fields__ = fields ? _fbb.CreateVector<flatbuffers::Offset<FieldInfo>>(*fields) : 0;
   auto vectors_info__ = vectors_info ? _fbb.CreateVector<flatbuffers::Offset<VectorInfo>>(*vectors_info) : 0;
   auto index_type__ = index_type ? _fbb.CreateString(index_type) : 0;
   auto index_params__ = index_params ? _fbb.CreateString(index_params) : 0;
+  auto indexes__ = indexes ? _fbb.CreateVector<flatbuffers::Offset<IndexInfo>>(*indexes) : 0;
   return gamma_api::CreateTable(
       _fbb,
       name__,
@@ -345,7 +480,8 @@ inline flatbuffers::Offset<Table> CreateTableDirect(
       index_params__,
       refresh_interval,
       enable_id_cache,
-      enable_realtime);
+      enable_realtime,
+      indexes__);
 }
 
 inline const gamma_api::Table *GetTable(const void *buf) {

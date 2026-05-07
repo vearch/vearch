@@ -131,7 +131,7 @@ Engine::Engine(const std::string &index_root_path,
   delete_num_ = 0;
   indexing_state_.store(IndexingState::IDLE);
   is_dirty_ = false;
-  field_range_index_ = nullptr;
+  scalar_index_manager_ = nullptr;
   created_table_ = false;
   docids_bitmap_ = nullptr;
   storage_mgr_ = nullptr;
@@ -175,8 +175,8 @@ void Engine::Close() {
   delete table_;
   table_ = nullptr;
 
-  delete field_range_index_;
-  field_range_index_ = nullptr;
+  delete scalar_index_manager_;
+  scalar_index_manager_ = nullptr;
 
   delete docids_bitmap_;
   docids_bitmap_ = nullptr;
@@ -346,12 +346,12 @@ Status Engine::Search(Request &request, Response &response_results) {
     }
   }
 
-  MultiRangeQueryResults range_query_result;
+  ScalarIndexResults scalar_index_result;
   size_t range_filters_num = request.RangeFilters().size();
   size_t term_filters_num = request.TermFilters().size();
   if (range_filters_num > 0 || term_filters_num > 0) {
-    int64_t num = MultiRangeQuery(request, query.condition, response_results,
-                              &range_query_result);
+    int64_t num = ScalarIndexQuery(request, query.condition, response_results,
+                              &scalar_index_result);
     if (query.condition->GetPerfTool()) {
       query.condition->GetPerfTool()->Perf("filter result num " +
                                            std::to_string(num));
@@ -444,7 +444,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
   std::vector<uint64_t> docids;
   docids.reserve(topn);
 
-  MultiRangeQueryResults range_query_result;
+  ScalarIndexResults scalar_index_result;
   size_t range_filters_num = request.RangeFilters().size();
   size_t term_filters_num = request.TermFilters().size();
   if (range_filters_num > 0 || term_filters_num > 0) {
@@ -481,7 +481,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
       ++idx;
     }
 
-    int num = field_range_index_->Query(
+    int num = scalar_index_manager_->Query(
         static_cast<FilterOperator>(request.FilterOperator()), filters, docids,
         (size_t)topn, (size_t)request.Offset());
 
@@ -522,9 +522,9 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
   return status;
 }
 
-int64_t Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
+int64_t Engine::ScalarIndexQuery(Request &request, SearchCondition *condition,
                             Response &response_results,
-                            MultiRangeQueryResults *range_query_result) {
+                            ScalarIndexResults *scalar_index_result) {
   std::vector<FilterInfo> filters;
   std::vector<struct RangeFilter> &range_filters = request.RangeFilters();
   std::vector<struct TermFilter> &term_filters = request.TermFilters();
@@ -558,14 +558,13 @@ int64_t Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
     ++idx;
   }
 
-  int64_t num = field_range_index_->Search(
+  int64_t num = scalar_index_manager_->Search(
       static_cast<FilterOperator>(request.FilterOperator()), filters,
-      range_query_result);
+      scalar_index_result);
 
   if (num == 0) {
     std::string msg =
         space_name_ + " no result: numeric filter return 0 result";
-    LOG(TRACE) << request.RequestId() << " " << msg;
     for (int i = 0; i < request.ReqNum(); ++i) {
       SearchResult result;
       result.msg = msg;
@@ -573,9 +572,9 @@ int64_t Engine::MultiRangeQuery(Request &request, SearchCondition *condition,
       response_results.AddResults(std::move(result));
     }
   } else if (num < 0) {
-    condition->range_query_result = nullptr;
+    condition->scalar_index_result = nullptr;
   } else {
-    condition->range_query_result = range_query_result;
+    condition->scalar_index_result = scalar_index_result;
   }
   return num;
 }
@@ -586,6 +585,12 @@ Status Engine::CreateTable(TableInfo &table) {
             << faiss::SIMDConfig::get_level_name();
 
   storage_mgr_ = new StorageManager(index_root_path_ + "/data");
+  if (storage_mgr_ == nullptr) {
+    std::string msg = "create storage manager error!";
+    LOG(ERROR) << msg;
+    this->Close();
+    return Status::ParamError(msg);
+  }
   size_t cache_size = 512 * 1024 * 1024;  // unit : byte
 
   std::vector<int> vector_cf_ids;
@@ -601,6 +606,12 @@ Status Engine::CreateTable(TableInfo &table) {
           storage_mgr_->CreateColumnFamily("vector_" + name));
     }
   }
+  if (vec_manager_ == nullptr) {
+    std::string msg = "create vector manager error!";
+    LOG(ERROR) << msg;
+    this->Close();
+    return Status::ParamError(msg);
+  }
   status = vec_manager_->CreateVectorTable(table, vector_cf_ids, storage_mgr_);
   if (!status.ok()) {
     std::string msg =
@@ -611,8 +622,19 @@ Status Engine::CreateTable(TableInfo &table) {
   }
 
   int table_cf_id = storage_mgr_->CreateColumnFamily("table");
-
+  if (table_cf_id < 0) {
+    std::string msg = "create table column family error!";
+    LOG(ERROR) << msg;
+    this->Close();
+    return Status::ParamError(msg);
+  }
   table_ = new Table(space_name_, storage_mgr_, table_cf_id);
+  if (table_ == nullptr) {
+    std::string msg = "create table error!";
+    LOG(ERROR) << msg;
+    this->Close();
+    return Status::ParamError(msg);
+  }
   status = table_->CreateTable(table);
   if (!status.ok()) {
     std::string msg =
@@ -623,12 +645,20 @@ Status Engine::CreateTable(TableInfo &table) {
   }
 
   training_threshold_ = table.TrainingThreshold();
+  indexes_ = table.Indexes();
   LOG(INFO) << space_name_
             << " init training_threshold=" << training_threshold_;
 
-  field_range_index_ = new MultiFieldsRangeIndex(table_, storage_mgr_);
-  if ((nullptr == field_range_index_) || (AddNumIndexFields() < 0)) {
-    std::string msg = "add numeric index fields error!";
+  scalar_index_manager_ = new ScalarIndexManager(table_, storage_mgr_);
+  if ((nullptr == scalar_index_manager_)) {
+    std::string msg = "create scalar index manager error!";
+    LOG(ERROR) << msg;
+    this->Close();
+    return Status::ParamError(msg);
+  }
+
+  if (scalar_index_manager_->Init(space_name_, table.Indexes()) < 0) {
+    std::string msg = "init scalar index manager error!";
     LOG(ERROR) << msg;
     this->Close();
     return Status::ParamError(msg);
@@ -636,9 +666,10 @@ Status Engine::CreateTable(TableInfo &table) {
 
   status = storage_mgr_->Init(cache_size);
   if (!status.ok()) {
-    LOG(ERROR) << "init error, ret=" << status.ToString();
+    std::string msg = "init storage manager error, ret=" + status.ToString();
+    LOG(ERROR) << msg;
     this->Close();
-    return status;
+    return Status::ParamError(msg);
   }
 
   std::string table_name = table.Name();
@@ -692,10 +723,7 @@ int Engine::AddOrUpdate(Doc &doc) {
 
   int ret = table_->Add(key, fields_table, max_docid_);
   if (ret != 0) return -4;
-  for (auto &[name, field] : fields_table) {
-    int idx = table_->GetAttrIdx(field.name);
-    field_range_index_->AddDoc(max_docid_, idx);
-  }
+  scalar_index_manager_->AddDoc(max_docid_);
 #ifdef PERFORMANCE_TESTING
   double end_table = utils::getmillisecs();
 #endif
@@ -802,7 +830,7 @@ int Engine::Update(int doc_id,
     }
 
     int idx = table_->GetAttrIdx(field.name);
-    field_range_index_->Delete(doc_id, idx);
+    scalar_index_manager_->DeleteDoc(doc_id, idx);
   }
 
   if (table_->Update(fields_table, doc_id) != 0) {
@@ -815,7 +843,7 @@ int Engine::Update(int doc_id,
       continue;
     }
     int idx = table_->GetAttrIdx(field.name);
-    field_range_index_->AddDoc(doc_id, idx);
+    scalar_index_manager_->AddDoc(doc_id, idx);
   }
   is_dirty_ = true;
   return 0;
@@ -841,10 +869,7 @@ int Engine::Delete(std::string &key) {
     LOG(ERROR) << space_name_ << " bitmap dump failed: ret=" << ret;
     return ret;
   }
-  const auto &name_to_idx = table_->FieldMap();
-  for (const auto &ite : name_to_idx) {
-    field_range_index_->Delete(docid, ite.second);
-  }
+  scalar_index_manager_->DeleteDoc(docid);
   table_->Delete(key);
 
   vec_manager_->Delete(docid);
@@ -1323,6 +1348,15 @@ int Engine::Load() {
     table_->LoadIdFromTable();
   }
 
+  // Rebuild bitmap index from storage
+  LOG(INFO) << space_name_ << " rebuilding scalar bitmap indexes from storage...";
+  ret = scalar_index_manager_->RebuildAllBitmapIndexes();
+  if (ret != 0) {
+    LOG(ERROR) << space_name_ << " rebuild scalar bitmap indexes error, ret=" << ret;
+  } else {
+    LOG(INFO) << space_name_ << " scalar bitmap indexes rebuilt successfully";
+  }
+
   if (refresh_interval_ >= 0 and
       indexing_state_.load() == IndexingState::IDLE and
       index_status_ == UNINDEXED) {
@@ -1587,13 +1621,24 @@ void Engine::AddFieldIndexThread(const std::string &field_name,
   }
 
   // For other fields, add to field range index if it supports indexing
-  if (field_range_index_ != nullptr) {
+  if (scalar_index_manager_ != nullptr) {
     DataType field_type;
     if (table_->GetFieldType(field_name, field_type) == 0) {
+      // Get index type for this field (default to SCALAR)
+      ScalarIndexType index_type = ScalarIndexTypeFromString(indexType);
+
+      std::map<std::string, ScalarIndexType> attr_index_type;
+      if (table_->GetAttrIndexType(attr_index_type) == 0) {
+        const auto& it = attr_index_type.find(field_name);
+        if (it != attr_index_type.end()) {
+          it->second = index_type;
+        }
+      }
+
       // Add field to range index
       std::string field_name_copy = field_name;
       int result =
-          field_range_index_->AddField(field_id, field_type, field_name_copy);
+          scalar_index_manager_->AddIndex(field_id, field_type, field_name_copy, index_type);
       if (result != 0) {
         LOG(ERROR) << space_name_
                    << " failed to add field to range index for field: "
@@ -1609,7 +1654,7 @@ void Engine::AddFieldIndexThread(const std::string &field_name,
                 << field_name;
       for (int64_t docid = 0; docid < max_docid_; ++docid) {
         if (!docids_bitmap_->Test(docid)) {  // Only for non-deleted documents
-          field_range_index_->AddDoc(docid, field_id);
+          scalar_index_manager_->AddDoc(docid, field_id);
         }
       }
       LOG(INFO) << space_name_ << " completed building index for "
@@ -1683,7 +1728,7 @@ void Engine::RemoveFieldIndexThread(const std::string &field_name) {
   }
 
   // For other fields, remove from field range index if it exists
-  if (field_range_index_ != nullptr) {
+  if (scalar_index_manager_ != nullptr) {
     LOG(INFO) << space_name_
               << " removing range index for field: " << field_name;
 
@@ -1693,7 +1738,7 @@ void Engine::RemoveFieldIndexThread(const std::string &field_name) {
               << field_name;
     for (int64_t docid = 0; docid < max_docid_; ++docid) {
       if (!docids_bitmap_->Test(docid)) {  // Only for non-deleted documents
-        field_range_index_->Delete(docid, field_id);
+        scalar_index_manager_->DeleteDoc(docid, field_id);
       }
     }
     LOG(INFO) << space_name_ << " completed removing index from "
@@ -1701,7 +1746,7 @@ void Engine::RemoveFieldIndexThread(const std::string &field_name) {
               << " existing documents for field: " << field_name;
 
     // Remove field from range index
-    int result = field_range_index_->RemoveField(field_id);
+    int result = scalar_index_manager_->RemoveIndex(field_id);
     if (result != 0) {
       LOG(ERROR) << space_name_
                  << " failed to remove field from range index for field: "
@@ -1714,32 +1759,6 @@ void Engine::RemoveFieldIndexThread(const std::string &field_name) {
 
   LOG(INFO) << space_name_
             << " RemoveFieldIndexThread completed for field: " << field_name;
-}
-
-int Engine::AddNumIndexFields() {
-  int retvals = 0;
-  std::map<std::string, enum DataType> attr_type;
-  retvals = table_->GetAttrType(attr_type);
-
-  field_range_index_->Init();
-  std::map<std::string, bool> attr_index;
-  retvals = table_->GetAttrIsIndex(attr_index);
-  for (const auto &it : attr_type) {
-    std::string field_name = it.first;
-    const auto &attr_index_it = attr_index.find(field_name);
-    if (attr_index_it == attr_index.end()) {
-      LOG(ERROR) << space_name_ << " cannot find field [" << field_name << "]";
-      continue;
-    }
-    bool is_index = attr_index_it->second;
-    if (not is_index) {
-      continue;
-    }
-    int field_idx = table_->GetAttrIdx(field_name);
-    LOG(INFO) << space_name_ << " add range field [" << field_name << "]";
-    field_range_index_->AddField(field_idx, it.second, field_name);
-  }
-  return retvals;
 }
 
 int Engine::GetConfig(std::string &conf_str) {

@@ -17,7 +17,6 @@
 #include "hnswlib.h"
 #include "index/impl/gamma_index_flat.h"
 #include "index/index_model.h"
-#include "table/field_range_index.h"
 #include "util/bitmap.h"
 #include "util/log.h"
 #include "vector/memory_raw_vector.h"

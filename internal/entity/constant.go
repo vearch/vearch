@@ -16,3 +16,12 @@ package entity
 
 const MaxPartitions = 1024
 const MaxTotalPartitions = 1024 * 16
+
+const (
+	// Scalar index type string values
+	ScalarIndexType       = "SCALAR"        // RocksDB inverted index (default), for compatibility with existing code, same as INVERTED
+	InvertedIndexType     = "INVERTED"      // RocksDB inverted index, one-to-one
+	InvertedListIndexType = "INVERTED_LIST" // RocksDB inverted list index, one-to-many
+	BitmapIndexType       = "BITMAP"        // Roaring bitmap-based index
+	CompositeIndexType    = "COMPOSITE"     // RocksDB composite (multi-column) index
+)

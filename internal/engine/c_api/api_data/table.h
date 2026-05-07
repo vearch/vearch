@@ -29,7 +29,16 @@ struct VectorInfo {
 struct FieldInfo {
   std::string name;
   DataType data_type;
-  bool is_index;
+  bool is_index = false;
+  int index_type = 0;
+};
+
+struct IndexInfo {
+  std::string name;
+  std::string type;
+  std::string field_name;
+  std::vector<std::string> field_names;
+  std::string params;
 };
 
 class TableInfo : public RawData {
@@ -75,6 +84,10 @@ class TableInfo : public RawData {
 
   void SetIndexParams(std::string &index_params);
 
+  std::vector<struct IndexInfo> &Indexes();
+
+  void AddIndex(struct IndexInfo &index);
+
   int Read(const std::string &path);
 
   int Write(const std::string &path);
@@ -92,6 +105,7 @@ class TableInfo : public RawData {
   int refresh_interval_ = 0;
   bool enable_id_cache_ = false;
   bool enable_realtime_ = false;
+  std::vector<struct IndexInfo> indexes_;
 };
 
 }  // namespace vearch

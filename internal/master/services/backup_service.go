@@ -449,7 +449,7 @@ func (s *BackupService) restoreSchema(ctx context.Context, dbService *DBService,
 		return res, err
 	}
 
-	if err := spaceService.CreateSpace(ctx, dbService, dbName, space); err != nil {
+	if err := spaceService.CreateSpace(ctx, dbService, dbName, space, true); err != nil {
 		log.Error("createSpace err: %v", err)
 		return res, err
 	}
@@ -2308,7 +2308,7 @@ func (b *BackupManager) restoreSchema(ctx context.Context,
 		return res, err
 	}
 
-	if err := spaceService.CreateSpace(ctx, dbService, dbName, space); err != nil {
+	if err := spaceService.CreateSpace(ctx, dbService, dbName, space, true); err != nil {
 		log.Error("createSpace err: %v", err)
 		return res, err
 	}
