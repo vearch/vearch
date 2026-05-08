@@ -349,37 +349,33 @@ func copyMap(src map[string]string) map[string]string {
 	return dst
 }
 
-func NormalFields(space *entity.Space) map[string]string {
-	normalField := make(map[string]string)
-	for field, pro := range space.SpaceProperties {
-		format := pro.Format
-		if pro.FieldType == vearchpb.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
-			if pro.Index != nil {
-				if pro.Index.Type != "BINARYIVF" {
-					normalField[field] = field
+func NormalizedVectorFields(space *entity.Space) map[string]string {
+	normalizedVectorFields := make(map[string]string)
+	for fieldName, property := range space.SpaceProperties {
+		format := property.Format
+		if property.FieldType == vearchpb.FieldType_VECTOR && format != nil && (*format == "normalization" || *format == "normal") {
+			if property.Index != nil {
+				if property.Index.Type != "BINARYIVF" {
+					normalizedVectorFields[fieldName] = fieldName
 				}
 			} else {
 				for _, idx := range space.Indexes {
-					if idx.FieldName == field && idx.Type != "BINARYIVF" {
-						normalField[field] = field
+					if idx.FieldName == fieldName && idx.Type != "BINARYIVF" {
+						normalizedVectorFields[fieldName] = fieldName
 						break
 					}
 				}
 			}
 		}
 	}
-	return normalField
+	return normalizedVectorFields
 }
 
 // Execute Execute request
 func (r *routerRequest) Execute() []*vearchpb.Item {
-	isNormal := false
-	normalField := make(map[string]string)
+	normalizedVectorFields := make(map[string]string)
 	if r.md[HandlerType] == BatchHandler {
-		normalField = NormalFields(r.space)
-		if len(normalField) > 0 {
-			isNormal = true
-		}
+		normalizedVectorFields = NormalizedVectorFields(r.space)
 	}
 	var wg sync.WaitGroup
 
@@ -401,13 +397,13 @@ func (r *routerRequest) Execute() []*vearchpb.Item {
 				panic(e.Error())
 			}
 
-			if isNormal && len(normalField) > 0 {
+			if len(normalizedVectorFields) > 0 {
 				for _, item := range d.Items {
 					if item.Doc == nil {
 						continue
 					}
 					for _, field := range item.Doc.Fields {
-						if field == nil || field.Name == "" || normalField[field.Name] == "" {
+						if field == nil || field.Name == "" || normalizedVectorFields[field.Name] == "" {
 							continue
 						}
 						float32s, err := cbbytes.ByteToVectorForFloat32(field.Value)
@@ -501,7 +497,7 @@ func (r *routerRequest) replicasFaultyNum(replicas []uint64) int {
 	return faultyNodeNum
 }
 
-func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, respChain chan *response.SearchDocResult, isNormal bool, normalField map[string]string, desc bool) {
+func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, respChain chan *response.SearchDocResult, normalizedVectorFields map[string]string, desc bool) {
 	start := time.Now()
 	responseDoc := &response.SearchDocResult{}
 	defer func() {
@@ -597,7 +593,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 			return
 		}
 
-		if isNormal && len(normalField) > 0 {
+		if len(normalizedVectorFields) > 0 {
 			vectorQueryArr := pd.SearchRequest.VecFields
 			proMap := r.space.SpaceProperties
 			for _, query := range vectorQueryArr {
@@ -775,11 +771,7 @@ func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchRespon
 	startTime := time.Now()
 	var wg sync.WaitGroup
 	sendPartitionMap := r.sendMap
-	isNormal := false
-	normalField := NormalFields(r.space)
-	if len(normalField) > 0 {
-		isNormal = true
-	}
+	normalizedVectorFields := NormalizedVectorFields(r.space)
 
 	trace := config.Trace
 	for _, pData := range sendPartitionMap {
@@ -801,10 +793,10 @@ func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchRespon
 		searchReq = pData.SearchRequest
 		wg.Add(1)
 		c := context.WithValue(r.ctx, share.ReqMetaDataKey, copyMap(r.md))
-		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, respChain chan *response.SearchDocResult, isNormal bool, normalField map[string]string) {
+		go func(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, respChain chan *response.SearchDocResult, normalizedVectorFields map[string]string) {
 			defer wg.Done()
-			r.searchFromPartition(ctx, partitionID, pd, respChain, isNormal, normalField, desc)
-		}(c, partitionID, pData, respChain, isNormal, normalField)
+			r.searchFromPartition(ctx, partitionID, pd, respChain, normalizedVectorFields, desc)
+		}(c, partitionID, pData, respChain, normalizedVectorFields)
 	}
 
 	var searchResponse *vearchpb.SearchResponse

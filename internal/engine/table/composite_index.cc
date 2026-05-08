@@ -30,7 +30,6 @@ constexpr size_t kDocidBytes = sizeof(int64_t);
 constexpr size_t kStringLenBytes = 3;
 
 // Build composite header (binary format).
-// Format: [fid₁: 4B][fid₂: 4B]...[fidₙ: 4B]_
 std::string BuildCompositeHeader(const std::vector<int>& field_ids) {
   std::string header;
   header.reserve(field_ids.size() * kFieldIdBytes);

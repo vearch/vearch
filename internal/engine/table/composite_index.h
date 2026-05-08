@@ -24,6 +24,16 @@ namespace vearch {
 // RocksDB key format (binary):
 //   [fid₁: 4B][fid₂: 4B]...[fidₙ: 4B]_[val₁][val₂]...[valₙ][docid: 8B]
 //
+//   field id is encoded to 4 bytes via ToRowKey in scalar_index_utils.h.
+//   Numeric types are encoded to MemComparable via NumericToSortableStr.
+//   STRINGARRAY fields are expanded into Cartesian-product key-value pairs.
+//   STRING fields support only the IN operation. If a single value is provided,
+//   it is equivalent to an Equal lookup. For an IN with multiple values,
+//   each value is seeked independently and results are unioned.
+//   STRING type are not fully MemComparable — they are encoded with a length prefix
+//   to prevent false prefix matches (e.g. "abc" vs "abcd"). Range operations
+//   are supported only on the last field.
+//
 // ============================================================================
 class CompositeIndex : public InvertedIndex {
  public:
