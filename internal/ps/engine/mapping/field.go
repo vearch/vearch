@@ -87,9 +87,27 @@ func (f *FieldMapping) UnmarshalJSON(data []byte) error {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space invalid field type: %s", tmp.Type))
 	}
 
-	//set index
-	if tmp.Index != nil {
-		fieldMapping.Base().Option |= vearchpb.FieldOption_Index
+	// set index option:
+	// - vector field always has index
+	// - non-vector fields can choose scalar index type via index.type
+	if fieldMapping.FieldType() == vearchpb.FieldType_VECTOR {
+		fieldMapping.Base().Option = vearchpb.FieldOption_Index
+	} else if tmp.Index != nil {
+		switch tmp.Index.Type {
+		case entity.BitmapIndexType:
+			fieldMapping.Base().Option = vearchpb.FieldOption_Bitmap
+		case entity.CompositeIndexType:
+			fieldMapping.Base().Option = vearchpb.FieldOption_Composite
+		case entity.InvertedIndexType:
+			fieldMapping.Base().Option = vearchpb.FieldOption_Inverted
+		case "", entity.ScalarIndexType:
+			fieldMapping.Base().Option = vearchpb.FieldOption_Scalar
+		default:
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+				fmt.Errorf("field:[%s] unsupported scalar index type:[%s]", f.Name, tmp.Index.Type))
+		}
+	} else {
+		fieldMapping.Base().Option = vearchpb.FieldOption_Null
 	}
 
 	//set dimension

@@ -22,6 +22,11 @@ enum FieldType {
 enum FieldOption {
   Null = 0;
   Index = 1;
+  Scalar = 2;
+  Inverted = 3;
+  InvertedList = 4;
+  Bitmap = 5;
+  Composite = 6;
 }
 
 message Field {

@@ -16,6 +16,7 @@
 #include "c_api/api_data/table.h"
 #include "io/io_common.h"
 #include "storage/storage_manager.h"
+#include "scalar_index_utils.h"
 #include "util/log.h"
 
 namespace vearch {
@@ -100,13 +101,38 @@ class Table {
   int GetFieldRawValue(int64_t docid, int field_id, std::vector<uint8_t> &value,
                        std::vector<uint8_t> &doc_value);
 
+  /**
+   * Get raw values for multiple fields in a single RocksDB lookup.
+   * More efficient than calling GetFieldRawValue multiple times.
+   * @param docid The document ID
+   * @param field_ids List of field IDs to retrieve
+   * @param values Output: vector of raw values for each field (same order as field_ids)
+   * @return 0 on success, -1 on error
+   */
+  int GetFieldRawValues(int64_t docid, const std::vector<int> &field_ids,
+                        std::vector<std::string> &values);
+
   int GetRawValue(int64_t docid, std::vector<uint8_t> &value);
 
   int GetFieldType(const std::string &field, DataType &type);
 
+  int GetFieldTypeById(int field_id, DataType &type) {
+    if (field_id >= 0 && field_id < static_cast<int>(attrs_.size())) {
+      type = attrs_[field_id];
+      return 0;
+    }
+    return -1;
+  }
+
   int GetAttrType(std::map<std::string, DataType> &attr_type_map);
 
   int GetAttrIsIndex(std::map<std::string, bool> &attr_is_index_map);
+
+  // Get field index type (0/1/2/4)
+  int GetAttrIndexTypeValue(std::map<std::string, int> &attr_index_type_map);
+
+  // Get the scalar index type for a field (SCALAR/INVERTED/BITMAP)
+  int GetAttrIndexType(std::map<std::string, ScalarIndexType> &attr_index_type_map);
 
   int GetAttrIdx(const std::string &field) const;
 
@@ -127,6 +153,8 @@ class Table {
   int FieldsNum() { return attrs_.size(); }
 
   const std::map<std::string, int> &FieldMap() { return attr_idx_map_; }
+  const std::map<int, std::string> &FieldMapById() { return idx_attr_map_; }
+  void GetFieldNameById(int field_id, std::string &field_name) const { field_name = idx_attr_map_.at(field_id); }
   const tbb::concurrent_unordered_map<int64_t, std::string> &DocidMap() { return doc_id_map_; }
 
   bool GetEnableIdCache() { return enable_id_cache_; }
@@ -135,6 +163,8 @@ class Table {
   DumpConfig *GetDumpConfig() { return table_params_; }
 
   int64_t GetStorageManagerSize();
+
+  int GetCfId() { return cf_id_; }
 
   int64_t last_docid_;
 
@@ -156,6 +186,7 @@ class Table {
   std::map<std::string, int> attr_idx_map_;        // <field_name, field_id>
   std::map<std::string, DataType> attr_type_map_;  // <field_name, field_type>
   std::map<std::string, bool> attr_is_index_map_;  // <field_name, is index>
+  std::map<std::string, ScalarIndexType> attr_index_type_map_;  // <field_name, index_type>
   std::vector<int> idx_attr_offset_;
   std::vector<DataType> attrs_;
 

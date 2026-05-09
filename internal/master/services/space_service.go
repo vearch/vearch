@@ -56,7 +56,7 @@ func NewSpaceService(client *client.Client) *SpaceService {
 	return &SpaceService{client: client}
 }
 
-func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName string, space *entity.Space) (err error) {
+func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName string, space *entity.Space, isRestore bool) (err error) {
 	masterClient := s.client.Master()
 	if space.DBId, err = masterClient.QueryDBName2ID(ctx, dbName); err != nil {
 		log.Error("find DbId according to DbName:%v failed, error: %v", dbName, err)
@@ -112,12 +112,25 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 	if err != nil {
 		return err
 	}
-
 	space.SpaceProperties = spaceProperties
-	for _, f := range spaceProperties {
-		if f.FieldType == vearchpb.FieldType_VECTOR && f.Index != nil {
-			space.Index = f.Index
+
+	// Merge indexes definitions with field-level index info
+	if !isRestore || (isRestore && len(space.Indexes) == 0) {
+		if err := entity.MergeFieldIndexes(spaceProperties, &space.Indexes); err != nil {
+			return err
 		}
+	}
+
+	// Validate that at least one vector index is defined
+	hasVectorIndex := false
+	for _, idx := range space.Indexes {
+		if !entity.IsScalarIndexType(idx.Type) {
+			hasVectorIndex = true
+			break
+		}
+	}
+	if !hasVectorIndex {
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space vector field index should not be empty"))
 	}
 
 	if space.PartitionRule != nil {
@@ -182,9 +195,6 @@ func (s *SpaceService) CreateSpace(ctx context.Context, dbs *DBService, dbName s
 	marshaledSpace, err := json.Marshal(space)
 	if err != nil {
 		return err
-	}
-	if space.Index == nil {
-		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space vector field index should not be empty"))
 	}
 	err = masterClient.Create(ctx, entity.SpaceKey(space.DBId, space.Id), marshaledSpace)
 	if err != nil {
@@ -684,8 +694,8 @@ func (s *SpaceService) detectIndexChangesWithProperties(space *entity.Space, new
 	// Check existing fields for index changes
 	for fieldName, oldProperty := range oldSpaceProperties {
 		if newProperty, exists := newSpaceProperties[fieldName]; exists {
-			oldIsIndexed := (oldProperty.Option & vearchpb.FieldOption_Index) != 0
-			newIsIndexed := (newProperty.Option & vearchpb.FieldOption_Index) != 0
+			oldIsIndexed := oldProperty.Option != vearchpb.FieldOption_Null
+			newIsIndexed := newProperty.Option != vearchpb.FieldOption_Null
 
 			if oldIsIndexed != newIsIndexed {
 				if newIsIndexed {
@@ -700,7 +710,7 @@ func (s *SpaceService) detectIndexChangesWithProperties(space *entity.Space, new
 	// Check new fields
 	for fieldName, newProperty := range newSpaceProperties {
 		if _, exists := oldSpaceProperties[fieldName]; !exists {
-			newIsIndexed := (newProperty.Option & vearchpb.FieldOption_Index) != 0
+			newIsIndexed := newProperty.Option != vearchpb.FieldOption_Null
 			if newIsIndexed {
 				indexChanges = append(indexChanges, fmt.Sprintf("new indexed field:[%s] added", fieldName))
 			}
@@ -839,16 +849,11 @@ func (s *SpaceService) updateSpaceFields(space *entity.Space, newFields []byte) 
 		if err != nil {
 			return err
 		}
-		space.SpaceProperties = updatedSpaceProperties
-
-		// Check if vector field has index, if not set space.Index to nil
-		space.Index = nil
-		for _, property := range updatedSpaceProperties {
-			if property.FieldType == vearchpb.FieldType_VECTOR && property.Index != nil {
-				space.Index = property.Index
-				break
-			}
+		space.Indexes = make([]*entity.Index, 0)
+		if err := entity.MergeFieldIndexes(updatedSpaceProperties, &space.Indexes); err != nil {
+			return err
 		}
+		space.SpaceProperties = updatedSpaceProperties
 	}
 
 	return nil
@@ -889,8 +894,8 @@ func (s *SpaceService) isOnlyIndexOptionChangeWithProperties(oldProperty, newPro
 	}
 
 	// Check if only the index option differs
-	oldIsIndexed := (oldProperty.Option & vearchpb.FieldOption_Index) != 0
-	newIsIndexed := (newProperty.Option & vearchpb.FieldOption_Index) != 0
+	oldIsIndexed := oldProperty.Option != vearchpb.FieldOption_Null
+	newIsIndexed := newProperty.Option != vearchpb.FieldOption_Null
 
 	return oldIsIndexed != newIsIndexed
 }
@@ -910,8 +915,8 @@ func (s *SpaceService) hasIndexChanges(oldFields, newFields []byte) bool {
 	// Check existing fields for index changes
 	for fieldName, oldProperty := range oldSpaceProperties {
 		if newProperty, exists := newSpaceProperties[fieldName]; exists {
-			oldIsIndexed := (oldProperty.Option & vearchpb.FieldOption_Index) != 0
-			newIsIndexed := (newProperty.Option & vearchpb.FieldOption_Index) != 0
+			oldIsIndexed := oldProperty.Option != vearchpb.FieldOption_Null
+			newIsIndexed := newProperty.Option != vearchpb.FieldOption_Null
 			if oldIsIndexed != newIsIndexed {
 				return true
 			}
@@ -921,7 +926,7 @@ func (s *SpaceService) hasIndexChanges(oldFields, newFields []byte) bool {
 	// Check new fields with index
 	for fieldName, newProperty := range newSpaceProperties {
 		if _, exists := oldSpaceProperties[fieldName]; !exists {
-			newIsIndexed := (newProperty.Option & vearchpb.FieldOption_Index) != 0
+			newIsIndexed := newProperty.Option != vearchpb.FieldOption_Null
 			if newIsIndexed {
 				return true
 			}

@@ -10,8 +10,8 @@
 #include <algorithm>
 
 #include "common/common_query_data.h"
+#include "table/scalar_index_result.h"
 #include "index/index_model.h"
-#include "table/field_range_index.h"
 #include "table/table.h"
 #include "util/log.h"
 #include "util/utils.h"
@@ -33,7 +33,7 @@ enum class VectorStorageType : std::uint8_t { MemoryOnly, MemoryBuffer, RocksDB 
 class SearchCondition : public RetrievalContext {
  public:
   SearchCondition(PerfTool *perf_tool) {
-    range_query_result = nullptr;
+    scalar_index_result = nullptr;
     topn = 0;
     multi_vector_rank = false;
     metric_type = DistanceComputeType::INNER_PRODUCT;
@@ -49,7 +49,7 @@ class SearchCondition : public RetrievalContext {
   }
 
   SearchCondition(SearchCondition *condition) {
-    range_query_result = condition->range_query_result;
+    scalar_index_result = condition->scalar_index_result;
     topn = condition->topn;
     multi_vector_rank = condition->multi_vector_rank;
     metric_type = condition->metric_type;
@@ -66,12 +66,12 @@ class SearchCondition : public RetrievalContext {
   }
 
   ~SearchCondition() {
-    range_query_result = nullptr;  // should not delete
+    scalar_index_result = nullptr;  // should not delete
     table = nullptr;               // should not delete
     ranker = nullptr;              // should not delete
   }
 
-  MultiRangeQueryResults *range_query_result;
+  ScalarIndexResults *scalar_index_result;
 
   int filter_operator;
   std::vector<struct RangeFilter> range_filters;
@@ -97,7 +97,7 @@ class SearchCondition : public RetrievalContext {
 
   bool IsValid(int64_t id) const override {
 #ifndef FAISSLIKE_INDEX
-    if ((range_query_result != nullptr && not range_query_result->Has(id)) ||
+    if ((scalar_index_result != nullptr && not scalar_index_result->Has(id)) ||
         docids_bitmap->Test(id)) {
       return false;
     }
@@ -113,7 +113,7 @@ class SearchCondition : public RetrievalContext {
     this->raw_vec = raw_vec;
   }
 
-  MultiRangeQueryResults *RangeQueryResult() { return range_query_result; }
+  ScalarIndexResults *ScalarIndexResult() { return scalar_index_result; }
 
  private:
   bitmap::BitmapManager *docids_bitmap;

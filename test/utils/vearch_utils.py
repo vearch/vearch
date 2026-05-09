@@ -32,6 +32,10 @@ space_name = "ts_space"
 username = "root"
 password = os.getenv("PASSWORD", "secret")
 
+SCALAR_INDEX_TYPE_STRING = "SCALAR"
+INVERTED_INDEX_TYPE_STRING = "INVERTED"
+BITMAP_INDEX_TYPE_STRING = "BITMAP"
+
 __description__ = """ test utils for vearch """
 
 
@@ -1349,6 +1353,14 @@ def prepare_cluster_for_document_test(total, xb, partition_num=1):
             },
         },
         {
+            "name": "field_string_array",
+            "type": "string_array",
+            "index": {
+                "name": "field_string_array",
+                "type": "SCALAR",
+            },
+        },
+        {
             "name": "field_vector",
             "type": "vector",
             "index": {
@@ -1379,6 +1391,7 @@ def waiting_index_finish(total, timewait=5, space_name=space_name):
         response = requests.get(url, auth=(username, password))
         if response.json()["code"] != 0:
             logger.error("waiting index finish, response code is not 0, " + response.text)
+            logger.error("url: " + url + ", total: " + str(total) + ", timewait: " + str(timewait))
             break
         partitions = response.json()["data"]["partitions"]
         for p in partitions:
@@ -1389,7 +1402,7 @@ def waiting_index_finish(total, timewait=5, space_name=space_name):
         time.sleep(timewait)
 
 
-def get_space_num():
+def get_space_num(space_name: str = space_name):
     url = f"{router_url}/dbs/{db_name}/spaces/{space_name}"
     num = 0
     response = requests.get(url, auth=(username, password))

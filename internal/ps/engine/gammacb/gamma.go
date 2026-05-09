@@ -190,8 +190,8 @@ func (ge *gammaEngine) UpdateMapping(updatedSpace *entity.Space) error {
 			}
 
 			// Check for index option changes
-			currentIsIndexed := (currentProperty.Option & vearchpb.FieldOption_Index) != 0
-			updatedIsIndexed := (updatedProperty.Option & vearchpb.FieldOption_Index) != 0
+			currentIsIndexed := currentProperty.Option != vearchpb.FieldOption_Null
+			updatedIsIndexed := updatedProperty.Option != vearchpb.FieldOption_Null
 			log.Debug("field:[%s] current indexed:[%t], updated indexed:[%t]", fieldName, currentIsIndexed, updatedIsIndexed)
 
 			if currentIsIndexed != updatedIsIndexed {
@@ -212,8 +212,7 @@ func (ge *gammaEngine) UpdateMapping(updatedSpace *entity.Space) error {
 	// Check for new fields
 	for fieldName, updatedProperty := range updatedSpaceProperties {
 		if _, exists := currentSpaceProperties[fieldName]; !exists {
-			// New field added
-			isIndexed := (updatedProperty.Option & vearchpb.FieldOption_Index) != 0
+			isIndexed := updatedProperty.Option != vearchpb.FieldOption_Null
 			if isIndexed {
 				needIndexRebuild = true
 				indexChanges = append(indexChanges, fmt.Sprintf("new indexed field:[%s] added", fieldName))
@@ -245,8 +244,8 @@ func (ge *gammaEngine) UpdateMapping(updatedSpace *entity.Space) error {
 			if !exists {
 				continue // Field removed, skip
 			}
-			currentIsIndexed := (currentProperty.Option & vearchpb.FieldOption_Index) != 0
-			updatedIsIndexed := (updatedProperty.Option & vearchpb.FieldOption_Index) != 0
+			currentIsIndexed := currentProperty.Option != vearchpb.FieldOption_Null
+			updatedIsIndexed := updatedProperty.Option != vearchpb.FieldOption_Null
 
 			if currentIsIndexed == updatedIsIndexed {
 				continue // No change in index status, skip
@@ -280,7 +279,7 @@ func (ge *gammaEngine) UpdateMapping(updatedSpace *entity.Space) error {
 		// Process new fields
 		for fieldName, updatedProperty := range updatedSpaceProperties {
 			if _, exists := currentSpaceProperties[fieldName]; !exists {
-				isIndexed := (updatedProperty.Option & vearchpb.FieldOption_Index) != 0
+				isIndexed := updatedProperty.Option != vearchpb.FieldOption_Null
 				if isIndexed {
 					// Add index for new field
 					if err := ge.addFieldIndex(fieldName, updatedSpace); err != nil {

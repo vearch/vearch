@@ -14,7 +14,7 @@
 #include <fstream>
 #include <string>
 
-#include "field_range_index.h"
+#include "scalar_index_manager.h"
 #include "util/utils.h"
 #include "common/gamma_common_data.h"
 
@@ -113,13 +113,16 @@ Status Table::CreateTable(TableInfo &table) {
   for (size_t i = 0; i < fields_num; ++i) {
     const string name = fields[i].name;
     DataType ftype = fields[i].data_type;
-    bool is_index = fields[i].is_index;
-    LOG(INFO) << name_ << " add field [" << name << "], type [" << (int)ftype
-              << "], index [" << is_index << "]";
+    int index_type = fields[i].index_type;
+    bool is_index = index_type != 0;
+    LOG(INFO) << name_ << " add field [" << name << "], type [" << DataTypeToString(ftype)
+              << "], index_type [" << ScalarIndexTypeToString((ScalarIndexType)index_type)
+              << "], field_id [" << (int)field_num_ << "]";
     Status status = AddField(name, ftype, is_index);
     if (!status.ok()) {
       return status;
     }
+    attr_index_type_map_[name] = static_cast<ScalarIndexType>(index_type);
   }
 
   if (key_idx_ == -1) {
@@ -499,6 +502,54 @@ int Table::GetRawValue(int64_t docid, std::vector<uint8_t> &value) {
   return 0;
 }
 
+int Table::GetFieldRawValues(int64_t docid, const std::vector<int> &field_ids,
+                             std::vector<std::string> &values) {
+  if (docid < 0) return -1;
+
+  values.resize(field_ids.size());
+
+  // First, fetch the full row data once (for non-string fields)
+  std::vector<uint8_t> doc_value;
+  auto result = storage_mgr_->Get(cf_id_, docid);
+  if (!result.first.ok()) {
+    return result.first.code();
+  }
+  doc_value.resize(item_length_);
+  memcpy(doc_value.data(), result.second.data(), item_length_);
+
+  // Now extract each field value from the cached row data
+  for (size_t i = 0; i < field_ids.size(); ++i) {
+    int field_id = field_ids[i];
+    if (field_id < 0 || field_id >= field_num_) {
+      return -1;
+    }
+
+    DataType data_type = attrs_[field_id];
+
+    if (data_type == DataType::STRING || data_type == DataType::STRINGARRAY) {
+      // String fields need separate lookup
+      const auto iter = idx_attr_map_.find(field_id);
+      if (iter == idx_attr_map_.end()) {
+        LOG(ERROR) << name_ << " cannot find field [" << field_id << "]";
+        return -1;
+      }
+      std::string str;
+      auto status = storage_mgr_->GetString(cf_id_, docid, iter->second, str);
+      if (!status.ok()) {
+        return status.code();
+      }
+      values[i] = std::move(str);
+    } else {
+      // Numeric fields: extract from cached row data
+      size_t offset = idx_attr_offset_[field_id];
+      int value_len = FTypeSize(data_type);
+      values[i] = std::string((const char*)(doc_value.data() + offset), value_len);
+    }
+  }
+
+  return 0;
+}
+
 int Table::GetFieldType(const std::string &field_name, DataType &type) {
   const auto &it = attr_type_map_.find(field_name);
   if (it == attr_type_map_.end()) {
@@ -519,6 +570,13 @@ int Table::GetAttrType(std::map<std::string, DataType> &attr_type_map) {
 int Table::GetAttrIsIndex(std::map<std::string, bool> &attr_is_index_map) {
   for (const auto &attr_is_index : attr_is_index_map_) {
     attr_is_index_map.insert(attr_is_index);
+  }
+  return 0;
+}
+
+int Table::GetAttrIndexType(std::map<std::string, ScalarIndexType> &attr_index_type_map) {
+  for (const auto &attr_index_type : attr_index_type_map_) {
+    attr_index_type_map.insert(attr_index_type);
   }
   return 0;
 }

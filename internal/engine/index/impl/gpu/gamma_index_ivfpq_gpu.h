@@ -14,7 +14,6 @@
 #include "gamma_gpu_search_base.h"
 #include "index/impl/gamma_index_ivfpq.h"
 #include "index/index_model.h"
-#include "table/field_range_index.h"
 #include "util/log.h"
 #include "util/utils.h"
 #include "vector/raw_vector.h"

@@ -11,6 +11,7 @@
 
 #include "third_party/nlohmann/json.hpp"
 #include "util/log.h"
+#include "table/scalar_index_utils.h"
 
 namespace vearch {
 
@@ -25,6 +26,7 @@ struct SchemaInfo {
   std::vector<struct VectorInfo> vectors;
   std::string index_type;
   std::string index_params;
+  std::vector<struct IndexInfo> indexes;
 };
 
 int TableSchemaIO::Write(TableInfo &table) {
@@ -35,6 +37,7 @@ int TableSchemaIO::Write(TableInfo &table) {
       .vectors = table.VectorInfos(),
       .index_type = table.IndexType(),
       .index_params = table.IndexParams(),
+      .indexes = table.Indexes(),
   };
 
   nlohmann::json j;
@@ -46,7 +49,8 @@ int TableSchemaIO::Write(TableInfo &table) {
     nlohmann::json jf;
     jf["name"] = f.name;
     jf["data_type"] = f.data_type;
-    jf["is_index"] = f.is_index;
+    jf["is_index"] = f.is_index;  // legacy
+    jf["index_type"] = f.index_type;
     j["fields"].push_back(jf);
   }
   for (auto &v : s.vectors) {
@@ -61,6 +65,17 @@ int TableSchemaIO::Write(TableInfo &table) {
   }
   j["index_type"] = s.index_type;
   j["index_params"] = s.index_params;
+  for (auto &idx : s.indexes) {
+    nlohmann::json ji;
+    ji["name"] = idx.name;
+    ji["type"] = idx.type;
+    ji["field_name"] = idx.field_name;
+    for (const auto &fn : idx.field_names) {
+      ji["field_names"].push_back(fn);
+    }
+    ji["params"] = idx.params;
+    j["indexes"].push_back(ji);
+  }
 
   std::string schema_str = j.dump(2);
   std::ofstream schema_file(file_path);
@@ -111,7 +126,13 @@ int TableSchemaIO::Read(std::string &name, TableInfo &table) {
       struct FieldInfo fi;
       fi.name = f["name"];
       fi.data_type = f["data_type"];
-      fi.is_index = f["is_index"];
+      if (f.contains("index_type")) {
+        fi.index_type = f["index_type"];
+        fi.is_index = fi.index_type != static_cast<int>(ScalarIndexType::Null);
+      } else {
+        fi.is_index = f["is_index"];  // legacy fallback
+        fi.index_type = fi.is_index ? static_cast<int>(ScalarIndexType::Scalar) : static_cast<int>(ScalarIndexType::Null);
+      }
       table.AddField(fi);
     }
     for (auto &v : j["vectors"]) {
@@ -129,6 +150,23 @@ int TableSchemaIO::Read(std::string &name, TableInfo &table) {
     table.SetIndexType(index_type);
     std::string index_params = j["index_params"];
     table.SetIndexParams(index_params);
+
+    // Parse explicit indexes from JSON
+    if (j.contains("indexes")) {
+      for (auto &idx_json : j["indexes"]) {
+        struct IndexInfo idx;
+        idx.name = idx_json.value("name", "");
+        idx.type = idx_json.value("type", "");
+        idx.field_name = idx_json.value("field_name", "");
+        idx.params = idx_json.value("params", "");
+        if (idx_json.contains("field_names")) {
+          for (auto &fn : idx_json["field_names"]) {
+            idx.field_names.push_back(fn.get<std::string>());
+          }
+        }
+        table.AddIndex(idx);
+      }
+    }
   } catch (const nlohmann::json::exception &e) {
     LOG(ERROR) << "JSON parse error: " << e.what()
                << ", content: " << schema_str;

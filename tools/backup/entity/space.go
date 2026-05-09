@@ -25,8 +25,8 @@ type DescribeSpaceResponse struct {
 		PartitionNum int    `json:"partition_num"`
 		ReplicaNum   int    `json:"replica_num"`
 		Schema       struct {
-			Fields json.RawMessage `json:"fields"`
-			Index  json.RawMessage `json:"index"`
+			Fields  json.RawMessage `json:"fields"`
+			Indexes json.RawMessage `json:"indexes"`
 		} `json:"schema"`
 		DocNum     int `json:"doc_num"`
 		Partitions []struct {
@@ -50,7 +50,7 @@ type SpaceSchema struct {
 	Name         string          `json:"name"`
 	PartitionNum int             `json:"partition_num"`
 	ReplicaNum   int             `json:"replica_num"`
-	Index        json.RawMessage `json:"index"`
+	Indexes      json.RawMessage `json:"indexes"`
 	Fields       json.RawMessage `json:"fields"`
 }
 
@@ -88,7 +88,7 @@ type CreateSpaceResponse struct {
 		PartitionNum    int             `json:"partition_num"`
 		ReplicaNum      int             `json:"replica_num"`
 		Fields          json.RawMessage `json:"fields"`
-		Index           json.RawMessage `json:"index"`
+		Indexes         json.RawMessage `json:"indexes"`
 		SpaceProperties json.RawMessage `json:"space_properties"`
 	} `json:"data"`
 }

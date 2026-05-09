@@ -6,6 +6,7 @@ table FieldInfo {
   name:string;
   data_type:DataType;
   is_index:bool;
+  index_type:int = 0;
 }
 
 table VectorInfo {
@@ -17,6 +18,14 @@ table VectorInfo {
   store_param:string;
 }
 
+table IndexInfo {
+  name:string;
+  type:string;
+  field_name:string;
+  field_names:[string];
+  params:string;
+}
+
 table Table {
   name:string;
   fields:[FieldInfo];
@@ -26,6 +35,7 @@ table Table {
   refresh_interval:int = 1000; // microseconds, default 1s
   enable_id_cache:bool;
   enable_realtime:bool;
+  indexes:[IndexInfo];
 }
 
 root_type Table;

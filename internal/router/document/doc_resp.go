@@ -272,7 +272,8 @@ func DocFieldSerialize(doc *vearchpb.Document, space *entity.Space, returnFields
 				if !vectorValue {
 					break
 				}
-				if space.Index.Type == "BINARYIVF" {
+				indexType := space.GetFieldIndexType(name)
+				if indexType == "BINARYIVF" {
 					featureByteC := fv.Value
 					dimension := field.Dimension
 					unit8s, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)
@@ -344,7 +345,8 @@ func GetDocSource(doc *vearchpb.ResultItem, space *entity.Space, from string) (m
 			case vearchpb.FieldType_DOUBLE:
 				source[name] = cbbytes.ByteToFloat64New(fv.Value)
 			case vearchpb.FieldType_VECTOR:
-				if space.Index.Type == "BINARYIVF" {
+				indexType := space.GetFieldIndexType(name)
+				if indexType == "BINARYIVF" {
 					featureByteC := fv.Value
 					dimension := field.Dimension
 					unit8s, err := cbbytes.ByteToVectorBinary(featureByteC, dimension)

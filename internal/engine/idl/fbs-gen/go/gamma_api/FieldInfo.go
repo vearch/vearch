@@ -58,8 +58,20 @@ func (rcv *FieldInfo) MutateIsIndex(n bool) bool {
 	return rcv._tab.MutateBoolSlot(8, n)
 }
 
+func (rcv *FieldInfo) IndexType() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *FieldInfo) MutateIndexType(n int32) bool {
+	return rcv._tab.MutateInt32Slot(10, n)
+}
+
 func FieldInfoStart(builder *flatbuffers.Builder) {
-	builder.StartObject(3)
+	builder.StartObject(4)
 }
 func FieldInfoAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -69,6 +81,9 @@ func FieldInfoAddDataType(builder *flatbuffers.Builder, dataType int8) {
 }
 func FieldInfoAddIsIndex(builder *flatbuffers.Builder, isIndex bool) {
 	builder.PrependBoolSlot(2, isIndex, false)
+}
+func FieldInfoAddIndexType(builder *flatbuffers.Builder, indexType int32) {
+	builder.PrependInt32Slot(3, indexType, 0)
 }
 func FieldInfoEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

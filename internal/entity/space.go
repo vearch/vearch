@@ -31,16 +31,12 @@ const (
 	ScoreField = "_score"
 )
 
-const (
-	FieldOption_Null        vearchpb.FieldOption = 0
-	FieldOption_Index       vearchpb.FieldOption = 1
-	FieldOption_Index_False vearchpb.FieldOption = 2
-)
-
 type Index struct {
-	Name   string          `json:"name"`
-	Type   string          `json:"type,omitempty"`
-	Params json.RawMessage `json:"params,omitempty"`
+	Name       string          `json:"name"`
+	Type       string          `json:"type,omitempty"`
+	FieldName  string          `json:"field_name,omitempty"`  // for single-field indexes
+	FieldNames []string        `json:"field_names,omitempty"` // for multi-field indexes
+	Params     json.RawMessage `json:"params,omitempty"`
 }
 
 func NewDefaultIndex() *Index {
@@ -88,7 +84,7 @@ type Space struct {
 	PartitionNum          int                         `json:"partition_num"`
 	ReplicaNum            uint8                       `json:"replica_num"`
 	Fields                json.RawMessage             `json:"fields"`
-	Index                 *Index                      `json:"index,omitempty"`
+	Indexes               []*Index                    `json:"indexes,omitempty"`
 	PartitionRule         *PartitionRule              `json:"partition_rule,omitempty"`
 	SpaceProperties       map[string]*SpaceProperties `json:"space_properties,omitempty"`
 	RefreshInterval       *int32                      `json:"refresh_interval,omitempty"`
@@ -111,8 +107,8 @@ type SpaceConfig struct {
 }
 
 type SpaceSchema struct {
-	Fields json.RawMessage `json:"fields"`
-	Index  *Index          `json:"index,omitempty"`
+	Fields  json.RawMessage `json:"fields"`
+	Indexes []*Index        `json:"indexes,omitempty"`
 }
 
 type SpaceInfo struct {
@@ -182,6 +178,23 @@ func (s *Space) PartitionId(slotID SlotID) PartitionID {
 	return arr[low-1].Id
 }
 
+func (s *Space) GetFieldIndexType(fieldName string) string {
+	for _, idx := range s.Indexes {
+		if idx.FieldName == fieldName {
+			return idx.Type
+		}
+	}
+	for field, pro := range s.SpaceProperties {
+		if field == fieldName {
+			if pro.Index != nil {
+				return pro.Index.Type
+			}
+			return ""
+		}
+	}
+	return ""
+}
+
 func (s *Space) PartitionIdsByRangeField(value []byte, field_type vearchpb.FieldType) ([]PartitionID, error) {
 	pids := make([]PartitionID, 0)
 	if len(s.Partitions) == 1 {
@@ -219,9 +232,11 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space vector field index should not be empty"))
 	}
 	tempIndex := &struct {
-		Name   string          `json:"name,omitempty"`
-		Type   string          `json:"type,omitempty"`
-		Params json.RawMessage `json:"params,omitempty"`
+		Name       string          `json:"name,omitempty"`
+		Type       string          `json:"type,omitempty"`
+		FieldName  string          `json:"field_name,omitempty"`
+		FieldNames []string        `json:"field_names,omitempty"`
+		Params     json.RawMessage `json:"params,omitempty"`
 	}{}
 	if err := json.Unmarshal(bs, tempIndex); err != nil {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space Index json.Unmarshal err:%v", err))
@@ -240,7 +255,11 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 		"SCANN":          "SCANN",
 		"SCALAR":         "SCALAR",
 		"IVFRABITQ":      "IVFRABITQ",
+		"INVERTED":       "INVERTED",
+		"BITMAP":         "BITMAP",
+		"COMPOSITE":      "COMPOSITE",
 	}
+
 	if tempIndex.Type == "" {
 		return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index type is null"))
 	}
@@ -298,9 +317,11 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 	}
 
 	*index = Index{
-		Name:   tempIndex.Name,
-		Type:   tempIndex.Type,
-		Params: tempIndex.Params,
+		Name:       tempIndex.Name,
+		Type:       tempIndex.Type,
+		FieldName:  tempIndex.FieldName,
+		FieldNames: tempIndex.FieldNames,
+		Params:     tempIndex.Params,
 	}
 
 	return nil
@@ -346,33 +367,41 @@ type Field struct {
 
 func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, error) {
 	tmpPro := make(map[string]*SpaceProperties)
-	tmp := make([]Field, 0)
-	err := json.Unmarshal(propertity, &tmp)
+	fields := make([]Field, 0)
+	err := json.Unmarshal(propertity, &fields)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
 	names := make(map[string]bool)
+	indexNames := make(map[string]bool)
 
-	for _, data := range tmp {
-		if data.Name == "" {
+	for _, field := range fields {
+		if field.Name == "" {
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name can not be empty"))
 		}
-		if data.Name == IdField {
+		if field.Name == IdField {
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name can not be %s", IdField))
 		}
-		if data.Name == ScoreField {
+		if field.Name == ScoreField {
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name can not be %s", ScoreField))
 		}
-		if _, ok := names[data.Name]; ok {
+		if _, ok := names[field.Name]; ok {
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("field name can not be duplicate"))
 		} else {
-			names[data.Name] = true
+			names[field.Name] = true
+		}
+		if field.Index != nil {
+			if _, ok := indexNames[field.Index.Name]; ok {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index name can not be duplicate"))
+			} else {
+				indexNames[field.Index.Name] = true
+			}
 		}
 
 		sp := &SpaceProperties{}
 		isVector := false
-		sp.Type = data.Type
+		sp.Type = field.Type
 
 		switch sp.Type {
 		case "text", "keyword", "string":
@@ -395,19 +424,19 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 			sp.FieldType = vearchpb.FieldType_VECTOR
 
 			isVector = true
-			if data.Dimension == 0 {
-				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("dimension can not be zero by field : [%s] ", data.Name))
+			if field.Dimension == 0 {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("dimension can not be zero by field : [%s] ", field.Name))
 			}
-			sp.Dimension = data.Dimension
+			sp.Dimension = field.Dimension
 
-			if data.StoreType != nil && *data.StoreType != "" {
-				if *data.StoreType != "RocksDB" && *data.StoreType != "MemoryOnly" {
-					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field:[%s] not support this store type:[%s] it only RocksDB or MemoryOnly", data.Name, *sp.StoreType))
+			if field.StoreType != nil && *field.StoreType != "" {
+				if *field.StoreType != "RocksDB" && *field.StoreType != "MemoryOnly" {
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("vector field:[%s] not support this store type:[%s] it only RocksDB or MemoryOnly", field.Name, *sp.StoreType))
 				}
 			}
-			sp.StoreType = data.StoreType
-			sp.Format = data.Format
-			format := data.Format
+			sp.StoreType = field.StoreType
+			sp.Format = field.Format
+			format := field.Format
 			if format != nil && !(*format == "normalization" || *format == "normal" || *format == "no") {
 				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("unknow vector process method:[%s]", *format))
 			}
@@ -415,16 +444,48 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 		default:
 			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("space invalid field type: %s", sp.Type))
 		}
-		sp.Index = data.Index
+		sp.Index = field.Index
 
+		// Scalar index types are only allowed for non-Vector (scalar) fields.
+		// Vector fields must use vector index types (IVFPQ, HNSW, FLAT, etc.).
 		if sp.Index != nil {
-			sp.Option = FieldOption_Index
+			if isVector {
+				// Vector fields: reject scalar index types
+				if IsScalarIndexType(sp.Index.Type) {
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+						fmt.Errorf("field [%s] is a vector field, scalar index type [%s] is not allowed",
+							field.Name, sp.Index.Type))
+				}
+				// Vector fields: set Option to Index (vector index type is handled elsewhere)
+				sp.Option = vearchpb.FieldOption_Index
+			} else {
+				// Scalar fields: reject vector index types
+				if !IsScalarIndexType(sp.Index.Type) {
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+						fmt.Errorf("field [%s] is a scalar field, index type [%s] is not allowed",
+							field.Name, sp.Index.Type))
+				}
+				switch sp.Index.Type {
+				case ScalarIndexType:
+					sp.Option = vearchpb.FieldOption_Scalar
+				case InvertedIndexType:
+					sp.Option = vearchpb.FieldOption_Inverted
+				case InvertedListIndexType:
+					sp.Option = vearchpb.FieldOption_InvertedList
+				case BitmapIndexType:
+					sp.Option = vearchpb.FieldOption_Bitmap
+				case CompositeIndexType:
+					sp.Option = vearchpb.FieldOption_Composite
+				default:
+					sp.Option = vearchpb.FieldOption_Scalar
+				}
+			}
 		} else {
-			sp.Option = FieldOption_Null
+			sp.Option = vearchpb.FieldOption_Null
 		}
 
 		if isVector {
-			sp.Index = data.Index
+			sp.Index = field.Index
 		}
 
 		// set date format
@@ -434,7 +495,127 @@ func UnmarshalPropertyJSON(propertity []byte) (map[string]*SpaceProperties, erro
 			}
 		}
 
-		tmpPro[data.Name] = sp
+		tmpPro[field.Name] = sp
 	}
 	return tmpPro, nil
+}
+
+// IsScalarIndexType returns true if the given index type is a scalar (non-vector) index type.
+func IsScalarIndexType(indexType string) bool {
+	switch indexType {
+	case ScalarIndexType, InvertedIndexType, BitmapIndexType, CompositeIndexType:
+		return true
+	default:
+		return false
+	}
+}
+
+// validateIndexes checks structural constraints for each index definition.
+// Rules:
+//   - COMPOSITE: must have field_names with at least 2 fields, field_name must be empty
+//   - Single-field types (SCALAR/INVERTED/BITMAP/INVERTED_LIST): must have exactly one field_name, field_names must be empty
+//   - field_name and field_names cannot both be set
+//   - name cannot be empty
+func validateIndexes(indexes []*Index, props map[string]*SpaceProperties) error {
+	indexNames := make(map[string]bool)
+	for i, idx := range indexes {
+		if idx.Name == "" {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+				fmt.Errorf("indexes[%d]: name cannot be empty", i))
+		}
+		if _, ok := indexNames[idx.Name]; ok {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR, fmt.Errorf("index name can not be duplicate"))
+		} else {
+			indexNames[idx.Name] = true
+		}
+		// field_name and field_names cannot coexist
+		if idx.FieldName != "" && len(idx.FieldNames) > 0 {
+			return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+				fmt.Errorf("indexes[%d] name[%s]: field_name and field_names cannot both be set", i, idx.Name))
+		}
+
+		if idx.Type == CompositeIndexType {
+			if len(idx.FieldNames) < 2 {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+					fmt.Errorf("indexes[%d] name[%s] type[COMPOSITE]: requires at least 2 fields, got %d",
+						i, idx.Name, len(idx.FieldNames)))
+			}
+			seen := make(map[string]struct{})
+			for _, name := range idx.FieldNames {
+				if _, ok := props[name]; !ok {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+						fmt.Errorf("indexes[%d] name[%s] type[COMPOSITE]: field[%s] not found in fields", i, idx.Name, name))
+				}
+				// COMPOSITE index: all referenced fields must be scalar fields
+				if props[name].FieldType == vearchpb.FieldType_VECTOR {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+						fmt.Errorf("indexes[%d] name[%s] type[COMPOSITE]: field[%s] is a vector field, composite index only supports scalar fields",
+							i, idx.Name, name))
+				}
+				if _, ok := seen[name]; ok {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+						fmt.Errorf("indexes[%d] name[%s] type[COMPOSITE]: duplicate field[%s] in field_names", i, idx.Name, name))
+				}
+				seen[name] = struct{}{}
+			}
+		} else {
+			if idx.FieldName == "" {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+					fmt.Errorf("indexes[%d] name[%s] type[%s]: requires field_name to be set",
+						i, idx.Name, idx.Type))
+			}
+			prop, ok := props[idx.FieldName]
+			if !ok {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+					fmt.Errorf("indexes[%d] name[%s] type[%s]: field[%s] not found in fields", i, idx.Name, idx.Type, idx.FieldName))
+			}
+			// Check field-type/index-type compatibility for single-field indexes
+			if IsScalarIndexType(idx.Type) {
+				if prop.FieldType == vearchpb.FieldType_VECTOR {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+						fmt.Errorf("indexes[%d] name[%s] type[%s]: field[%s] is a vector field, scalar index types are not allowed",
+							i, idx.Name, idx.Type, idx.FieldName))
+				}
+			} else {
+				if prop.FieldType != vearchpb.FieldType_VECTOR {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+						fmt.Errorf("indexes[%d] name[%s] type[%s]: field[%s] is a scalar field, use scalar index types instead",
+							i, idx.Name, idx.Type, idx.FieldName))
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// This means a field can participate in both a single-field index and a composite index simultaneously.
+func MergeFieldIndexes(props map[string]*SpaceProperties, indexes *[]*Index) error {
+	for fieldName, field := range props {
+		if field.Index != nil {
+			if field.Index.Type == CompositeIndexType {
+				return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+					fmt.Errorf("field[%s] index type[COMPOSITE] can not set in fields", fieldName))
+			}
+			for _, idx := range *indexes {
+				if idx == nil {
+					continue
+				}
+				if fieldName == idx.FieldName && idx.Type != CompositeIndexType {
+					return vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+						fmt.Errorf("field[%s] index duplicated", fieldName))
+				}
+			}
+			index := &Index{
+				Name:      field.Index.Name,
+				Type:      field.Index.Type,
+				FieldName: fieldName,
+				Params:    field.Index.Params,
+			}
+			*indexes = append(*indexes, index)
+		}
+	}
+	if err := validateIndexes(*indexes, props); err != nil {
+		return err
+	}
+	return nil
 }

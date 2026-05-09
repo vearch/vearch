@@ -144,7 +144,7 @@ class VearchCase:
                     "name": "string_tags",
                     "type": "stringArray",
                     "index": {
-                        "name": "float",
+                        "name": "string_tags",
                         "type": "SCALAR",
                     },
                 },

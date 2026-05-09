@@ -15,7 +15,7 @@
 #include "c_api/api_data/request.h"
 #include "c_api/api_data/response.h"
 #include "c_api/api_data/table.h"
-#include "table/field_range_index.h"
+#include "table/scalar_index_manager.h"
 #include "table/table.h"
 #include "util/bitmap_manager.h"
 #include "vector/vector_manager.h"
@@ -135,9 +135,9 @@ class Engine {
 
   int AddNumIndexFields();
 
-  int64_t MultiRangeQuery(Request &request, SearchCondition *condition,
+  int64_t ScalarIndexQuery(Request &request, SearchCondition *condition,
                       Response &response_results,
-                      MultiRangeQueryResults *range_query_result);
+                      ScalarIndexResults *scalar_index_result);
 
   void BackupThread(int command);
 
@@ -153,7 +153,7 @@ class Engine {
   std::string space_name_;
   StorageManager *storage_mgr_;
 
-  MultiFieldsRangeIndex *field_range_index_;
+  ScalarIndexManager *scalar_index_manager_;
 
   bitmap::BitmapManager *docids_bitmap_;
   Table *table_;
@@ -162,6 +162,8 @@ class Engine {
   int64_t max_docid_;
   int training_threshold_;
   int slow_search_time_;
+  // all indexes: scalar index managed by scalar index manager and vector index managed by vector manager
+  std::vector<struct IndexInfo> indexes_;
 
   std::atomic<int>
       delete_num_;  // Index building state management with atomic operations

@@ -176,12 +176,17 @@ inline bool FieldType_Parse(
 enum FieldOption : int {
   Null = 0,
   Index = 1,
+  Scalar = 2,
+  Inverted = 3,
+  InvertedList = 4,
+  Bitmap = 5,
+  Composite = 6,
   FieldOption_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
   FieldOption_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
 };
 bool FieldOption_IsValid(int value);
 constexpr FieldOption FieldOption_MIN = Null;
-constexpr FieldOption FieldOption_MAX = Index;
+constexpr FieldOption FieldOption_MAX = Composite;
 constexpr int FieldOption_ARRAYSIZE = FieldOption_MAX + 1;
 
 const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* FieldOption_descriptor();

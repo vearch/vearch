@@ -40,6 +40,7 @@ def create(router_url, properties=None):
     create_db(router_url, db_name)
 
     response = create_space(router_url, db_name, space_config)
+    logger.info(response.json())
     assert response.json()["code"] == 0
 
 
@@ -175,7 +176,7 @@ class TestDateField:
             {
                 "name": "field_date",
                 "type": "date",
-                "index": {"name": "field_string", "type": "SCALAR"},
+                "index": {"name": "field_date", "type": "SCALAR"},
             },
             {
                 "name": "field_vector",

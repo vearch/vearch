@@ -39,8 +39,16 @@ class FieldInfo(object):
             return bool(self._tab.Get(flatbuffers.number_types.BoolFlags, o + self._tab.Pos))
         return False
 
-def FieldInfoStart(builder): builder.StartObject(3)
+    # FieldInfo
+    def IndexType(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        if o != 0:
+            return self._tab.Get(flatbuffers.number_types.Int32Flags, o + self._tab.Pos)
+        return 0
+
+def FieldInfoStart(builder): builder.StartObject(4)
 def FieldInfoAddName(builder, name): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(name), 0)
 def FieldInfoAddDataType(builder, dataType): builder.PrependInt8Slot(1, dataType, 0)
 def FieldInfoAddIsIndex(builder, isIndex): builder.PrependBoolSlot(2, isIndex, 0)
+def FieldInfoAddIndexType(builder, indexType): builder.PrependInt32Slot(3, indexType, 0)
 def FieldInfoEnd(builder): return builder.EndObject()

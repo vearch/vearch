@@ -28,7 +28,6 @@
 #include "faiss/utils/hamming.h"
 #include "faiss/utils/utils.h"
 #include "index/index_model.h"
-#include "table/field_range_index.h"
 #include "util/bitmap.h"
 #include "util/log.h"
 #include "util/utils.h"

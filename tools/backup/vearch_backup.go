@@ -33,7 +33,7 @@ func dumpSchema(space string, describeSpaceResponse *entity.DescribeSpaceRespons
 		Name:         space,
 		PartitionNum: describeSpaceResponse.Data.PartitionNum,
 		ReplicaNum:   describeSpaceResponse.Data.ReplicaNum,
-		Index:        describeSpaceResponse.Data.Schema.Index,
+		Indexes:      describeSpaceResponse.Data.Schema.Indexes,
 		Fields:       describeSpaceResponse.Data.Schema.Fields,
 	}
 

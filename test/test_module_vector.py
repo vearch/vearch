@@ -35,7 +35,7 @@ def create(router_url, embedding_size, store_type="MemoryOnly"):
             "name": "field_vector",
             "type": "vector",
             "index": {
-                "name": "gamma",
+                "name": "field_vector_index",
                 "type": "FLAT",
                 "params": {
                     "metric_type": "L2",
@@ -50,7 +50,13 @@ def create(router_url, embedding_size, store_type="MemoryOnly"):
             "type": "vector",
             "dimension": embedding_size,
             "store_type": store_type,
-            # "format": "normalization"
+            "index": {
+                "name": "field_vector_index1",
+                "type": "FLAT",
+                "params": {
+                    "metric_type": "L2",
+                }
+            },
         }
     ]
 
@@ -60,9 +66,13 @@ def create(router_url, embedding_size, store_type="MemoryOnly"):
         "replica_num": 1,
         "fields": properties["fields"]
     }
-    logger.info(create_db(router_url, db_name))
-
-    logger.info(create_space(router_url, db_name, space_config))
+    response = create_db(router_url, db_name)
+    logger.info(response.json())
+    assert response.status_code == 200
+    
+    response = create_space(router_url, db_name, space_config)
+    logger.info(response.json())
+    assert response.status_code == 200
 
 
 def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool):
@@ -101,7 +111,7 @@ def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool)
 
         if rs.status_code != 200 or "documents" not in rs.json()["data"]:
             logger.info(rs.json())
-            logger.info(json_str)
+            # logger.info(json_str)
 
         for results in rs.json()["data"]["documents"]:
             field_int = []
@@ -125,7 +135,7 @@ def search_result(xq, k: int, batch: bool, query_dict: dict, multi_vector: bool)
 
             if rs.status_code != 200 or "documents" not in rs.json()["data"]:
                 logger.info(rs.json())
-                logger.info(json_str)
+                # logger.info(json_str)
 
             field_int = []
             for results in rs.json()["data"]["documents"]:

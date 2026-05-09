@@ -24,18 +24,46 @@ import (
 	"github.com/vearch/vearch/v3/internal/ps/engine/mapping"
 )
 
+func buildFieldInfo(name string, dataType gamma.DataType, option vearchpb.FieldOption) gamma.FieldInfo {
+	isIndex := int32(option) > 0
+	fieldInfo := gamma.FieldInfo{Name: name, DataType: dataType, IsIndex: isIndex}
+	if isIndex {
+		fieldInfo.IndexType = int32(option)
+	}
+	return fieldInfo
+}
+
 func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, error) {
 	dim := make(map[string]int)
 
-	index := cfg.Space.Index
-	indexParams := ""
-	if index != nil && index.Params != nil {
-		indexParams = string(index.Params)
+	var indexes []gamma.IndexInfo
+
+	// New format: use Space.Indexes (merged indexes from top-level + field-level)
+	if len(cfg.Space.Indexes) > 0 {
+		indexes = make([]gamma.IndexInfo, len(cfg.Space.Indexes))
+		for i, idx := range cfg.Space.Indexes {
+			indexes[i] = gamma.IndexInfo{
+				Name:       idx.Name,
+				Type:       idx.Type,
+				FieldName:  idx.FieldName,
+				FieldNames: idx.FieldNames,
+				Params:     string(idx.Params),
+			}
+		}
+	} else if cfg.Space.SpaceProperties != nil {
+		// Legacy format: extract indexes from SpaceProperties
+		for name, prop := range cfg.Space.SpaceProperties {
+			if prop.Index != nil {
+				indexes = append(indexes, gamma.IndexInfo{
+					Name:      prop.Index.Name,
+					Type:      prop.Index.Type,
+					FieldName: name,
+					Params:    string(prop.Index.Params),
+				})
+			}
+		}
 	}
-	indexType := ""
-	if index != nil {
-		indexType = index.Type
-	}
+
 	var refreshInterval int32
 	refreshInterval = int32(entity.DefaultRefreshInterval)
 	enableIdCache := entity.DefaultEnableIdCache
@@ -51,72 +79,32 @@ func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, err
 	}
 	table := &gamma.Table{
 		Name:            cfg.Space.Name + "-" + cast.ToString(cfg.PartitionID),
-		IndexType:       indexType,
-		IndexParams:     indexParams,
+		IndexType:       "",
+		IndexParams:     "",
 		RefreshInterval: refreshInterval,
 		EnableIdCache:   enableIdCache,
 		EnableRealtime:  enableRealtime,
+		Indexes:         indexes,
 	}
-
 	fieldInfo := gamma.FieldInfo{Name: entity.IdField, DataType: gamma.STRING, IsIndex: false}
 	table.Fields = append(table.Fields, fieldInfo)
 
 	err := m.SortRangeField(func(key string, value *mapping.DocumentMapping) error {
+		option := value.Field.Options()
+
 		switch value.Field.FieldType() {
 		case vearchpb.FieldType_STRING:
-			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
-			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.STRING}
-			if index == 1 {
-				fieldInfo.IsIndex = true
-			} else {
-				fieldInfo.IsIndex = false
-			}
-			table.Fields = append(table.Fields, fieldInfo)
+			table.Fields = append(table.Fields, buildFieldInfo(key, gamma.STRING, option))
 		case vearchpb.FieldType_STRINGARRAY:
-			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
-			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.STRINGARRAY}
-			if index == 1 {
-				fieldInfo.IsIndex = true
-			} else {
-				fieldInfo.IsIndex = false
-			}
-			table.Fields = append(table.Fields, fieldInfo)
+			table.Fields = append(table.Fields, buildFieldInfo(key, gamma.STRINGARRAY, option))
 		case vearchpb.FieldType_FLOAT:
-			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
-			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.FLOAT}
-			if index == 1 {
-				fieldInfo.IsIndex = true
-			} else {
-				fieldInfo.IsIndex = false
-			}
-			table.Fields = append(table.Fields, fieldInfo)
+			table.Fields = append(table.Fields, buildFieldInfo(key, gamma.FLOAT, option))
 		case vearchpb.FieldType_DOUBLE:
-			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
-			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.DOUBLE}
-			if index == 1 {
-				fieldInfo.IsIndex = true
-			} else {
-				fieldInfo.IsIndex = false
-			}
-			table.Fields = append(table.Fields, fieldInfo)
+			table.Fields = append(table.Fields, buildFieldInfo(key, gamma.DOUBLE, option))
 		case vearchpb.FieldType_DATE, vearchpb.FieldType_LONG:
-			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
-			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.LONG}
-			if index == 1 {
-				fieldInfo.IsIndex = true
-			} else {
-				fieldInfo.IsIndex = false
-			}
-			table.Fields = append(table.Fields, fieldInfo)
+			table.Fields = append(table.Fields, buildFieldInfo(key, gamma.LONG, option))
 		case vearchpb.FieldType_INT:
-			index := (value.Field.Options() & vearchpb.FieldOption_Index) / vearchpb.FieldOption_Index
-			fieldInfo := gamma.FieldInfo{Name: key, DataType: gamma.INT}
-			if index == 1 {
-				fieldInfo.IsIndex = true
-			} else {
-				fieldInfo.IsIndex = false
-			}
-			table.Fields = append(table.Fields, fieldInfo)
+			table.Fields = append(table.Fields, buildFieldInfo(key, gamma.INT, option))
 		case vearchpb.FieldType_VECTOR:
 			fieldMapping := value.Field.FieldMappingI.(*mapping.VectortFieldMapping)
 			dim[key] = fieldMapping.Dimension
@@ -147,5 +135,4 @@ func mapping2Table(cfg EngineConfig, m *mapping.IndexMapping) (*gamma.Table, err
 	}
 
 	return table, nil
-
 }

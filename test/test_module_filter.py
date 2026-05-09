@@ -381,12 +381,60 @@ def process_get_data_by_filter(index: int, full_field: bool, mode: str, total: i
         prepare_filter_bound(
             data["filters"]["conditions"], index, batch_size, full_field, ">=", "<"
         )
-
+    elif mode == "Wrong condition operator type of string":
+        data["filters"]["conditions"] = [
+            {
+                "field": "field_string",
+                "operator": "=",
+                "value": [index * batch_size]
+            }
+        ]
+    elif mode == "Wrong condition operator type of string array":
+        data["filters"]["conditions"] = [
+            {
+                "field": "field_string_array",
+                "operator": "=",
+                "value": [index * batch_size]
+            }
+        ]
+    elif mode == "Wrong condition operator type of int":
+        data["filters"]["conditions"] = [
+            {
+                "field": "field_int",
+                "operator": "IN",
+                "value": [index * batch_size]
+            }
+        ]
+    elif mode == "Wrong condition operator type of long":
+        data["filters"]["conditions"] = [
+            {
+                "field": "field_long",
+                "operator": "IN",
+                "value": [index * batch_size]
+            }
+        ]
+    elif mode == "Wrong condition operator type of float":
+        data["filters"]["conditions"] = [
+            {
+                "field": "field_float",
+                "operator": "IN",
+                "value": [index * batch_size]
+            }
+        ]
+    elif mode == "Wrong condition operator type of double":
+        data["filters"]["conditions"] = [
+            {
+                "field": "field_double",
+                "operator": "IN",
+                "value": [index * batch_size]
+            }
+        ]
     data["limit"] = batch_size
 
     json_str = json.dumps(data)
     rs = requests.post(url, auth=(username, password), data=json_str)
-    if mode == "Wrong operator":
+    if mode.startswith("Wrong"):
+        logger.info(rs.json())
         assert rs.status_code != 200
     elif rs.status_code != 200 or "documents" not in rs.json()["data"]:
         logger.info(rs.json())
@@ -548,7 +596,7 @@ def parallel_filter(id, total_batch, full_field: bool, mode: str):
         logger.info(f"Thread {id}: exited")
 
 
-def check(total, full_field, xb, mode: str):
+def check(total, scalar_index_type, full_field, xb, mode: str):
     dim = xb.shape[1]
     batch_size = 1
     k = 100
@@ -569,7 +617,7 @@ def check(total, full_field, xb, mode: str):
             "type": "integer",
             "index": {
                 "name": "field_int",
-                "type": "SCALAR",
+                "type": scalar_index_type,
             },
         },
         {
@@ -577,7 +625,7 @@ def check(total, full_field, xb, mode: str):
             "type": "long",
             "index": {
                 "name": "field_long",
-                "type": "SCALAR",
+                "type": scalar_index_type,
             },
         },
         {
@@ -585,7 +633,7 @@ def check(total, full_field, xb, mode: str):
             "type": "float",
             "index": {
                 "name": "field_float",
-                "type": "SCALAR",
+                "type": scalar_index_type,
             },
         },
         {
@@ -593,7 +641,7 @@ def check(total, full_field, xb, mode: str):
             "type": "double",
             "index": {
                 "name": "field_double",
-                "type": "SCALAR",
+                "type": scalar_index_type,
             },
         },
         {
@@ -601,7 +649,7 @@ def check(total, full_field, xb, mode: str):
             "type": "string",
             "index": {
                 "name": "field_string",
-                "type": "SCALAR",
+                "type": scalar_index_type,
             },
         },
         {
@@ -609,7 +657,7 @@ def check(total, full_field, xb, mode: str):
             "type": "string",
             "index": {
                 "name": "field_string2",
-                "type": "SCALAR",
+                "type": scalar_index_type,
             },
         },
         {
@@ -617,7 +665,7 @@ def check(total, full_field, xb, mode: str):
             "type": "string_array",
             "index": {
                 "name": "field_string_array",
-                "type": "SCALAR",
+                "type": scalar_index_type,
             },
         },
         {
@@ -718,8 +766,8 @@ def check(total, full_field, xb, mode: str):
 
     destroy(router_url, db_name, space_name)
 
-
-def test_string_array_filter():
+@pytest.mark.parametrize("scalar_index_type", [SCALAR_INDEX_TYPE_STRING, INVERTED_INDEX_TYPE_STRING, BITMAP_INDEX_TYPE_STRING])
+def test_string_array_filter(scalar_index_type: str):
     """Test string_array field with IN operator"""
     dim = xb.shape[1]
     
@@ -731,7 +779,7 @@ def test_string_array_filter():
             "type": "string_array",
             "index": {
                 "name": "field_string_array",
-                "type": "SCALAR",
+                "type": scalar_index_type,
             },
         },
         {
@@ -876,6 +924,7 @@ def test_string_array_filter():
     logger.info("String array filter tests completed successfully")
 
 
+@pytest.mark.parametrize("scalar_index_type", [SCALAR_INDEX_TYPE_STRING, INVERTED_INDEX_TYPE_STRING, BITMAP_INDEX_TYPE_STRING])
 @pytest.mark.parametrize(
     ["full_field", "mode"], 
     [
@@ -900,8 +949,14 @@ def test_string_array_filter():
         [True, "Hybrid And range NOT Equal"],
         [True, "Hybrid Or range NOT Equal"],
         [True, "No result"],
-        [True, "Wrong operator"]
+        [True, "Wrong operator"],
+        [True, "Wrong condition operator type of string"],
+        [True, "Wrong condition operator type of string array"],
+        [True, "Wrong condition operator type of int"],
+        [True, "Wrong condition operator type of long"],
+        [True, "Wrong condition operator type of float"],
+        [True, "Wrong condition operator type of double"],
     ],
 )
-def test_module_filter(full_field: bool, mode: str):
-    check(100, full_field, xb, mode)
+def test_module_filter_scalar_index(scalar_index_type: str, full_field: bool, mode: str):
+    check(100, scalar_index_type, full_field, xb, mode)

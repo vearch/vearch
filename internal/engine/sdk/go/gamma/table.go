@@ -36,9 +36,18 @@ type VectorInfo struct {
 }
 
 type FieldInfo struct {
-	Name     string
-	DataType DataType
-	IsIndex  bool
+	Name      string
+	DataType  DataType
+	IsIndex   bool
+	IndexType int32
+}
+
+type IndexInfo struct {
+	Name       string
+	Type       string
+	FieldName  string
+	FieldNames []string
+	Params     string
 }
 
 type Table struct {
@@ -50,6 +59,7 @@ type Table struct {
 	RefreshInterval int32
 	EnableIdCache   bool
 	EnableRealtime  bool
+	Indexes         []IndexInfo
 	table           *gamma_api.Table
 }
 
@@ -65,10 +75,15 @@ func (table *Table) Serialize() []byte {
 	fieldInfos := make([]flatbuffers.UOffsetT, len(table.Fields))
 	for i := 0; i < len(table.Fields); i++ {
 		field := table.Fields[i]
+		indexType := field.IndexType
+		if indexType == 0 && field.IsIndex {
+			indexType = 1
+		}
 		gamma_api.FieldInfoStart(builder)
 		gamma_api.FieldInfoAddName(builder, fieldNames[i])
 		gamma_api.FieldInfoAddDataType(builder, int8(field.DataType))
-		gamma_api.FieldInfoAddIsIndex(builder, field.IsIndex)
+		gamma_api.FieldInfoAddIsIndex(builder, indexType != 0)
+		gamma_api.FieldInfoAddIndexType(builder, indexType)
 		fieldInfos[i] = gamma_api.FieldInfoEnd(builder)
 	}
 
@@ -108,6 +123,41 @@ func (table *Table) Serialize() []byte {
 	}
 	vecInfos := builder.EndVector(len(table.VectorsInfos))
 
+	var indexesOffsets []flatbuffers.UOffsetT
+	for _, idx := range table.Indexes {
+		name := builder.CreateString(idx.Name)
+		idxType := builder.CreateString(idx.Type)
+		fieldName := builder.CreateString(idx.FieldName)
+		params := builder.CreateString(idx.Params)
+
+		fieldNameOffsets := make([]flatbuffers.UOffsetT, len(idx.FieldNames))
+		for j := 0; j < len(idx.FieldNames); j++ {
+			fieldNameOffsets[j] = builder.CreateString(idx.FieldNames[j])
+		}
+		gamma_api.IndexInfoStartFieldNamesVector(builder, len(idx.FieldNames))
+		for j := len(idx.FieldNames) - 1; j >= 0; j-- {
+			builder.PrependUOffsetT(fieldNameOffsets[j])
+		}
+		fieldNamesVec := builder.EndVector(len(idx.FieldNames))
+
+		gamma_api.IndexInfoStart(builder)
+		gamma_api.IndexInfoAddName(builder, name)
+		gamma_api.IndexInfoAddType(builder, idxType)
+		gamma_api.IndexInfoAddFieldName(builder, fieldName)
+		gamma_api.IndexInfoAddFieldNames(builder, fieldNamesVec)
+		gamma_api.IndexInfoAddParams(builder, params)
+		indexesOffsets = append(indexesOffsets, gamma_api.IndexInfoEnd(builder))
+	}
+
+	var indexesVec flatbuffers.UOffsetT
+	if len(indexesOffsets) > 0 {
+		gamma_api.TableStartIndexesVector(builder, len(indexesOffsets))
+		for i := len(indexesOffsets) - 1; i >= 0; i-- {
+			builder.PrependUOffsetT(indexesOffsets[i])
+		}
+		indexesVec = builder.EndVector(len(indexesOffsets))
+	}
+
 	indexType := builder.CreateString(table.IndexType)
 	indexParams := builder.CreateString(table.IndexParams)
 
@@ -120,6 +170,9 @@ func (table *Table) Serialize() []byte {
 	gamma_api.TableAddRefreshInterval(builder, table.RefreshInterval)
 	gamma_api.TableAddEnableIdCache(builder, table.EnableIdCache)
 	gamma_api.TableAddEnableRealtime(builder, table.EnableRealtime)
+	if len(indexesOffsets) > 0 {
+		gamma_api.TableAddIndexes(builder, indexesVec)
+	}
 	builder.Finish(builder.EndObject())
 	return builder.FinishedBytes()
 }
@@ -133,7 +186,15 @@ func (table *Table) DeSerialize(buffer []byte) {
 		table.table.Fields(&fieldInfo, i)
 		table.Fields[i].Name = string(fieldInfo.Name())
 		table.Fields[i].DataType = DataType(fieldInfo.DataType())
-		table.Fields[i].IsIndex = fieldInfo.IsIndex()
+		if fieldInfo.IndexType() != 0 {
+			table.Fields[i].IndexType = fieldInfo.IndexType()
+			table.Fields[i].IsIndex = table.Fields[i].IndexType != 0
+		} else {
+			table.Fields[i].IsIndex = fieldInfo.IsIndex()
+			if table.Fields[i].IsIndex {
+				table.Fields[i].IndexType = 1
+			}
+		}
 	}
 
 	table.VectorsInfos = make([]VectorInfo, table.table.VectorsInfoLength())
@@ -153,4 +214,17 @@ func (table *Table) DeSerialize(buffer []byte) {
 	table.RefreshInterval = table.table.RefreshInterval()
 	table.EnableIdCache = table.table.EnableIdCache()
 	table.EnableRealtime = table.table.EnableRealtime()
+
+	table.Indexes = make([]IndexInfo, table.table.IndexesLength())
+	for i := 0; i < len(table.Indexes); i++ {
+		var idx gamma_api.IndexInfo
+		table.table.Indexes(&idx, i)
+		table.Indexes[i].Name = string(idx.Name())
+		table.Indexes[i].Type = string(idx.Type())
+		table.Indexes[i].FieldName = string(idx.FieldName())
+		table.Indexes[i].FieldNames = make([]string, idx.FieldNamesLength())
+		for j := 0; j < len(table.Indexes[i].FieldNames); j++ {
+			table.Indexes[i].FieldNames[j] = string(idx.FieldNames(j))
+		}
+	}
 }
