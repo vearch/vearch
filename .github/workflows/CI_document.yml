@@ -35,9 +35,4 @@ jobs:
     - name: Run test task for ${{ matrix.index-type }} with ${{ matrix.platform }}
       run: |
         cd test
-        pytest test_cluster_document.py -k "${{ matrix.index-type }} -x --log-cli-level=INFO
-        if [[ "${{ matrix.platform }}" == "linux/arm64" ]]; then
-          pytest test_vearch_index" -k "not test_vearch_index_diskann_static" -x --log-cli-level=INFO
-        else
-          pytest test_vearch_index" -x --log-cli-level=INFO
-        fi
+        pytest test_cluster_document.py -k "${{ matrix.index-type }} or test_vearch_index" -x --log-cli-level=INFO
