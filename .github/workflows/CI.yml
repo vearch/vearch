@@ -12,10 +12,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - platform: linux/amd64
+          - platform: amd64
             runs-on: ubuntu-latest
             docker-arch: ""
-          - platform: linux/arm64
+          - platform: arm64
             runs-on: ubuntu-latest
             docker-arch: "--platform linux/arm64"
     runs-on: ${{ matrix.runs-on }}
@@ -31,13 +31,13 @@ jobs:
       run: |
         cd test
         pytest test_vearch.py -x --log-cli-level=INFO
-        if [[ "${{ matrix.platform }}" == "linux/arm64" ]]; then
+        if [[ "${{ matrix.platform }}" == "arm64" ]]; then
           pytest test_document_* -k "not test_vearch_document_upsert_benchmark and not test_vearch_document_search_with_index_recall" -x --log-cli-level=INFO
         else
           pytest test_document_* -k "not test_vearch_document_upsert_benchmark" -x --log-cli-level=INFO
         fi
         pytest test_module_* -x --log-cli-level=INFO
-        if [[ "${{ matrix.platform }}" != "linux/arm64" ]]; then
+        if [[ "${{ matrix.platform }}" != "arm64" ]]; then
           pytest test_index_rebuild.py -x --log-cli-level=INFO
         fi
 
