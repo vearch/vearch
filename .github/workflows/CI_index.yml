@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        index-type: ["flat", "ivfflat", "ivfpq", "hnsw"]
+        index-type: ["flat", "ivfflat", "ivfpq", "hnsw", "ivfrabitq"]
         platform: [linux/amd64, linux/arm64]
         include:
           - platform: linux/amd64

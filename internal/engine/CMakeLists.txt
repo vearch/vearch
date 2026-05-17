@@ -6,6 +6,13 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
 option(BUILD_TEST "Build tests" off)
 option(BUILD_WITH_GPU "Build gamma with gpu index support" off)
 option(BUILD_WITH_SCANN "Build gamma with scann index support" off)
+option(BUILD_WITH_DISKANN "Build gamma with diskann index support" on)
+# Backward-compatible knobs from vendored DiskANN integration.
+set(DISKANN_ROOT "" CACHE PATH "DiskANN install prefix, e.g. /usr/local")
+set(DISKANN_INCLUDE_DIR "" CACHE PATH "DiskANN include directory containing pq_flash_index.h")
+set(DISKANN_LIBRARY "" CACHE FILEPATH "DiskANN library file path, e.g. /usr/local/lib64/libdiskann.so")
+set(DISKANN_BOOST_ROOT "" CACHE PATH "Deprecated: kept for compatibility with previous DiskANN integration")
+option(DISKANN_BOOST_NO_SYSTEM_PATHS "Deprecated: kept for compatibility with previous DiskANN integration" off)
 option(BUILD_TOOLS "Build tools" off)
 option(BUILD_FAISSLIKE_INDEX "Build faisslike index" off)
 option(BUILD_RELAYOUT "Build relayout index" off)
@@ -17,6 +24,49 @@ option(BUILD_GAMMA_OPT_LEVEL "Build opt level" "avx2")
 #ENV VARs
 set(THIRDPARTY ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 set(GAMMA_C_API ${CMAKE_CURRENT_SOURCE_DIR}/c_api)
+
+if(BUILD_WITH_DISKANN)
+    if(DISKANN_BOOST_ROOT OR DISKANN_BOOST_NO_SYSTEM_PATHS)
+        message(WARNING "DISKANN_BOOST_ROOT and DISKANN_BOOST_NO_SYSTEM_PATHS are deprecated after switching to preinstalled DiskANN")
+    endif()
+
+    if(NOT DISKANN_INCLUDE_DIR)
+        find_path(DISKANN_INCLUDE_DIR
+            NAMES pq_flash_index.h
+            HINTS
+                ${DISKANN_ROOT}/include
+            PATHS
+                /usr/local/include
+                /usr/include
+        )
+    endif()
+
+    if(NOT DISKANN_LIBRARY)
+        find_library(DISKANN_LIBRARY
+            NAMES diskann
+            HINTS
+                ${DISKANN_ROOT}/lib64
+                ${DISKANN_ROOT}/lib
+            PATHS
+                /usr/local/lib64
+                /usr/local/lib
+                /usr/lib64
+                /usr/lib
+        )
+    endif()
+
+    if(NOT DISKANN_INCLUDE_DIR OR NOT DISKANN_LIBRARY)
+        message(FATAL_ERROR
+            "DiskANN not found. Please install DiskANN like other system dependencies "
+            "(see cloud/env/install-dependencies.sh), or pass "
+            "-DDISKANN_ROOT=/path, -DDISKANN_INCLUDE_DIR=/path/include, "
+            "-DDISKANN_LIBRARY=/path/libdiskann.so"
+        )
+    endif()
+
+    message(STATUS "DiskANN include: ${DISKANN_INCLUDE_DIR}")
+    message(STATUS "DiskANN library: ${DISKANN_LIBRARY}")
+endif()
 
 if(APPLE)
     set(CMAKE_C_COMPILER "/usr/local/opt/llvm/bin/clang")
@@ -58,8 +108,14 @@ file(GLOB_RECURSE ALL_SOURCES
 )
 list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/third_party/scann-1.2.1/.*")
 list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/third_party/flatbuffers-*")
+list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/third_party/DiskANN/.*")
+list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_BINARY_DIR}/.*")
+list(FILTER ALL_SOURCES EXCLUDE REGEX ".*/CMakeFiles/.*")
 list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/tests/.*")
 list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/tools/.*")
+if(NOT BUILD_WITH_DISKANN)
+    list(FILTER ALL_SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/index/impl/diskann/.*")
+endif()
 
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/index/impl/relayout/CMakeLists.txt")
     if(NOT APPLE)
@@ -124,6 +180,23 @@ set(COMMON_LIBRARIES_AVX512
     -lprotobuf
     -lroaring
 )
+
+if(BUILD_WITH_DISKANN)
+    if(NOT DEFINED ENV{MKLROOT} AND EXISTS "/opt/intel/oneapi/mkl/latest")
+        set(ENV{MKLROOT} "/opt/intel/oneapi/mkl/latest")
+    endif()
+    # Faiss is compiled with FINTEGER=int (LP64, 4-byte Fortran integers).
+    # MKL ILP64 uses 8-byte integers for sgemm_ etc., causing ABI mismatch and
+    # crashes in IVFPQ train. Use LP64 so MKL, Faiss and DiskANN all agree on int width.
+    set(BLA_VENDOR "Intel10_64lp" CACHE STRING "MKL vendor/ABI for gamma" FORCE)
+    # GCC -fopenmp links libgomp; MKL must use mkl_gnu_thread (not mkl_intel_thread +
+    # libiomp5) to avoid dual OpenMP runtime crashes.
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      set(BLA_VENDOR_THREADING "gnu" CACHE STRING "MKL threading model for gamma" FORCE)
+    else()
+      set(BLA_VENDOR_THREADING "intel" CACHE STRING "MKL threading model for gamma" FORCE)
+    endif()
+endif()
 
 find_package(MKL)
 
@@ -192,11 +265,17 @@ else()
     message(STATUS "Flags:" ${CMAKE_CXX_FLAGS_RELEASE})
 endif()
 
-exec_program(
-    "git"
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ARGS "log --format='[sha1]:%h [author]:%cn [time]:%ci [branch]:%d' -1"
-    OUTPUT_VARIABLE VERSION_SHA1)
+execute_process(
+    COMMAND git log --format=[sha1]:%h\ [author]:%cn\ [time]:%ci\ [branch]:%d -1
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    RESULT_VARIABLE GIT_LOG_EXIT_CODE
+    OUTPUT_VARIABLE VERSION_SHA1
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if(NOT GIT_LOG_EXIT_CODE EQUAL 0 OR "${VERSION_SHA1}" STREQUAL "")
+    set(VERSION_SHA1 "[sha1]:unknown [author]:unknown [time]:unknown [branch]:unknown")
+endif()
 
 add_definitions(-DGIT_SHA1="${VERSION_SHA1}")
 
@@ -283,6 +362,22 @@ else()
         elseif(BUILD_GAMMA_OPT_LEVEL STREQUAL "avx2")
             target_link_libraries(gamma_avx2 -lrelayout)
         endif()
+    endif()
+endif()
+
+if(BUILD_WITH_DISKANN)
+    target_include_directories(gamma PRIVATE ${DISKANN_INCLUDE_DIR})
+    target_link_libraries(gamma ${DISKANN_LIBRARY})
+    target_link_libraries(gamma aio)
+    if(TARGET gamma_avx2)
+        target_include_directories(gamma_avx2 PRIVATE ${DISKANN_INCLUDE_DIR})
+        target_link_libraries(gamma_avx2 ${DISKANN_LIBRARY})
+        target_link_libraries(gamma_avx2 aio)
+    endif()
+    if(TARGET gamma_avx512)
+        target_include_directories(gamma_avx512 PRIVATE ${DISKANN_INCLUDE_DIR})
+        target_link_libraries(gamma_avx512 ${DISKANN_LIBRARY})
+        target_link_libraries(gamma_avx512 aio)
     endif()
 endif()
 

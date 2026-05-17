@@ -30,6 +30,55 @@ xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
 
+def _force_merge(case_space_name: str, partition_id: int = 0) -> dict:
+    """Trigger a one-shot index build via /index/forcemerge (needed for DISKANN_STATIC)."""
+    url = f"{router_url}/index/forcemerge"
+    payload = {"db_name": db_name, "space_name": case_space_name, "partition_id": partition_id}
+    rs = requests.post(url, auth=(username, password), json=payload)
+    assert rs.status_code == 200, rs.text
+    body = rs.json()
+    assert body.get("code") == 0, body
+    return body
+
+def _waiting_index_status_finish_with_timeout(
+    *,
+    timewait: int = 10,
+    space_name: str,
+    db_name: str,
+    max_rounds: int = 180,
+    expected_index_status: int = 2,
+):
+    """
+    Wait until all partitions reach expected index_status (default: 2 == INDEXED).
+
+    DISKANN_STATIC may not update index_num, so waiting on index_num can loop forever.
+    """
+    url = f"{router_url}/dbs/{db_name}/spaces/{space_name}?detail=true"
+    for round_i in range(max_rounds):
+        rs = requests.get(url, auth=(username, password))
+        assert rs.status_code == 200, rs.text
+        body = rs.json()
+        assert body.get("code") == 0, body
+        data = body.get("data", {})
+        status = data.get("status", "")
+        partitions = data.get("partitions", [])
+        idx_statuses = [p.get("index_status", -1) for p in partitions]
+        logger.info(
+            "index_status round=%d status=%s partitions=%s",
+            round_i,
+            status,
+            idx_statuses,
+        )
+        if status != "red" and len(partitions) > 0 and all(
+            s == expected_index_status for s in idx_statuses
+        ):
+            return
+        time.sleep(timewait)
+    assert False, "index_status did not reach %d within %d rounds" % (
+        expected_index_status,
+        max_rounds,
+    )
+
 
 def check_search(full_field, case_space_name, times=5):
     logger.info("check_search")
@@ -162,7 +211,8 @@ class TestIndexRebuildBase:
 
     @pytest.mark.parametrize(
         ["training_threshold", "index_type"],
-        [[1, "FLAT"], [3999, "IVFPQ"], [3999, "IVFFLAT"], [3999, "IVFRABITQ"], [1, "HNSW"]],
+        [[1, "FLAT"], [3999, "IVFPQ"], [3999, "IVFFLAT"], [3999, "IVFRABITQ"], [1, "HNSW"],[10000, "DISKANN_STATIC"]],
+
     )
     def test_space_create(self, training_threshold, index_type):
         embedding_size = xb.shape[1]
@@ -233,7 +283,14 @@ class TestIndexRebuildBase:
 
         add(total_batch, batch_size, xb, with_id, full_field)
 
-        waiting_index_finish(total)
+        if index_type == "DISKANN_STATIC":
+            time.sleep(10)
+            logger.info(_force_merge(space_name))
+            _waiting_index_status_finish_with_timeout(
+                timewait=10, space_name=space_name, db_name=db_name, max_rounds=180
+            )
+        else:
+            waiting_index_finish(total)
 
         response = index_rebuild(router_url, db_name, space_name, partition_id=12345)
         logger.info(response.json())
@@ -242,7 +299,12 @@ class TestIndexRebuildBase:
         response = index_rebuild(router_url, db_name, space_name)
         logger.info(response.json())
 
-        waiting_index_finish(total)
+        if index_type == "DISKANN_STATIC":
+            _waiting_index_status_finish_with_timeout(
+                timewait=10, space_name=space_name, db_name=db_name, max_rounds=180
+            )
+        else:
+            waiting_index_finish(total)
 
         partitions = get_partition(router_url, db_name, space_name)
         for partition in partitions:
@@ -251,14 +313,24 @@ class TestIndexRebuildBase:
             )
             logger.info(response.json())
 
-        waiting_index_finish(total)
+        if index_type == "DISKANN_STATIC":
+            _waiting_index_status_finish_with_timeout(
+                timewait=10, space_name=space_name, db_name=db_name, max_rounds=180
+            )
+        else:
+            waiting_index_finish(total)
 
         response = index_rebuild(
             router_url, db_name, space_name, drop_before_rebuild=False
         )
         logger.info(response.json())
 
-        waiting_index_finish(total)
+        if index_type == "DISKANN_STATIC":
+            _waiting_index_status_finish_with_timeout(
+                timewait=10, space_name=space_name, db_name=db_name, max_rounds=180
+            )
+        else:
+            waiting_index_finish(total)
 
         check_search(full_field, space_name)
 
@@ -277,7 +349,8 @@ class TestIndexRebuildWithDelete:
 
     @pytest.mark.parametrize(
         ["training_threshold", "index_type"],
-        [[1, "FLAT"], [9999, "IVFPQ"], [9999, "IVFFLAT"], [9999, "IVFRABITQ"], [1, "HNSW"]],
+        [[1, "FLAT"], [9999, "IVFPQ"], [9999, "IVFFLAT"], [9999, "IVFRABITQ"], [1, "HNSW"],[10000, "DISKANN_STATIC"]],
+
     )
     def test_space_create(self, training_threshold, index_type):
         embedding_size = xb.shape[1]
@@ -357,8 +430,19 @@ class TestIndexRebuildWithDelete:
                 full_field,
                 space_name=case_space_name,
             )
+            if index_type == "DISKANN_STATIC":
+                time.sleep(10)
+                logger.info(_force_merge(case_space_name))
             target = int(total / 2)
-            waiting_index_finish(target, space_name=case_space_name)
+            if index_type == "DISKANN_STATIC":
+                _waiting_index_status_finish_with_timeout(
+                    timewait=10,
+                    space_name=case_space_name,
+                    db_name=db_name,
+                    max_rounds=180,
+                )
+            else:
+                waiting_index_finish(target, space_name=case_space_name)
 
             check_delete(case_space_name, 1)
 
@@ -370,7 +454,15 @@ class TestIndexRebuildWithDelete:
             )
             logger.info(response.json())
 
-            waiting_index_finish(target, space_name=case_space_name)
+            if index_type == "DISKANN_STATIC":
+                _waiting_index_status_finish_with_timeout(
+                    timewait=10,
+                    space_name=case_space_name,
+                    db_name=db_name,
+                    max_rounds=180,
+                )
+            else:
+                waiting_index_finish(target, space_name=case_space_name)
 
             check_search(full_field, case_space_name)
 

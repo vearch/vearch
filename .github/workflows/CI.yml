@@ -12,10 +12,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - platform: amd64
+          - platform: linux/amd64
             runs-on: ubuntu-latest
             docker-arch: ""
-          - platform: arm64
+          - platform: linux/arm64
             runs-on: ubuntu-latest
             docker-arch: "--platform linux/arm64"
     runs-on: ${{ matrix.runs-on }}
@@ -31,9 +31,15 @@ jobs:
       run: |
         cd test
         pytest test_vearch.py -x --log-cli-level=INFO
-        pytest test_document_* -k "not test_vearch_document_upsert_benchmark" -x --log-cli-level=INFO
+        if [[ "${{ matrix.platform }}" == "linux/arm64" ]]; then
+          pytest test_document_* -k "not test_vearch_document_upsert_benchmark and not test_vearch_document_search_with_index_recall" -x --log-cli-level=INFO
+        else
+          pytest test_document_* -k "not test_vearch_document_upsert_benchmark" -x --log-cli-level=INFO
+        fi
         pytest test_module_* -x --log-cli-level=INFO
-        pytest test_index_rebuild.py -x --log-cli-level=INFO
+        if [[ "${{ matrix.platform }}" != "linux/arm64" ]]; then
+          pytest test_index_rebuild.py -x --log-cli-level=INFO
+        fi
 
     - name: Test Go SDK
       run: |

@@ -15,10 +15,14 @@
 
 # -*- coding: UTF-8 -*-
 
+import json
 import math
+import tempfile
 import pytest
 import faiss
+import requests
 from utils.vearch_utils import *
+from utils.vearch_utils import waiting_index_finish_with_timeout
 from utils.data_utils import *
 
 __description__ = """ test case for index recall compare to baseline of faiss """
@@ -48,6 +52,41 @@ def create(
     store_type="MemoryOnly",
     index_params={},
 ):
+    if index_type == "DISKANN_STATIC":
+        index_config = {
+            "name": "gamma",
+            "type": index_type,
+            "params": {
+                "metric_type": index_params["metric_type"],
+                "training_threshold": index_params["training_threshold"],
+                "R": index_params["R"],
+                "L": index_params["L"],
+                "num_threads": index_params["num_threads"],
+                "beam_width": index_params["beam_width"],
+                "num_nodes_to_cache": index_params["num_nodes_to_cache"],
+                "search_dram_budget_gb": index_params["search_dram_budget_gb"],
+                "build_dram_budget_gb": index_params["build_dram_budget_gb"],
+                "disk_pq_bytes": index_params["disk_pq_bytes"],
+                "use_opq": index_params["use_opq"],
+                "append_reorder_data": index_params["append_reorder_data"],
+            },
+        }
+    else:
+        index_config = {
+            "name": "gamma",
+            "type": index_type,
+            "params": {
+                "metric_type": index_params["metric_type"],
+                "ncentroids": index_params["ncentroids"],
+                "training_threshold": index_params["training_threshold"],
+                "nprobe": index_params["nprobe"],
+                "efConstruction": index_params["efConstruction"],
+                "efSearch": index_params["efSearch"],
+                "nlinks": index_params["nlinks"],
+                "nb_bits": index_params["nb_bits"],
+            },
+        }
+
     properties = {}
     properties["fields"] = [
         {
@@ -59,20 +98,7 @@ def create(
             "type": "vector",
             "dimension": embedding_size,
             "store_type": store_type,
-            "index": {
-                "name": "gamma",
-                "type": index_type,
-                "params": {
-                    "metric_type": index_params["metric_type"],
-                    "ncentroids": index_params["ncentroids"],
-                    "training_threshold": index_params["training_threshold"],
-                    "nprobe": index_params["nprobe"],
-                    "efConstruction": index_params["efConstruction"],
-                    "efSearch": index_params["efSearch"],
-                    "nlinks": index_params["nlinks"],
-                    "nb_bits": index_params["nb_bits"],
-                },
-            },
+            "index": index_config,
         },
     ]
 
@@ -82,6 +108,8 @@ def create(
         "replica_num": 1,
         "fields": properties["fields"],
     }
+    if index_type == "DISKANN_STATIC":
+        space_config["enable_realtime"] = False
     response = create_db(router_url, db_name)
     assert response.json()["code"] == 0
 
@@ -153,6 +181,21 @@ def create_faiss_index(index_type, index_params, xb):
     else:
         raise ValueError(f"Invalid index type: {index_type}")
 
+def trigger_index_forcemerge(partition_id=0):
+    payload = {
+        "db_name": db_name,
+        "space_name": space_name,
+        "partition_id": partition_id,
+    }
+    response = requests.post(
+        f"{router_url}/index/forcemerge",
+        auth=(username, password),
+        data=json.dumps(payload),
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body.get("code") == 0, body
+
 def evaluate_faiss_index(index_type, index_params, xb, xq, gt, k):
     index = create_faiss_index(index_type, index_params, xb)
 
@@ -165,6 +208,52 @@ def evaluate_faiss_index(index_type, index_params, xb, xq, gt, k):
         recalls[i] = (I[:, :i] == gt[:, :1]).sum() / float(nq)
         i *= 10
 
+    return recalls
+
+
+def evaluate_diskannpy_index(index_params, xb, xq, gt, k):
+    diskannpy = pytest.importorskip(
+        "diskannpy", reason="diskannpy is required for DISKANN baseline comparison"
+    )
+    distance_metric = "l2" if index_params["metric_type"] == "L2" else "mips"
+
+    with tempfile.TemporaryDirectory(prefix="diskannpy_baseline_") as index_dir:
+        diskannpy.build_disk_index(
+            data=xb,
+            distance_metric=distance_metric,
+            index_directory=index_dir,
+            complexity=max(index_params["L"], index_params["R"]),
+            graph_degree=index_params["R"],
+            search_memory_maximum=index_params["search_dram_budget_gb"],
+            build_memory_maximum=index_params["build_dram_budget_gb"],
+            num_threads=index_params["num_threads"],
+            pq_disk_bytes=index_params["disk_pq_bytes"],
+            index_prefix="ann",
+        )
+        disk_index = diskannpy.StaticDiskIndex(
+            index_directory=index_dir,
+            num_threads=index_params["num_threads"],
+            num_nodes_to_cache=index_params["num_nodes_to_cache"],
+            distance_metric=distance_metric,
+            vector_dtype=xb.dtype.type,
+            dimensions=xb.shape[1],
+            index_prefix="ann",
+        )
+        response = disk_index.batch_search(
+            queries=xq,
+            k_neighbors=k,
+            complexity=max(index_params["L"], k),
+            num_threads=index_params["num_threads"],
+            beam_width=index_params["beam_width"],
+        )
+        I = response.identifiers
+
+    nq = xq.shape[0]
+    recalls = {}
+    i = 1
+    while i <= k:
+        recalls[i] = (I[:, :i] == gt[:, :1]).sum() / float(nq)
+        i *= 10
     return recalls
 
 
@@ -186,7 +275,11 @@ def benchmark(index_type, store_type, index_params, xb, xq, gt):
     if total - total_batch * batch_size:
         add(total - total_batch * batch_size, 1, xb[total_batch * batch_size :])
 
-    waiting_index_finish(total, 15)
+    if index_type == "DISKANN_STATIC":
+        trigger_index_forcemerge(0)
+        waiting_index_finish_with_timeout(total, timewait=20, max_rounds=180)
+    else:
+        waiting_index_finish(total, 15)
 
     query_dict = {
         "vectors": [],
@@ -209,13 +302,15 @@ def benchmark(index_type, store_type, index_params, xb, xq, gt):
         assert recalls[10] >= 0.8
         assert recalls[1] >= 0.5
 
-    recalls = evaluate_faiss_index(index_type, index_params, xb, xq, gt, k)
-    result = "faiss  %s: " % (index_type)
-    for recall in recalls:
-        result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
-    logger.info(result)
+    if index_type in ["HNSW", "IVFPQ", "IVFFLAT", "IVFRABITQ", "FLAT"]:
+        recalls = evaluate_faiss_index(index_type, index_params, xb, xq, gt, k)
+        result = "faiss  %s: " % (index_type)
+        for recall in recalls:
+            result += "recall@%d = %.2f%% " % (recall, recalls[recall] * 100)
+        logger.info(result)
 
     destroy(router_url, db_name, space_name)
+    return recalls
 
 
 @pytest.mark.parametrize(
@@ -265,6 +360,106 @@ def test_vearch_index_dataset_recall(dataset_name, metric_type):
         if index_params["training_threshold"] > xb.shape[0]:
             index_params["training_threshold"] = xb.shape[0]
         benchmark(index_type, store_type, index_params, xb, xq, gt)
+
+
+@pytest.mark.parametrize(
+    ["dataset_name", "metric_type"],
+    [
+        ["sift", "L2"],
+        ["glove", "InnerProduct"],
+        ["nytimes", "InnerProduct"],
+    ],
+)
+def test_vearch_diskann_static_recall(dataset_name, metric_type):
+    if dataset_name == "sift":
+        xb, xq, gt = sift_xb, sift_xq, sift_gt
+    elif dataset_name == "glove":
+        xb, xq, gt = glove_xb, glove_xq, glove_gt
+    elif dataset_name == "nytimes":
+        xb, xq, gt = nytimes_xb, nytimes_xq, nytimes_gt
+    else:
+        raise ValueError(f"Unknown dataset: {dataset_name}")
+
+    index_params = {
+        "metric_type": metric_type,
+        "ncentroids": 1,
+        "training_threshold": xb.shape[0],
+        "nprobe": 80,
+        "efConstruction": 160,
+        "efSearch": 100,
+        "nlinks": 32,
+        "nb_bits": 4,
+        "verbose": False,
+        "R": 32,
+        "L": 64,
+        "num_threads": 2,
+        "beam_width": 4,
+        "num_nodes_to_cache": 100000,
+        "search_dram_budget_gb": 0.5,
+        "build_dram_budget_gb": 0.56,
+        "disk_pq_bytes": 0,
+        "use_opq": 0,
+        "append_reorder_data": 0,
+    }
+    benchmark("DISKANN_STATIC", "RocksDB", index_params, xb, xq, gt)
+
+
+@pytest.mark.parametrize(
+    ["dataset_name", "metric_type"],
+    [
+        ["sift", "L2"],
+    ],
+)
+def test_vearch_diskann_static_compare_with_diskannpy(dataset_name, metric_type):
+    if dataset_name == "sift":
+        xb, xq, gt = sift_xb, sift_xq, sift_gt
+    elif dataset_name == "glove":
+        xb, xq, gt = glove_xb, glove_xq, glove_gt
+    elif dataset_name == "nytimes":
+        xb, xq, gt = nytimes_xb, nytimes_xq, nytimes_gt
+    else:
+        raise ValueError(f"Unknown dataset: {dataset_name}")
+
+    index_params = {
+        "metric_type": metric_type,
+        "ncentroids": 1,
+        "training_threshold": xb.shape[0],
+        "nprobe": 80,
+        "efConstruction": 160,
+        "efSearch": 100,
+        "nlinks": 32,
+        "nb_bits": 4,
+        "verbose": False,
+        "R": 32,
+        "L": 64,
+        "num_threads": 2,
+        "beam_width": 4,
+        "num_nodes_to_cache": 100000,
+        "search_dram_budget_gb": 0.5,
+        "build_dram_budget_gb": 0.56,
+        "disk_pq_bytes": 0,
+        "use_opq": 0,
+        "append_reorder_data": 0,
+    }
+
+    vearch_recalls = benchmark("DISKANN_STATIC", "RocksDB", index_params, xb, xq, gt)
+    diskannpy_recalls = evaluate_diskannpy_index(index_params, xb, xq, gt, 100)
+    logger.info(
+        "diskann compare@1 vearch=%.4f diskannpy=%.4f",
+        vearch_recalls[1],
+        diskannpy_recalls[1],
+    )
+    logger.info(
+        "diskann compare@10 vearch=%.4f diskannpy=%.4f",
+        vearch_recalls[10],
+        diskannpy_recalls[10],
+    )
+    logger.info(
+        "diskann compare@100 vearch=%.4f diskannpy=%.4f",
+        vearch_recalls[100],
+        diskannpy_recalls[100],
+    )
+    assert vearch_recalls[100] + 0.05 >= diskannpy_recalls[100]
 
 
 @pytest.mark.parametrize(

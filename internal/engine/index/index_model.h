@@ -232,6 +232,7 @@ class IndexModel {
     vector_ = nullptr;
     indexed_count_ = 0;
     training_threshold_ = 0;
+    support_increment_ = true;
     name_ = "";
     desc_ = "";
   }
@@ -323,6 +324,8 @@ class IndexModel {
 
   std::string &Desc() { return desc_; }
 
+  bool SupportIncrement() const { return support_increment_; }
+
   VectorReader *vector_;
   tbb::concurrent_bounded_queue<int64_t> updated_vids_;
   // warining: indexed_count_ is only used by framework, sub-class cann't use it
@@ -332,4 +335,5 @@ class IndexModel {
   // TODO SET NAME AND DESC
   std::string name_;
   std::string desc_;
+  bool support_increment_;
 };

@@ -141,8 +141,35 @@ def check_flush(case_space_name, index_type):
 
             # For each potential index name, check if index file exists
             for index_name in files:
-                index_file = os.path.join(index_dir, index_name, "field_vector.000", index_file_name)
                 assert os.path.isdir(os.path.join(index_dir, index_name))
+
+                if index_type == "DISKANN_STATIC":
+                    fv_dir = os.path.join(index_dir, index_name, "field_vector.000")
+                    assert os.path.isdir(
+                        fv_dir
+                    ), "field_vector.000 dir does not exist: %s" % fv_dir
+                    subdirs = os.listdir(fv_dir)
+                    found = False
+                    for d in subdirs:
+                        full_dir = os.path.join(fv_dir, d)
+                        if not os.path.isdir(full_dir):
+                            continue
+                        meta_file = os.path.join(full_dir, "diskann_static_meta.bin")
+                        if os.path.exists(meta_file):
+                            file_size = os.path.getsize(meta_file)
+                            logger.info(
+                                "diskann meta file: %s, size: %d bytes",
+                                meta_file,
+                                file_size,
+                            )
+                            found = True
+                            break
+                    assert found, "diskann_static_meta.bin not found under: %s" % fv_dir
+                    continue
+
+                index_file = os.path.join(
+                    index_dir, index_name, "field_vector.000", index_file_name
+                )
                 assert os.path.exists(index_file), f"index file does not exist: {index_file}"
 
                 # Output file size information
@@ -165,7 +192,14 @@ class TestIndexFlush:
 
     @pytest.mark.parametrize(
         ["training_threshold", "index_type"],
-        [[1, "FLAT"], [3999, "IVFPQ"], [3999, "IVFFLAT"], [3999, "IVFRABITQ"], [1, "HNSW"]],
+        [
+            [1, "FLAT"],
+            [3999, "IVFPQ"],
+            [3999, "IVFFLAT"],
+            [3999, "IVFRABITQ"],
+            [1, "HNSW"],
+            [10000, "DISKANN_STATIC"],
+        ],
     )
     def test_space_create(self, training_threshold, index_type):
         embedding_size = xb.shape[1]
@@ -179,10 +213,15 @@ class TestIndexFlush:
             % (total, total_batch, embedding_size)
         )
 
+        enable_realtime = True
+        if index_type == "DISKANN_STATIC":
+            enable_realtime = False
+
         space_config = {
             "name": space_name,
             "partition_num": 2,
             "replica_num": 1,
+            "enable_realtime": enable_realtime,
             "fields": [
                 {
                     "name": "field_int",
@@ -230,13 +269,63 @@ class TestIndexFlush:
             ],
         }
 
+        if index_type == "DISKANN_STATIC":
+            space_config["fields"][-1]["store_type"] = "RocksDB"
+            space_config["fields"][-1]["index"]["params"] = {
+                "metric_type": "InnerProduct",
+                "training_threshold": training_threshold,
+                "R": 32,
+                "L": 64,
+                "num_threads": 2,
+                "beam_width": 4,
+                "num_nodes_to_cache": 100000,
+                "search_dram_budget_gb": 0.5,
+                "build_dram_budget_gb": 0.56,
+                "disk_pq_bytes": 0,
+                "use_opq": 0,
+                "append_reorder_data": 0,
+            }
+
         response = create_space(router_url, db_name, space_config)
         logger.info(response.json())
         assert response.json()["code"] == 0
 
         add(total_batch, batch_size, xb, with_id, full_field)
 
-        waiting_index_finish(total)
+        if index_type == "DISKANN_STATIC":
+            time.sleep(10)
+            fm = requests.post(
+                f"{router_url}/index/forcemerge",
+                auth=(username, password),
+                json={"db_name": db_name, "space_name": space_name, "partition_id": 0},
+            )
+            logger.info(fm.json())
+            assert fm.status_code == 200
+            assert fm.json().get("code") == 0, fm.json()
+
+            detail_url = f"{router_url}/dbs/{db_name}/spaces/{space_name}?detail=true"
+            for round_i in range(180):
+                rs = requests.get(detail_url, auth=(username, password))
+                assert rs.status_code == 200
+                body = rs.json()
+                assert body.get("code") == 0, body
+                data = body.get("data", {})
+                status = data.get("status", "")
+                partitions = data.get("partitions", [])
+                idx_statuses = [p.get("index_status", -1) for p in partitions]
+                logger.info(
+                    "diskann wait indexed round=%d status=%s partitions=%s",
+                    round_i,
+                    status,
+                    idx_statuses,
+                )
+                if status != "red" and len(partitions) > 0 and all(s == 2 for s in idx_statuses):
+                    break
+                time.sleep(10)
+            else:
+                assert False, "diskann index_status did not reach INDEXED within timeout"
+        else:
+            waiting_index_finish(total)
 
         # Check flush and verify index files
         check_flush(space_name, index_type)

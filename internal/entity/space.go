@@ -255,6 +255,7 @@ func (index *Index) UnmarshalJSON(bs []byte) error {
 		"SCANN":          "SCANN",
 		"SCALAR":         "SCALAR",
 		"IVFRABITQ":      "IVFRABITQ",
+		"DISKANN_STATIC": "DISKANN_STATIC",
 		"INVERTED":       "INVERTED",
 		"BITMAP":         "BITMAP",
 		"COMPOSITE":      "COMPOSITE",
