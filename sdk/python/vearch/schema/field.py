@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 
 from vearch.schema.index import Index
-from vearch.utils import DataType, name_valid_check
+from vearch.utils import DataType
 
 logger = logging.getLogger("vearch")
 
@@ -44,9 +44,6 @@ class Field:
             assert self.dim > 0, "the vector field's dimention must above zero"
         if self.data_type == DataType.STRING:
             self.array = self._extra.get("array", False)
-        assert name_valid_check(
-            self.name
-        ), r"field name must match ^([a-zA-Z]+)([a-z0-9A-Z]*[\-\_]{0,1}[a-z0-9A-Z]+)+"
 
     def to_dict(self):
         field_dict = {"name": self.name, "type": self.data_type, "desc": self.desc}
