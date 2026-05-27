@@ -121,12 +121,9 @@ func (s *Server) Start() (err error) {
 		monitorService = newMonitorService(service, s.etcdServer.Server)
 	}
 
-	if !log.IsDebugEnabled() {
-		gin.SetMode(gin.ReleaseMode)
-	}
+	gin.SetMode(gin.ReleaseMode)
 
 	// start http server
-
 	httpServer := gin.New()
 	httpServer.Use(func(c *gin.Context) {
 		rid := c.GetHeader("X-Request-Id")

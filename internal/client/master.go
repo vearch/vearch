@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -519,8 +520,6 @@ func (m *masterClient) Register(ctx context.Context, clusterName string, nodeID 
 		}
 		log.Warnf("master[%s] api Register err: %v", query.GetUrl(), err)
 
-		masterServer.next()
-
 		time.Sleep(2 * time.Second)
 	}
 
@@ -545,7 +544,6 @@ func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, t
 	ms := m.Config().GetMasters()
 	masterServer.init(len(ms))
 
-	masterServer.reset()
 	timeStart := time.Now()
 	var response []byte
 	for {
@@ -571,8 +569,6 @@ func (m *masterClient) RegisterRouter(ctx context.Context, clusterName string, t
 			break
 		}
 		log.Debug("master api Register err: %v", err)
-
-		masterServer.next()
 	}
 
 	data, err := parseRegisterData(response)
@@ -613,8 +609,6 @@ func (m *masterClient) RegisterPartition(ctx context.Context, partition *entity.
 			break
 		}
 		log.Warnf("master api register partition err: %v", err)
-
-		masterServer.next()
 	}
 
 	js := &httpResonse.HttpReply{}
@@ -652,7 +646,7 @@ func (m *masterClient) HTTPRequest(ctx context.Context, method string, url strin
 	for {
 		keyNumber, err := masterServer.getKey()
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		query.SetAddress(ms[keyNumber].ApiUrl())
 		log.Debug("remote server url: %s, req body: %s", query.GetUrl(), string(reqBody))
@@ -664,7 +658,6 @@ func (m *masterClient) HTTPRequest(ctx context.Context, method string, url strin
 		e = err
 
 		log.Error("remote server err: %v", err)
-		masterServer.next()
 	}
 	return response, e
 }
@@ -691,7 +684,7 @@ func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody strin
 	for {
 		keyNumber, err := masterServer.getKey()
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		query.SetAddress(ms[keyNumber].ApiUrl())
 		statusCode := 0
@@ -703,8 +696,6 @@ func (m *masterClient) ProxyHTTPRequest(method string, url string, reqBody strin
 			e = err
 			break
 		}
-
-		masterServer.next()
 	}
 	return response, e
 }
@@ -898,6 +889,8 @@ type MasterServer struct {
 
 func (m *MasterServer) init(total int) {
 	m.total = total
+	m.tryTimes = 0
+	m.keyNumber = rand.Intn(total)
 }
 
 func (m *MasterServer) reset() {
@@ -908,15 +901,11 @@ func (m *MasterServer) getKey() (int, error) {
 	if m.tryTimes >= m.total {
 		return 0, vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, fmt.Errorf("request to master server tryTimes: %d, total master server: %d", m.tryTimes, m.total))
 	}
-
-	return m.keyNumber, nil
-}
-
-func (m *MasterServer) next() {
+	current := m.keyNumber
 	m.keyNumber++
-	if (m.keyNumber + 1) > m.total {
+	if m.keyNumber >= m.total {
 		m.keyNumber = 0
 	}
-
 	m.tryTimes++
+	return current % m.total, nil
 }
