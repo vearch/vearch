@@ -20,7 +20,7 @@ from vearch.schema.index import (
     GPUIvfPQIndex,
     GPUIvfFlatIndex,
 )
-from vearch.filter import Filter, Condition, FieldValue, Conditions
+from vearch.filter import Filter, Condition, FieldValue
 from vearch.exception import (
     DatabaseException,
     VearchException,

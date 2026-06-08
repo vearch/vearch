@@ -100,7 +100,7 @@ ret = vc.query("database_test", "book_info", document_ids)
 print(ret.documents)
 
 # by filter
-from vearch.filter import Filter, Condition, FieldValue, Conditions
+from vearch.filter import Filter, Condition, FieldValue
 
 conditons = [
     Condition(operator=">", fv=FieldValue(field="book_num", value=0)),

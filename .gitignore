@@ -9,6 +9,7 @@
 vearch.iml
 .idea/
 .vscode/
+.claude/
 __pycache__/
 err.log*
 
@@ -62,3 +63,4 @@ examples/golang/basic_usage/basic_usage
 scripts/benchmarks/*log
 scripts/benchmarks/__pycache__
 scripts/benchmarks/datasets/
+.joycode/
