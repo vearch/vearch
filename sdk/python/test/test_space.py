@@ -8,8 +8,15 @@ from vearch.core.space import Space
 from vearch.schema.field import Field
 from vearch.schema.space import SpaceSchema
 from vearch.utils import DataType, MetricType, VectorInfo
-from vearch.schema.index import IvfPQIndex, Index, ScalarIndex
-from vearch.filter import Filter, Condition, FieldValue, Conditions
+from vearch.schema.index import (
+    IvfPQIndex,
+    Index,
+    ScalarIndex,
+    InvertedIndex,
+    BitmapIndex,
+    CompositeIndex,
+)
+from vearch.filter import Filter, Condition, FieldValue
 from vearch.exception import (
     DatabaseException,
     VearchException,
@@ -20,6 +27,11 @@ from vearch.core.client import RestClient
 from config import test_host_url
 
 logger = logging.getLogger("vearch_test")
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 database_name = "database_test"
 space_name = "book_info"
@@ -213,6 +225,150 @@ def test_delete_doc():
 
 def test_drop_space():
     ret = space.drop()
+    assert ret.code == 0
+
+
+def test_space_schema_to_dict_with_indexes():
+    field = Field("book_name", DataType.STRING, desc="book name")
+    idx = InvertedIndex("book_name_inverted_idx", field_name="book_name")
+    schema = SpaceSchema(
+        "test_space_indexes",
+        fields=[field],
+        indexes=[idx],
+        description="space with indexes",
+        partition_num=2,
+        replica_num=1,
+    )
+    d = schema.to_dict()
+    assert d["name"] == "test_space_indexes"
+    assert d["desc"] == "space with indexes"
+    assert d["partition_num"] == 2
+    assert d["replica_num"] == 1
+    assert "indexes" in d
+    assert len(d["indexes"]) == 1
+    assert d["indexes"][0]["name"] == "book_name_inverted_idx"
+    assert d["indexes"][0]["type"] == "INVERTED"
+    assert d["indexes"][0]["field_name"] == "book_name"
+
+
+def test_space_schema_from_dict_with_indexes():
+    data = {
+        "space_name": "from_dict_space",
+        "desc": "test from_dict",
+        "partition_num": 2,
+        "replica_num": 1,
+        "schema": {
+            "fields": [
+                {
+                    "name": "book_name",
+                    "type": "STRING",
+                    "desc": "book name field",
+                }
+            ],
+            "indexes": [
+                {
+                    "name": "book_name_inverted",
+                    "type": "INVERTED",
+                    "field_name": "book_name",
+                }
+            ],
+        },
+    }
+    schema = SpaceSchema.from_dict(data)
+    assert schema.name == "from_dict_space"
+    assert schema.description == "test from_dict"
+    assert schema.partition_num == 2
+    assert len(schema.fields) == 1
+    assert schema.fields[0].name == "book_name"
+    assert len(schema.indexes) == 1
+    assert schema.indexes[0]._index_name == "book_name_inverted"
+    assert schema.indexes[0]._index_type == "INVERTED"
+    assert schema.indexes[0]._field_name == "book_name"
+    assert isinstance(schema.indexes[0], InvertedIndex)
+
+
+def test_space_schema_from_dict_preserves_subclass_identity():
+    data = {
+        "space_name": "round_trip_space",
+        "desc": "",
+        "partition_num": 1,
+        "replica_num": 1,
+        "schema": {
+            "fields": [{"name": "book_name", "type": "STRING"}],
+            "indexes": [
+                {"name": "scalar_idx", "type": "SCALAR", "field_name": "book_name"},
+                {"name": "bm_idx", "type": "BITMAP", "field_name": "book_name"},
+                {
+                    "name": "comp_idx",
+                    "type": "COMPOSITE",
+                    "field_names": ["book_name", "book_num"],
+                },
+            ],
+        },
+    }
+    schema = SpaceSchema.from_dict(data)
+    assert isinstance(schema.indexes[0], ScalarIndex)
+    assert isinstance(schema.indexes[1], BitmapIndex)
+    assert isinstance(schema.indexes[2], CompositeIndex)
+    assert schema.indexes[2]._field_names == ["book_name", "book_num"]
+
+
+def test_space_schema_positional_args_compat():
+    # New positional order: SpaceSchema(name, fields, indexes, description, partition_num, replica_num)
+    field = Field("book_name", DataType.STRING, desc="book name")
+    idx = InvertedIndex("book_name_inverted_idx", field_name="book_name")
+    schema = SpaceSchema("pos_space", [field], [idx], "book catalog", 2, 3)
+    assert schema.name == "pos_space"
+    assert schema.description == "book catalog"
+    assert schema.partition_num == 2
+    assert schema.replica_num == 3
+    assert schema.indexes == [idx]
+    d = schema.to_dict()
+    assert d["desc"] == "book catalog"
+    assert d["indexes"][0]["name"] == "book_name_inverted_idx"
+
+
+def test_space_schema_check_valid_rejects_composite_with_one_field():
+    field = Field("book_name", DataType.STRING, desc="book name")
+    bad = CompositeIndex("comp_idx", ["only_one"])
+    with pytest.raises(AssertionError, match="CompositeIndex requires at least 2"):
+        SpaceSchema("bad_space", fields=[field], indexes=[bad])
+
+
+def test_space_schema_check_valid_rejects_non_composite_without_field_name():
+    field = Field("book_name", DataType.STRING, desc="book name")
+    bad = ScalarIndex("scalar_idx")  # no field_name
+    with pytest.raises(AssertionError, match="non-empty field_name"):
+        SpaceSchema("bad_space", fields=[field], indexes=[bad])
+
+
+def test_create_space_with_indexes():
+    field = Field("book_name", DataType.STRING, desc="book name field")
+    idx = InvertedIndex("book_name_inverted_idx", field_name="book_name")
+    book_vector = Field(
+        "book_character",
+        DataType.VECTOR,
+        IvfPQIndex("book_vec_idx", MetricType.Inner_product, 2048, 8),
+        dimension=512,
+    )
+    schema = SpaceSchema(
+        space_name,
+        fields=[field, book_vector],
+        indexes=[idx],
+        replica_num=1,
+    )
+    ret = space.create(schema)
+    logger.info(ret.msg)
+    assert ret.code == 0
+    logger.debug(ret.data)
+    assert ret.data["name"] == space_name
+    assert "indexes" in ret.data
+    assert len(ret.data["indexes"]) == 2
+
+
+def test_drop_space_with_indexes():
+    ret = space.drop()
+    logger.debug(ret.msg)
     assert ret.code == 0
 
 

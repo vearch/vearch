@@ -110,6 +110,9 @@ index type
 class IndexType:
     NONE = "NONE"
     SCALAR = "SCALAR"
+    INVERTED = "INVERTED"
+    BITMAP = "BITMAP"
+    COMPOSITE = "COMPOSITE"
     IVFPQ = "IVFPQ"
     IVFFLAT = "IVFFLAT"
     BINARYIVF = "BINARYIVF"
@@ -120,6 +123,8 @@ class IndexType:
     SSG = "SSG"
     IVFPQ_RELAYOUT = "IVFPQ_RELAYOUT"
     SCANN = "SCANN"
+    IVFRABITQ = "IVFRABITQ"
+    NPU_IVFRABITQ = "NPU_IVFRABITQ"
     UNKNOWN = "UNKNOWN"
 
 

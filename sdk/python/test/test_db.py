@@ -9,7 +9,7 @@ from vearch.schema.field import Field
 from vearch.schema.space import SpaceSchema
 from vearch.utils import DataType, MetricType, VectorInfo
 from vearch.schema.index import IvfPQIndex, Index, ScalarIndex
-from vearch.filter import Filter, Condition, FieldValue, Conditions
+from vearch.filter import Filter, Condition, FieldValue
 from vearch.exception import (
     DatabaseException,
     VearchException,
