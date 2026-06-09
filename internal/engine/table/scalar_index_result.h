@@ -26,9 +26,20 @@ class ScalarIndexResult {
   /**
    * Construct from a Roaring64Map with offset/limit applied in one pass.
    */
-  ScalarIndexResult(const roaring::Roaring64Map& bitmap, int offset, int limit) {
+  ScalarIndexResult(roaring::Roaring64Map bitmap, int offset, int limit) {
     b_not_in_ = false;
+    if (offset < 0 || limit < 0) {
+      return;
+    }
+    // offset = 0 and limit = 0 means no offset and no limit
+    if (offset == 0 && limit == 0) {
+      doc_bitmap_ = std::move(bitmap);
+      return;
+    }
     auto it = bitmap.begin();
+    if ((uint64_t)offset >= bitmap.cardinality()) {
+      return;
+    }
     std::advance(it, offset);
     for (; it != bitmap.end(); ++it) {
       doc_bitmap_.add(*it);
@@ -49,10 +60,18 @@ class ScalarIndexResult {
    */
   ScalarIndexResult(const ScalarIndexResult& other, int offset, int limit) {
     b_not_in_ = other.b_not_in_;
-    if (limit == 0 || offset < 0) {
+    if (offset < 0 || limit < 0) {
+      return;
+    }
+    // offset = 0 and limit = 0 means no offset and no limit
+    if (offset == 0 && limit == 0) {
+      doc_bitmap_ = other.doc_bitmap_;
       return;
     }
     auto it = other.doc_bitmap_.begin();
+    if ((uint64_t)offset >= other.doc_bitmap_.cardinality()) {
+      return;
+    }
     std::advance(it, offset);
     for (; it != other.doc_bitmap_.end(); ++it) {
       doc_bitmap_.add(*it);

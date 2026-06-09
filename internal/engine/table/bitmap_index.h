@@ -64,7 +64,7 @@ class BitmapIndex : public ScalarIndex {
   ScalarIndexResult BitmapToResult(const roaring::Roaring64Map& bitmap);
 
   // Convert roaring::Roaring64Map to ScalarIndexResult with offset/limit
-  ScalarIndexResult BitmapToResultWithOffsetLimit(const roaring::Roaring64Map& bitmap, int offset, int limit);
+  ScalarIndexResult BitmapToResultWithOffsetLimit(roaring::Roaring64Map bitmap, int offset, int limit);
 
   // Data storage: map from sortable key to roaring bitmap
   std::map<std::string, roaring::Roaring64Map> data_;
