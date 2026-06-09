@@ -105,8 +105,8 @@ ScalarIndexResult BitmapIndex::BitmapToResult(const roaring::Roaring64Map& bitma
   return result;
 }
 
-ScalarIndexResult BitmapIndex::BitmapToResultWithOffsetLimit(const roaring::Roaring64Map& bitmap, int offset, int limit) {
-  ScalarIndexResult result(bitmap, offset, limit);
+ScalarIndexResult BitmapIndex::BitmapToResultWithOffsetLimit(roaring::Roaring64Map bitmap, int offset, int limit) {
+  ScalarIndexResult result(std::move(bitmap), offset, limit);
   return result;
 }
 
