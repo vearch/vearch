@@ -960,3 +960,125 @@ def test_string_array_filter(scalar_index_type: str):
 )
 def test_module_filter_scalar_index(scalar_index_type: str, full_field: bool, mode: str):
     check(100, scalar_index_type, full_field, xb, mode)
+
+
+def test_module_filter_bitmap_index_thread_safety():
+    """Test bitmap index thread safety with one writer, one reader, one deleter"""
+
+    properties = {
+        "fields": [
+            {"name": "field_int", "type": "integer", "index": {"name": "field_int", "type": "BITMAP"}},
+            {"name": "field_long", "type": "long"},
+            {"name": "field_float", "type": "float"},
+            {"name": "field_double", "type": "double"},
+            {"name": "field_string", "type": "string"},
+            {
+                "name": "field_vector",
+                "type": "vector",
+                "dimension": xb.shape[1],
+                "index": {
+                    "name": "idx_vector",
+                    "type": "FLAT",
+                    "params": {
+                        "metric_type": "L2",
+                    },
+                },
+                "store_type": "MemoryOnly",
+            },
+        ]
+    }
+
+    create(router_url, properties)
+
+    total = 10000
+    batch_size = 1
+    full_field = True
+    write_count = [0]
+    read_count = [0]
+    delete_count = [0]
+
+    def build_query_data(total: int) -> dict:
+        """Build query data based on mode"""
+        data = {
+            "db_name": db_name,
+            "space_name": space_name,
+            "filters": {
+                "operator": "AND",
+                "conditions": [
+                    {
+                        "field": "field_int",
+                        "operator": ">=",
+                        "value": 0
+                    },
+                    {
+                        "field": "field_int",
+                        "operator": "<=",
+                        "value": total - 1
+                    }
+                ]
+            },
+            "limit": 10
+        }
+        return data
+
+    def writer(write_count: list):
+        """Continuously write data"""
+        try:
+            add(total, batch_size, xb, full_field, True)
+            write_count[0] += total
+        except Exception as e:
+            logger.error(f"Writer error: {e}")
+
+    def reader(read_count: list):
+        """Continuously read data"""
+        try:
+            for _ in range(total):
+                url = f"{router_url}/document/query"
+                data = build_query_data(total)
+                rs = requests.post(url, auth=(username, password), json=data)
+                if rs.status_code == 200 and rs.json().get("code") == 0:
+                    read_count[0] += 1
+                else:
+                    logger.error(f"Reader error: {rs.json()}")
+        except Exception as e:
+            logger.warning(f"Reader error: {e}")
+
+    def deleter(delete_count: list):
+        """Continuously delete data"""
+        try:
+            for _ in range(total):
+                url = f"{router_url}/document/delete"
+                data = build_query_data(total)
+                rs = requests.post(url, auth=(username, password), json=data)
+                if rs.status_code == 200 and rs.json().get("code") == 0:
+                    delete_count[0] += 1
+                else:
+                    logger.error(f"Deleter error: {rs.json()}")
+        except Exception as e:
+            logger.warning(f"Deleter error: {e}")
+
+    # Start threads
+    import threading
+    threads = []
+
+    t1 = threading.Thread(target=writer, args=(write_count,), name="writer")
+    t2 = threading.Thread(target=reader, args=(read_count,), name="reader")
+    t3 = threading.Thread(target=deleter, args=(delete_count,), name="deleter")
+
+    threads.extend([t1, t2, t3])
+
+    for t in threads:
+        t.start()
+
+    for t in threads:
+        t.join()
+
+    logger.info(f"BitmapIndex thread safety test completed: writes={write_count[0]}, reads={read_count[0]}, deletes={delete_count[0]}")
+
+    destroy(router_url, db_name, space_name)
+
+    assert write_count[0] == total
+    assert read_count[0] == total
+    assert delete_count[0] == total
+
+    logger.info("Bitmap index thread safety test passed")

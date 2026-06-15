@@ -8,6 +8,7 @@
 #pragma once
 
 #include <map>
+#include <shared_mutex>
 #include <string>
 #include <vector>
 #include <roaring/roaring64map.hh>
@@ -47,24 +48,15 @@ class BitmapIndex : public ScalarIndex {
   ScalarIndexResult GreaterThan(const std::string& value, int offset, int limit) override;
   ScalarIndexResult GreaterEqual(const std::string& value, int offset, int limit) override;
 
-  // Get cardinality (number of unique values)
-  size_t Cardinality() const { return data_.size(); }
-
-  // Get the roaring bitmap for a specific value
-  const roaring::Roaring64Map* GetBitmapForValue(const std::string& value) const;
-
-  // Get the data map (for rebuilding)
-  const std::map<std::string, roaring::Roaring64Map>& GetData() const { return data_; }
-
   // Clear all data
   void Clear();
 
  private:
-  // Convert roaring::Roaring64Map to ScalarIndexResult
-  ScalarIndexResult BitmapToResult(const roaring::Roaring64Map& bitmap);
-
   // Convert roaring::Roaring64Map to ScalarIndexResult with offset/limit
   ScalarIndexResult BitmapToResultWithOffsetLimit(roaring::Roaring64Map bitmap, int offset, int limit);
+
+  // Thread safety: shared_mutex for read-write lock
+  mutable std::shared_mutex mutex_;
 
   // Data storage: map from sortable key to roaring bitmap
   std::map<std::string, roaring::Roaring64Map> data_;
