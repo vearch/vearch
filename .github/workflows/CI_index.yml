@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        index-type: ["flat", "ivfflat", "ivfpq", "hnsw"]
+        index-type: ["flat", "ivfflat", "ivfpq", "hnsw", "ivfrabitq"]
         platform: [linux/amd64, linux/arm64]
         include:
           - platform: linux/amd64
@@ -36,6 +36,8 @@ jobs:
         cd test
         if [[ "${{ matrix.index-type }}" == "ivfpq" && "${{ matrix.platform }}" == "linux/arm64" ]]; then
           pytest test_vector_index_${{ matrix.index-type }}.py -k "test_vearch_index_ivfpq_without_nsubvector or test_vearch_index_ivfpq_ip" -x --log-cli-level=INFO
+        elif [[ "${{ matrix.index-type }}" == "ivfrabitq" && "${{ matrix.platform }}" == "linux/arm64" ]]; then
+          pytest test_vector_index_${{ matrix.index-type }}.py -k "test_vearch_index_ivfrabitq_index_params" -x --log-cli-level=INFO
         else
           pytest test_vector_index_${{ matrix.index-type }}.py -x --log-cli-level=INFO
         fi

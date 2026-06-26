@@ -391,7 +391,10 @@ func bulk(ctx context.Context, store PartitionStore, items []*vearchpb.Item) {
 		}
 		code, codeErr := strconv.Atoi(codeInfo)
 		if codeErr == nil {
-			if code != 0 {
+			if code == 1 {
+				items[i].Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR,
+					errors.New("add doc failed: stored successfully, but not yet in disk index until rebuild")).GetError()
+			} else if code != 0 {
 				errMsg := fmt.Sprintf("add doc failed, err code %d", code)
 				items[i].Err = vearchpb.NewError(vearchpb.ErrorEnum_INTERNAL_ERROR, errors.New(errMsg)).GetError()
 			}

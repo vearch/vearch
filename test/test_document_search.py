@@ -18,6 +18,7 @@
 import requests
 import json
 import pytest
+import time
 from utils.vearch_utils import *
 from utils.data_utils import *
 
@@ -28,6 +29,43 @@ sift10k = DatasetSift10K()
 xb = sift10k.get_database()
 xq = sift10k.get_queries()
 gt = sift10k.get_groundtruth()
+
+def _force_merge(case_space_name: str, partition_id: int = 0) -> dict:
+    """Trigger a one-shot index build via /index/forcemerge (needed for DISKANN_STATIC)."""
+    url = f"{router_url}/index/forcemerge"
+    payload = {"db_name": db_name, "space_name": case_space_name, "partition_id": partition_id}
+    rs = requests.post(url, auth=(username, password), json=payload)
+    assert rs.status_code == 200, rs.text
+    body = rs.json()
+    assert body.get("code") == 0, body
+    return body
+
+def _wait_index_status_indexed(
+    case_space_name: str, max_rounds: int = 180, timewait: int = 10, expected_index_status: int = 2
+):
+    """Wait until all partitions reach expected index_status (default: 2 == INDEXED)."""
+    url = f"{router_url}/dbs/{db_name}/spaces/{case_space_name}?detail=true"
+    for round_i in range(max_rounds):
+        rs = requests.get(url, auth=(username, password))
+        assert rs.status_code == 200, rs.text
+        body = rs.json()
+        assert body.get("code") == 0, body
+        data = body.get("data", {})
+        status = data.get("status", "")
+        partitions = data.get("partitions", [])
+        idx_statuses = [p.get("index_status", -1) for p in partitions]
+        logger.info(
+            "index_status round=%d status=%s partitions=%s",
+            round_i,
+            status,
+            idx_statuses,
+        )
+        if status != "red" and len(partitions) > 0 and all(
+            s == expected_index_status for s in idx_statuses
+        ):
+            return
+        time.sleep(timewait)
+    assert False, f"index_status did not reach {expected_index_status} within {max_rounds} rounds"
 
 
 def check(total, bulk, full_field, with_filter, query_type, xb):
@@ -348,7 +386,7 @@ def test_vearch_document_search_with_score_filter(index_type):
 
 @pytest.mark.parametrize(
     ["index_type"],
-    [["IVFPQ"], ["IVFRABITQ"]],
+    [["IVFPQ"], ["IVFRABITQ"],["DISKANN_STATIC"]],
 )
 def test_vearch_document_search_with_index_recall(index_type):
     embedding_size = xb.shape[1]
@@ -416,7 +454,12 @@ def test_vearch_document_search_with_index_recall(index_type):
     add(total_batch, batch_size, xb, with_id, full_field)
     logger.info("%s doc_num: %d" % (space_name, get_space_num()))
 
-    waiting_index_finish(total_batch * batch_size, 1)
+    if index_type == "DISKANN_STATIC":
+        time.sleep(10)
+        logger.info(_force_merge(space_name))
+        _wait_index_status_indexed(space_name, max_rounds=180, timewait=10)
+    else:
+        waiting_index_finish(total_batch * batch_size, 1)
 
     data = {}
     data["db_name"] = db_name
@@ -438,15 +481,17 @@ def test_vearch_document_search_with_index_recall(index_type):
     # hava result
     assert len(rs.json()["data"]["documents"][0]) == 100
 
-    total_batch = 2
-    delete_interface(total_batch, batch_size, full_field, seed, "by_ids")
-    logger.info("%s doc_num: %d" % (space_name, get_space_num()))
-    assert get_space_num() == 100
+    # diskann static now do not support delete or update
+    if index_type != "DISKANN_STATIC":
+        total_batch = 2
+        delete_interface(total_batch, batch_size, full_field, seed, "by_ids")
+        logger.info("%s doc_num: %d" % (space_name, get_space_num()))
+        assert get_space_num() == 100
 
-    rs = requests.post(url, auth=(username, password), data=json_str)
-    assert rs.json()["code"] == 0
-    # hava result
-    assert len(rs.json()["data"]["documents"][0]) == 100
+        rs = requests.post(url, auth=(username, password), data=json_str)
+        assert rs.json()["code"] == 0
+        # hava result
+        assert len(rs.json()["data"]["documents"][0]) == 100
 
     destroy(router_url, db_name, space_name)
 

@@ -92,6 +92,8 @@ class VectorManager {
 
   bool Contains(std::string &field_name);
 
+  bool SupportIncrement();
+
   void VectorNames(std::vector<std::string> &names) {
     for (const auto &it : raw_vectors_) {
       names.push_back(it.first);

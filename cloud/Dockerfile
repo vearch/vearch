@@ -5,6 +5,10 @@ COPY . .
 
 RUN dnf install -y wget make cmake automake which libzstd-devel openssl-devel tbb-devel gcc-c++ && \
     dnf --enablerepo=crb install -y blas-devel lapack-devel openblas-devel libuv && \
+    wget -q https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB -O /etc/pki/rpm-gpg/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
+    rpm --import /etc/pki/rpm-gpg/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
+    printf '[oneAPI]\nname=Intel\xc2\xae oneAPI repository\nbaseurl=https://yum.repos.intel.com/oneapi\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB\n' > /etc/yum.repos.d/oneAPI.repo && \
+    if [ "$(uname -m)" = "x86_64" ]; then dnf install -y libaio-devel intel-oneapi-mkl-devel-2025.1; fi && \
     mkdir -p /env/app/go/src/github.com/vearch && \
     ln -s /vearch /env/app/go/src/github.com/vearch && \
     git config --global --add safe.directory /vearch && \
@@ -30,7 +34,12 @@ RUN if [ "$(uname -m)" = "x86_64" ]; then \
     fi
 
 ENV LD_LIBRARY_PATH=/vearch/lib/:$LD_LIBRARY_PATH
-RUN dnf --enablerepo=crb install -y libgomp lapack libzstd tbb cronie procps
+RUN dnf install -y wget && \
+    wget -q https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB -O /etc/pki/rpm-gpg/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
+    rpm --import /etc/pki/rpm-gpg/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
+    printf '[oneAPI]\nname=Intel\xc2\xae oneAPI repository\nbaseurl=https://yum.repos.intel.com/oneapi\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB\n' > /etc/yum.repos.d/oneAPI.repo && \
+    if [ "$(uname -m)" = "x86_64" ]; then dnf install -y libaio-devel intel-oneapi-mkl-devel-2025.1; fi && \
+    dnf install -y libgomp lapack libzstd tbb cronie procps
 
 ENTRYPOINT ["/vearch/bin/vearch", "-conf", "/vearch/config.toml"]
 CMD ["all"]
