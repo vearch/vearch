@@ -523,7 +523,7 @@ int VectorManager::Update(
     pthread_rwlock_rdlock(&index_rwmutex_);
     for (std::string &index_type : index_types_) {
       auto it = vector_indexes_.find(IndexName(name, index_type));
-      if (it != vector_indexes_.end()) {
+      if (it != vector_indexes_.end() && it->second->SupportIncrement()) {
         it->second->updated_vids_.push(docid);
       }
     }
@@ -543,6 +543,9 @@ int VectorManager::Delete(int64_t docid) {
   }
   pthread_rwlock_rdlock(&index_rwmutex_);
   for (const auto &[name, index] : vector_indexes_) {
+    if (!index->SupportIncrement()) {
+      continue;
+    }
     std::vector<int64_t> vids;
     vids.resize(1);
     vids[0] = docid;
@@ -574,6 +577,12 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
   index_is_dirty = false;
   pthread_rwlock_rdlock(&index_rwmutex_);
   for (const auto &[name, index_model] : vector_indexes_) {
+    if (!index_model->SupportIncrement()) {
+      int64_t vid;
+      while (index_model->updated_vids_.try_pop(vid)) {
+      }
+      continue;
+    }
     RawVector *raw_vec = dynamic_cast<RawVector *>(index_model->vector_);
     int64_t total_stored_vecs = raw_vec->MetaInfo()->Size();
     int64_t indexed_vec_count = index_model->indexed_count_;
@@ -1391,6 +1400,16 @@ void VectorManager::AddIndexTypeAndParam(const std::string &index_type,
   index_params_.push_back(index_param);
   LOG(INFO) << desc_ << "Added index type: " << index_type
             << ", index param: " << index_param;
+}
+
+bool VectorManager::SupportIncrement() {
+  for (const auto &it : vector_indexes_) {
+    IndexModel *idx = it.second;
+    if (idx != nullptr && !idx->SupportIncrement()) {
+      return false;
+    }
+  }
+  return true;
 }
 
 int VectorManager::MinIndexedNum() {

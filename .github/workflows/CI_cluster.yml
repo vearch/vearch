@@ -55,7 +55,12 @@ jobs:
       run: |
         cd test
         pytest test_vearch.py -x --log-cli-level=INFO
-        pytest test_document_* -k "not test_vearch_document_upsert_benchmark" -x --log-cli-level=INFO
+        # test_vearch_document_search_with_index_recall is excluded on arm64 because it runs too slowly on this platform.
+        if [[ "${{ matrix.platform }}" == "linux/arm64" ]]; then
+          pytest test_document_* -k "not test_vearch_document_upsert_benchmark and not test_vearch_document_search_with_index_recall" -x --log-cli-level=INFO
+        else
+          pytest test_document_* -k "not test_vearch_document_upsert_benchmark" -x --log-cli-level=INFO
+        fi
         pytest test_module_* -x --log-cli-level=INFO
 
     - name: Test Go SDK

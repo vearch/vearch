@@ -1,8 +1,10 @@
 #!/bin/bash
+set -e
 
 ROOT=$(dirname "$PWD")
-BUILDOUT=$ROOT/build/bin/
-mkdir -p $BUILDOUT
+BUILDOUT=$ROOT/build/bin
+LIBOUT=$ROOT/build/lib
+mkdir -p $BUILDOUT $LIBOUT
 GAMMAOUT=$ROOT/build/gamma_build
 
 # BUILD OPTS
@@ -65,18 +67,69 @@ function get_version() {
 
 function build_engine() {
   echo "build gamma"
+  local BUILD_ARCH=$(arch)
+  if [[ "$BUILD_ARCH" == "aarch64" || "$BUILD_ARCH" == "AARCH64" ]]; then
+    echo "DiskANN is not supported on arm64, building without DiskANN."
+    BUILD_WITH_DISKANN=OFF
+  else
+    DISKANN_ROOT=${DISKANN_ROOT:-/usr/local}
+    DISKANN_INCLUDE_DIR=${DISKANN_INCLUDE_DIR:-${DISKANN_ROOT}/include}
+    DISKANN_LIBRARY=${DISKANN_LIBRARY:-}
+    if [ -z "${DISKANN_LIBRARY}" ]; then
+      if [ -f "${DISKANN_ROOT}/lib64/libdiskann.so" ]; then
+        DISKANN_LIBRARY="${DISKANN_ROOT}/lib64/libdiskann.so"
+      elif [ -f "${DISKANN_ROOT}/lib/libdiskann.so" ]; then
+        DISKANN_LIBRARY="${DISKANN_ROOT}/lib/libdiskann.so"
+      elif [ -f "${DISKANN_ROOT}/lib64/libdiskann.a" ]; then
+        DISKANN_LIBRARY="${DISKANN_ROOT}/lib64/libdiskann.a"
+      elif [ -f "${DISKANN_ROOT}/lib/libdiskann.a" ]; then
+        DISKANN_LIBRARY="${DISKANN_ROOT}/lib/libdiskann.a"
+      else
+        echo "error: no DiskANN library found under DISKANN_ROOT=${DISKANN_ROOT} (tried lib64/lib libdiskann.{so,a} and lib/libdiskann.{so,a}). Set DISKANN_LIBRARY to the full path of libdiskann.so or libdiskann.a." >&2
+        exit 1
+      fi
+    fi
+    oneapi_root="${ONEAPI_ROOT:-/opt/intel/oneapi}"
+    MKL_ROOT="${MKL_ROOT:-${oneapi_root}/mkl/latest}"
+    OMP_LIB_PATH="${OMP_LIB_PATH:-${oneapi_root}/compiler/latest/lib}"
+    INTEL_LIB_PATHS="${MKL_ROOT}/lib/intel64:${OMP_LIB_PATH}"
+    export MKLROOT="${MKL_ROOT}"
+    export LIBRARY_PATH=${INTEL_LIB_PATHS}:$LIBRARY_PATH
+    export LD_LIBRARY_PATH=${INTEL_LIB_PATHS}:$LD_LIBRARY_PATH
+    BUILD_WITH_DISKANN=ON
+  fi
   rm -rf ${GAMMAOUT} && mkdir -p $GAMMAOUT
   pushd $GAMMAOUT
-  cmake -DPERFORMANCE_TESTING=ON -DCMAKE_BUILD_TYPE=$BUILD_GAMMA_TYPE -DBUILD_TEST=$BUILD_GAMMA_TEST -DBUILD_THREAD_NUM=$COMPILE_THREAD_NUM -DBUILD_GAMMA_OPT_LEVEL=$BUILD_GAMMA_OPT_LEVEL $ROOT/internal/engine/
+  local cmake_opts=(
+    -DPERFORMANCE_TESTING=ON
+    -DCMAKE_BUILD_TYPE=$BUILD_GAMMA_TYPE
+    -DBUILD_TEST=$BUILD_GAMMA_TEST
+    -DBUILD_THREAD_NUM=$COMPILE_THREAD_NUM
+    -DBUILD_GAMMA_OPT_LEVEL=$BUILD_GAMMA_OPT_LEVEL
+    -DBUILD_WITH_DISKANN=$BUILD_WITH_DISKANN
+  )
+  if [[ "$BUILD_WITH_DISKANN" == "ON" ]]; then
+    cmake_opts+=(
+      -DDISKANN_ROOT=$DISKANN_ROOT
+      -DDISKANN_INCLUDE_DIR=$DISKANN_INCLUDE_DIR
+      -DDISKANN_LIBRARY=$DISKANN_LIBRARY
+    )
+    local rpath="\$ORIGIN;${MKLROOT}/lib/intel64;${OMP_LIB_PATH}"
+  else
+    local rpath="\$ORIGIN"
+  fi
+  cmake "${cmake_opts[@]}" -DCMAKE_BUILD_RPATH="$rpath" -DCMAKE_INSTALL_RPATH="\$ORIGIN" -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=OFF $ROOT/internal/engine/
   make $COMPILE_THREAD_NUM
   popd
 }
 
 function build_vearch() {
-  flags="-X 'main.BuildVersion=$BUILD_VERSION' -X 'main.CommitID=$(git rev-parse HEAD)' -X 'main.BuildTime=$(date +"%Y-%m-%d %H:%M.%S")'"
+  COMMIT_ID=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo "unknown")
+  flags="-X 'main.BuildVersion=$BUILD_VERSION' -X 'main.CommitID=${COMMIT_ID}' -X 'main.BuildTime=$(date +"%Y-%m-%d %H:%M.%S")'"
   echo "version info: $flags"
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GAMMAOUT
   export LIBRARY_PATH=$LIBRARY_PATH:$GAMMAOUT
+  export CGO_LDFLAGS="${CGO_LDFLAGS}"
 
   echo "build vearch"
   go build -a -tags="vector" -ldflags "$flags" -o $BUILDOUT/vearch $ROOT/cmd/vearch/startup.go

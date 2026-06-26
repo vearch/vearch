@@ -753,11 +753,13 @@ int Engine::AddOrUpdate(Doc &doc) {
   if (refresh_interval_ >= 0 and
       indexing_state_.load() == IndexingState::IDLE and
       index_status_ == UNINDEXED) {
+    if (vec_manager_ != nullptr && vec_manager_->SupportIncrement()) {
     if (max_docid_ - delete_num_ >= training_threshold_) {
       LOG(INFO) << space_name_ << " begin indexing. training_threshold="
                 << training_threshold_;
       this->BuildIndex();
     }
+  }
   }
 #ifdef PERFORMANCE_TESTING
   double end = utils::getmillisecs();
@@ -768,6 +770,11 @@ int Engine::AddOrUpdate(Doc &doc) {
   }
 #endif
   is_dirty_ = true;
+  if (vec_manager_ != nullptr &&
+      !vec_manager_->SupportIncrement() && index_status_ == INDEXED) {
+    return 1;
+  }
+
   return 0;
 }
 
@@ -846,6 +853,10 @@ int Engine::Update(int doc_id,
     scalar_index_manager_->AddDoc(doc_id, idx);
   }
   is_dirty_ = true;
+  if (vec_manager_ != nullptr &&
+      !vec_manager_->SupportIncrement() && index_status_ == INDEXED) {
+    return 1;
+  }
   return 0;
 }
 
@@ -874,6 +885,10 @@ int Engine::Delete(std::string &key) {
 
   vec_manager_->Delete(docid);
   is_dirty_ = true;
+  if (vec_manager_ != nullptr &&
+      !vec_manager_->SupportIncrement() && index_status_ == INDEXED) {
+    return 1;
+  }
 
   return ret;
 }
@@ -1360,11 +1375,13 @@ int Engine::Load() {
   if (refresh_interval_ >= 0 and
       indexing_state_.load() == IndexingState::IDLE and
       index_status_ == UNINDEXED) {
+    if (vec_manager_ != nullptr && vec_manager_->SupportIncrement()) {
     if (max_docid_ - delete_num_ >= training_threshold_) {
       LOG(INFO) << space_name_ << " begin indexing. training_threshold="
                 << training_threshold_;
       this->BuildIndex();
     }
+  }
   }
   // remove directorys which are not done
   for (const std::string &folder : folders_not_done) {

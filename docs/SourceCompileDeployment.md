@@ -4,14 +4,17 @@
 
 #### Dependent Environment 
 
+Third-party library dependencies can be installed using vearch/cloud/env/install-dependencies.sh
+
    1. CentOS, Ubuntu and Mac OS are all OK (recommend CentOS >= 7.2).
    2. go >= 1.22 required.
    3. gcc >= 10 required.
    4. cmake >= 3.17 required.
    5. OpenBLAS.
    6. tbb，In CentOS it can be installed by yum. Such as: yum install tbb-devel.x86_64.
-   7. [RocksDB](https://github.com/facebook/rocksdb) == 6.6.4. You don't need to install it manually, the script installs it automatically. But you need to manually install the dependencies of rocksdb. Please refer to the installation method: https://github.com/facebook/rocksdb/blob/master/INSTALL.md
-   8. CUDA >= 9.2, if you want GPU support.
+   7. CUDA >= 12.4, if you want GPU support.
+   8. oneMKL == 25.1
+
 #### Compile 
    * Enter the `GOPATH` directory, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
    * Download the source code: `git clone https://github.com/vearch/vearch.git` ($vearch denotes the absolute path of vearch code)

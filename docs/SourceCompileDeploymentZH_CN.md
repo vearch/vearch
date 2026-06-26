@@ -4,14 +4,16 @@
 
 #### 依赖环境
 
+三方库依赖可以使用vearch/cloud/env/install-dependencies.sh 安装
+
    1. CentOS、ubuntu和Mac OS都支持（推荐CentOS >= 7.2）
-   2. go >= 1.22
+   2. go == 1.22.5
    3. gcc >= 10
    4. cmake >= 3.17
    5. OpenBLAS
    6. tbb，CentOS可使用yum安装，如：yum install tbb-devel.x86_64
-   7. [RocksDB](https://github.com/facebook/rocksdb) == 6.6.4，你不需要手动安装，脚本自动安装。但是你需要手动安装rocksdb的依赖。请参考如下安装方法：https://github.com/facebook/rocksdb/blob/master/INSTALL.md
-   8. CUDA >= 9.2，如果你不使用GPU模型，可忽略。
+   7. CUDA == 12.4，如果你不使用GPU模型，可忽略。
+   8. oneMKL == 25.1
 #### 编译
    * 进入 `GOPATH` 目录, `cd $GOPATH/src` `mkdir -p github.com/vearch` `cd github.com/vearch`
    * 下载源码: `git clone https://github.com/vearch/vearch.git` ($vearch表示vearch代码的绝对路径)

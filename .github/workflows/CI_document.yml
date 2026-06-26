@@ -36,3 +36,4 @@ jobs:
       run: |
         cd test
         pytest test_cluster_document.py -k "${{ matrix.index-type }} or test_vearch_index" -x --log-cli-level=INFO
+

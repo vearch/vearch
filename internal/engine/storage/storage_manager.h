@@ -76,6 +76,8 @@ class StorageManager {
 
   std::unique_ptr<rocksdb::DB> &GetDB() { return db_; }
 
+  const std::string &GetRootPath() const { return root_path_; }
+
   rocksdb::ColumnFamilyHandle *GetColumnFamilyHandle(int cf_id) {
     return cf_handles_[cf_id];
   }
