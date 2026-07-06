@@ -9,6 +9,7 @@
 
 #include <tbb/concurrent_queue.h>
 
+#include <memory>
 #include <vector>
 
 #include "reflector.h"
@@ -99,6 +100,12 @@ class RetrievalContext {
 
   // ID valid filter
   virtual bool IsValid(int64_t id) const = 0;
+
+  // Soft-delete check only. Filter-first paths whose candidates already
+  // satisfy the scalar predicate use this to avoid a redundant scalar
+  // membership query inside IsValid. Default false so contexts without a
+  // delete bitmap (e.g. faiss-like indexes) keep working unchanged.
+  virtual bool IsDeleted(int64_t /*id*/) const { return false; }
 
   // Score filter
   virtual bool IsSimilarScoreValid(float score) const = 0;
@@ -324,7 +331,7 @@ class IndexModel {
 
   std::string &Desc() { return desc_; }
 
-   bool SupportIncrement() const { return support_increment_; }
+  bool SupportIncrement() const { return support_increment_; }
 
   VectorReader *vector_;
   tbb::concurrent_bounded_queue<int64_t> updated_vids_;

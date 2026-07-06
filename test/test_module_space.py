@@ -1292,3 +1292,39 @@ class TestSpaceIndexes:
 
     def test_destroy_db(self):
         drop_db(router_url, db_name)
+
+
+# ----------------------------------------------------------------------
+# M7 (M6 下放): FLAT space guard — RocksDB + MemoryOnly schema creation
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("store_type", ["RocksDB", "MemoryOnly"])
+def test_flat_space_schema_guard(store_type: str):
+    embedding_size = 64
+    space_cfg = {
+        "name": space_name,
+        "partition_num": 1,
+        "replica_num": 1,
+        "fields": [
+            {"name": "field_int", "type": "integer"},
+            {
+                "name": "field_vector",
+                "type": "vector",
+                "dimension": embedding_size,
+                "store_type": store_type,
+                "index": {
+                    "name": "gamma",
+                    "type": "FLAT",
+                    "params": {"metric_type": "L2"},
+                },
+            },
+        ],
+    }
+    create_db(router_url, db_name)
+    resp = create_space(router_url, db_name, space_cfg)
+    body = resp.json()
+    assert body["code"] == 0, body
+    got = get_space(router_url, db_name, space_name)
+    assert got.json()["code"] == 0
+    destroy(router_url, db_name, space_name)

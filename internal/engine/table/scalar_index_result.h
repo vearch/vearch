@@ -12,22 +12,24 @@
 #include <string>
 #include <vector>
 
-#include "util/log.h"
-
 namespace vearch {
 
+// Result of evaluating a single scalar filter condition (or the merged
+// result of several conditions combined by AND/OR/NOT IN via the
+// Intersection/Union/Difference ops below).
+//
+// Internally a Roaring64Map over docids.
 class ScalarIndexResult {
  public:
  ScalarIndexResult() { Clear(); }
 
  ScalarIndexResult(ScalarIndexResult&& other) noexcept
-      : b_not_in_(other.b_not_in_), doc_bitmap_(std::move(other.doc_bitmap_)) {}
+      : doc_bitmap_(std::move(other.doc_bitmap_)) {}
 
   /**
    * Construct from a Roaring64Map with offset/limit applied in one pass.
    */
   ScalarIndexResult(roaring::Roaring64Map bitmap, int offset, int limit) {
-    b_not_in_ = false;
     if (offset < 0 || limit < 0) {
       return;
     }
@@ -53,13 +55,12 @@ class ScalarIndexResult {
    * Construct from a Roaring64Map (copy).
    */
   explicit ScalarIndexResult(const roaring::Roaring64Map& bitmap)
-      : b_not_in_(false), doc_bitmap_(bitmap) {}
+      : doc_bitmap_(bitmap) {}
 
   /**
    * Copy with offset/limit applied.
    */
   ScalarIndexResult(const ScalarIndexResult& other, int offset, int limit) {
-    b_not_in_ = other.b_not_in_;
     if (offset < 0 || limit < 0) {
       return;
     }
@@ -83,7 +84,6 @@ class ScalarIndexResult {
 
   ScalarIndexResult& operator=(ScalarIndexResult&& other) noexcept {
     if (this != &other) {
-      b_not_in_ = other.b_not_in_;
       doc_bitmap_ = std::move(other.doc_bitmap_);
     }
     return *this;
@@ -95,32 +95,18 @@ class ScalarIndexResult {
     doc_bitmap_ &= other.doc_bitmap_;
   }
 
-  void IntersectionWithNotIn(const ScalarIndexResult& other) {
-    if (b_not_in_) {
-      doc_bitmap_ &= other.doc_bitmap_;
-    } else {
-      doc_bitmap_ -= other.doc_bitmap_;
-    }
+  // Set difference: remove docids present in `other`. Used to implement
+  // NOT IN as "[0, total) minus matched".
+  void Difference(const ScalarIndexResult& other) {
+    doc_bitmap_ -= other.doc_bitmap_;
   }
 
   void Union(const ScalarIndexResult& other) {
     doc_bitmap_ |= other.doc_bitmap_;
   }
 
-  void UnionWithNotIn(const ScalarIndexResult& other) {
-    if (b_not_in_) {
-      doc_bitmap_ |= other.doc_bitmap_;
-    } else {
-      doc_bitmap_ -= other.doc_bitmap_;
-    }
-  }
-
   bool Has(int64_t doc) const {
-    if (b_not_in_) {
-      return !doc_bitmap_.contains(static_cast<uint64_t>(doc));
-    } else {
-      return doc_bitmap_.contains(static_cast<uint64_t>(doc));
-    }
+    return doc_bitmap_.contains(static_cast<uint64_t>(doc));
   }
 
   int64_t Cardinality() const { return doc_bitmap_.cardinality(); }
@@ -129,11 +115,6 @@ class ScalarIndexResult {
 
   std::vector<uint64_t> GetDocIDs(size_t topn) const {
     std::vector<uint64_t> doc_ids;
-    if (b_not_in_) {
-      LOG(WARNING) << "NOT IN operation is not supported in GetDocIDs";
-      return doc_ids;
-    }
-
     doc_ids.reserve(
         doc_bitmap_.cardinality() > topn ? topn : doc_bitmap_.cardinality());
 
@@ -144,10 +125,7 @@ class ScalarIndexResult {
     return doc_ids;
   }
 
-  void Clear() {
-    b_not_in_ = false;
-    doc_bitmap_.clear();
-  }
+  void Clear() { doc_bitmap_.clear(); }
 
   void Add(int64_t doc) { doc_bitmap_.add(static_cast<uint64_t>(doc)); }
   void AddRange(int64_t mindoc, int64_t maxdoc) {
@@ -155,22 +133,45 @@ class ScalarIndexResult {
                          static_cast<uint64_t>(maxdoc));
   }
 
-  void SetNotIn(bool b_not_in) { b_not_in_ = b_not_in; }
-
-  bool NotIn() { return b_not_in_; }
-
  private:
-  bool b_not_in_;
   roaring::Roaring64Map doc_bitmap_;
 };
 
+// Container for the scalar-filter outcome of a single search request.
+//
+// Despite the plural name and the `std::vector<ScalarIndexResult>` member,
+// in the current code path this holds **at most one** ScalarIndexResult:
+// ScalarIndexManager::Search merges every per-filter result (via
+// Intersection/Union according to the request's FilterOperator) into a
+// single final ScalarIndexResult and pushes that one result via Add().
+// Downstream consumers (filter-first vector search, GetDocIDs, etc.) only
+// ever read `all_results_[0]`.
+//
+// The vector-of-results shape is a historical artifact from when each
+// field's result was kept separate and intersected lazily during recall;
+// kept for ABI/source compatibility with existing callers.
+//
+// Invariants assumed by callers:
+//   - Size() is 0 or 1.
+//   - GetCandidateBitmap()/Cardinality()/GetDocIDs() only consult
+//     all_results_[0].
+//
+// TODO(refactor): Collapse this class. Since `all_results_` is provably
+// 0-or-1, the wrapper buys nothing over a single
+// `std::optional<ScalarIndexResult>` (or just a ScalarIndexResult with an
+// "empty" state) -- and the misleading plural name keeps tempting readers
+// to assume per-field results live here.
 class ScalarIndexResults {
  public:
   ScalarIndexResults() { Clear(); }
 
   ~ScalarIndexResults() { Clear(); }
 
-  // Take full advantage of multi-core while recalling
+  // Per-doc predicate check used by recall paths.
+  // Given the Size() <= 1 invariant above, this is effectively
+  // `all_results_[0].Has(doc)` (or `false` when empty); the AND-loop is
+  // retained for the historical multi-result case but degenerates to a
+  // single call in current usage.
   bool Has(int64_t doc) const {
     if (all_results_.size() == 0) {
       return false;
@@ -197,6 +198,24 @@ class ScalarIndexResults {
       return doc_ids;
     }
     return all_results_[0].GetDocIDs(topn);
+  }
+
+  // Direct bitmap accessor for filter-first paths that want to avoid
+  // materializing the candidate set into a std::vector. Returns nullptr when
+  // there is no result.
+  // Invariant: only all_results_[0] is consulted (all_results_ holds at most
+  // one already-intersected result).
+  const roaring::Roaring64Map *GetCandidateBitmap() const {
+    if (all_results_.size() == 0) return nullptr;
+    return &all_results_[0].GetDocBitmap();
+  }
+
+  // Candidate cardinality (Roaring64Map::cardinality, O(#containers)), used by
+  // filter-first gating to avoid materializing the candidate vector just to
+  // read its size.
+  int64_t Cardinality() const {
+    if (all_results_.size() == 0) return 0;
+    return all_results_[0].Cardinality();
   }
 
  private:
