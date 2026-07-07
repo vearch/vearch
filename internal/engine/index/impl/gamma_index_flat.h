@@ -27,12 +27,16 @@
 #include "faiss/utils/distances.h"
 #include "faiss/utils/hamming.h"
 #include "faiss/utils/utils.h"
+#include <roaring/roaring64map.hh>
+
 #include "index/index_model.h"
 #include "util/bitmap.h"
 #include "util/log.h"
 #include "util/utils.h"
 
 namespace vearch {
+
+class MemoryBufferRawVector;
 
 class FlatRetrievalParameters : public RetrievalParameters {
  public:
@@ -58,9 +62,17 @@ class FlatRetrievalParameters : public RetrievalParameters {
     parallel_on_queries_ = parallel_on_queries;
   }
 
+  bool DisableFilterFirst() const { return disable_filter_first_; }
+  void SetDisableFilterFirst(bool v) { disable_filter_first_ = v; }
+
+  int FetchBatchSize() const { return fetch_batch_size_; }
+  void SetFetchBatchSize(int v) { fetch_batch_size_ = v; }
+
  private:
   // parallelize over queries or vectors
   bool parallel_on_queries_;
+  bool disable_filter_first_ = false;
+  int fetch_batch_size_ = 64;
 };
 
 class GammaFLATIndex : public IndexModel {
@@ -95,6 +107,31 @@ class GammaFLATIndex : public IndexModel {
   DistanceComputeType metric_type_;
 
   int rerank_ = 0;
+
+ private:
+  // Acquire per-segment refs for the given MemoryBufferRawVector and compute
+  // the partition-local VID range to scan. The caller guarantees memory_buf is
+  // non-null (non-buffer backends skip this call and scan the full range).
+  // Returns true when there is a range to scan; returns false when the buffer
+  // has no unindexed tail (callers should short-circuit to 0 results).
+  bool AcquireBufferScanRange(MemoryBufferRawVector *memory_buf,
+                              int total_vectors, int &start_offset_vid,
+                              int &num_vectors, int &start_segment_id,
+                              int &end_segment_id);
+
+  // Decrement segment refs acquired by AcquireBufferScanRange. Safe to call
+  // with memory_buf == nullptr (no-op).
+  void DecrementSegmentRefs(MemoryBufferRawVector *memory_buf,
+                            int start_segment_id, int end_segment_id);
+
+  // Decide whether to scan the candidate bitmap and clip it to this
+  // partition's VID range. On return, `scan_bitmap` reflects the final gating
+  // decision (including the single-query large-candidate fallback).
+  void PlanBitmapScan(RetrievalContext *retrieval_context,
+                      FlatRetrievalParameters *retrieval_params, int n,
+                      int start_offset_vid, int num_vectors,
+                      roaring::Roaring64Map &candidates,
+                      bool &scan_bitmap);
 };
 
 }  // namespace vearch

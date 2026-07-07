@@ -105,6 +105,14 @@ class SearchCondition : public RetrievalContext {
     return true;
   };
 
+  bool IsDeleted(int64_t id) const override {
+#ifndef FAISSLIKE_INDEX
+    return docids_bitmap->Test(id);
+#else
+    return false;
+#endif
+  }
+
   void Init(float min_score, float max_score,
             bitmap::BitmapManager *docids_bitmap, RawVector *raw_vec) {
     this->min_score = min_score;

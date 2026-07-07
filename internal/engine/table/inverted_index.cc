@@ -204,7 +204,7 @@ ScalarIndexResult InvertedIndex::NotIn(const std::vector<std::string>& values, i
   ScalarIndexResult matched = In(values, 0, 0);
 
   result.AddRange(0, total_size);
-  result.IntersectionWithNotIn(matched);
+  result.Difference(matched);
 
   if (offset > 0 || limit > 0) {
     ScalarIndexResult offset_limited(result, offset, limit);

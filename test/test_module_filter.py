@@ -1082,3 +1082,272 @@ def test_module_filter_bitmap_index_thread_safety():
     assert delete_count[0] == total
 
     logger.info("Bitmap index thread safety test passed")
+
+
+# ----------------------------------------------------------------------
+# M7 filter-first (M3) + fetch_batch_size (M4) tests
+# ----------------------------------------------------------------------
+
+
+@pytest.fixture
+def ff_space_cleanup():
+    """Drop the filter-first test space/db on teardown.
+
+    Without this, an assertion failure leaves the trailing destroy() unreached,
+    leaking the space so the next parametrized variant's create_space fails and
+    cascades unrelated failures.
+    """
+    yield
+    destroy(router_url, db_name, space_name)
+
+
+def _ff_create_space(store_type: str, embedding_size: int):
+    properties = {
+        "fields": [
+            {
+                "name": "field_int",
+                "type": "integer",
+                "index": {"name": "field_int", "type": "SCALAR"},
+            },
+            {
+                "name": "field_string",
+                "type": "string",
+                "index": {"name": "field_string", "type": "SCALAR"},
+            },
+            {
+                "name": "field_vector",
+                "type": "vector",
+                "dimension": embedding_size,
+                "store_type": store_type,
+                "index": {
+                    "name": "gamma",
+                    "type": "FLAT",
+                    "params": {"metric_type": "L2"},
+                },
+            },
+        ]
+    }
+    create(router_url, properties)
+
+
+def _ff_add_docs(n: int, embedding_size: int, seed: int = 42):
+    rng = np.random.RandomState(seed)
+    xb = rng.random((n, embedding_size)).astype("float32")
+    url = router_url + "/document/upsert?timeout=2000000"
+    batch_size = 100
+    total_batch = n // batch_size
+    for b in range(total_batch):
+        documents = []
+        for j in range(batch_size):
+            idx = b * batch_size + j
+            documents.append(
+                {
+                    "_id": str(idx),
+                    "field_int": idx,
+                    "field_string": str(idx),
+                    "field_vector": xb[idx].tolist(),
+                }
+            )
+        rs = requests.post(
+            url,
+            auth=(username, password),
+            json={
+                "db_name": db_name,
+                "space_name": space_name,
+                "documents": documents,
+            },
+        )
+        assert rs.json()["code"] == 0, rs.json()
+    waiting_index_finish(n)
+    return xb
+
+
+def _ff_search(xq_vec, retrieval_params=None, filters=None, limit=10):
+    url = router_url + "/document/search?timeout=2000000"
+    data = {
+        "db_name": db_name,
+        "space_name": space_name,
+        "vector_value": False,
+        "fields": ["field_int"],
+        "limit": limit,
+        "vectors": [{"field": "field_vector", "feature": xq_vec.tolist()}],
+    }
+    if retrieval_params:
+        data["index_params"] = retrieval_params
+    if filters is not None:
+        data["filters"] = filters
+    rs = requests.post(url, auth=(username, password), json=data)
+    body = rs.json()
+    assert body["code"] == 0, body
+    docs = body["data"]["documents"]
+    return docs[0] if docs else []
+
+
+@pytest.mark.parametrize("store_type", ["MemoryOnly", "RocksDB"])
+def test_filter_first_low_cardinality(store_type: str, ff_space_cleanup):
+    embedding_size = 8
+    n = 1000
+    _ff_create_space(store_type, embedding_size)
+    xb = _ff_add_docs(n, embedding_size)
+    xq = xb[0]
+    filters = {
+        "operator": "AND",
+        "conditions": [
+            {"field": "field_int", "operator": ">=", "value": 0},
+            {"field": "field_int", "operator": "<", "value": 10},
+        ],
+    }
+    res_ff = _ff_search(
+        xq, retrieval_params=build_retrieval_params(disable_filter_first=0),
+        filters=filters, limit=10,
+    )
+    res_m2 = _ff_search(
+        xq, retrieval_params=build_retrieval_params(disable_filter_first=1),
+        filters=filters, limit=10,
+    )
+    assert_bit_wise_equal(res_ff, res_m2)
+
+
+@pytest.mark.parametrize("store_type", ["MemoryOnly", "RocksDB"])
+def test_filter_first_zero_hit(store_type: str, ff_space_cleanup):
+    embedding_size = 8
+    n = 1000
+    _ff_create_space(store_type, embedding_size)
+    xb = _ff_add_docs(n, embedding_size)
+    xq = xb[0]
+    filters = {
+        "operator": "AND",
+        "conditions": [
+            {"field": "field_int", "operator": ">=", "value": 10 * n},
+        ],
+    }
+    res = _ff_search(
+        xq, retrieval_params=build_retrieval_params(disable_filter_first=0),
+        filters=filters, limit=10,
+    )
+    assert len(res) == 0
+
+
+@pytest.mark.parametrize("store_type", ["MemoryOnly", "RocksDB"])
+def test_filter_first_disable(store_type: str, ff_space_cleanup):
+    embedding_size = 8
+    n = 1000
+    _ff_create_space(store_type, embedding_size)
+    xb = _ff_add_docs(n, embedding_size)
+    xq = xb[0]
+    filters = {
+        "operator": "AND",
+        "conditions": [
+            {"field": "field_int", "operator": ">=", "value": 0},
+            {"field": "field_int", "operator": "<", "value": 100},
+        ],
+    }
+    res_default = _ff_search(xq, filters=filters, limit=10)
+    res_off = _ff_search(
+        xq, retrieval_params=build_retrieval_params(disable_filter_first=1),
+        filters=filters, limit=10,
+    )
+    assert_bit_wise_equal(res_default, res_off)
+
+
+@pytest.mark.parametrize("store_type", ["MemoryOnly", "RocksDB"])
+def test_filter_first_full_hit(store_type: str, ff_space_cleanup):
+    embedding_size = 8
+    n = 1000
+    _ff_create_space(store_type, embedding_size)
+    xb = _ff_add_docs(n, embedding_size)
+    xq = xb[0]
+    filters = {
+        "operator": "AND",
+        "conditions": [
+            {"field": "field_int", "operator": ">=", "value": -1},
+        ],
+    }
+    res_ff = _ff_search(
+        xq, retrieval_params=build_retrieval_params(disable_filter_first=0),
+        filters=filters, limit=10,
+    )
+    res_m2 = _ff_search(
+        xq, retrieval_params=build_retrieval_params(disable_filter_first=1),
+        filters=filters, limit=10,
+    )
+    assert_bit_wise_equal(res_ff, res_m2)
+
+
+@pytest.mark.parametrize("store_type", ["MemoryOnly", "RocksDB"])
+def test_filter_first_min_chunk(store_type: str, ff_space_cleanup):
+    embedding_size = 8
+    n = 1000
+    _ff_create_space(store_type, embedding_size)
+    xb = _ff_add_docs(n, embedding_size)
+    xq = xb[0]
+    filters = {
+        "operator": "AND",
+        "conditions": [
+            {"field": "field_int", "operator": "=", "value": 0},
+        ],
+    }
+    res = _ff_search(
+        xq, retrieval_params=build_retrieval_params(disable_filter_first=0),
+        filters=filters, limit=10,
+    )
+    assert len(res) == 1
+    assert res[0]["_id"] == "0"
+
+
+@pytest.mark.parametrize("store_type", ["MemoryOnly", "RocksDB"])
+def test_filter_first_multi_filter_size2(store_type: str, ff_space_cleanup):
+    embedding_size = 8
+    n = 1000
+    _ff_create_space(store_type, embedding_size)
+    xb = _ff_add_docs(n, embedding_size)
+    xq = xb[0]
+    filters = {
+        "operator": "AND",
+        "conditions": [
+            {"field": "field_int", "operator": ">=", "value": 0},
+            {"field": "field_int", "operator": "<", "value": 200},
+            {
+                "field": "field_string",
+                "operator": "IN",
+                "value": [str(i) for i in range(0, 100)],
+            },
+        ],
+    }
+    res_ff = _ff_search(
+        xq, retrieval_params=build_retrieval_params(disable_filter_first=0),
+        filters=filters, limit=10,
+    )
+    res_m2 = _ff_search(
+        xq, retrieval_params=build_retrieval_params(disable_filter_first=1),
+        filters=filters, limit=10,
+    )
+    # Candidates are field_int in [0,200) AND field_string in [0,100) -> ids 0..99,
+    # i.e. exactly 100 candidates. That is well above limit=10, so the top-k must be
+    # filled and the multi-condition filter-first candidate bitmap path is exercised
+    # rather than short-circuited on a zero-cardinality set.
+    assert len(res_ff) == 10
+    assert_bit_wise_equal(res_ff, res_m2)
+
+
+@pytest.mark.parametrize("store_type", ["MemoryOnly", "RocksDB"])
+@pytest.mark.parametrize("batch_size", [0, -1, 1, 1024, 99999])
+def test_fetch_batch_size_clamp(store_type: str, batch_size: int, ff_space_cleanup):
+    embedding_size = 8
+    n = 1000
+    _ff_create_space(store_type, embedding_size)
+    xb = _ff_add_docs(n, embedding_size)
+    xq = xb[0]
+    filters = {
+        "operator": "AND",
+        "conditions": [
+            {"field": "field_int", "operator": ">=", "value": 0},
+            {"field": "field_int", "operator": "<", "value": 100},
+        ],
+    }
+    res_clamped = _ff_search(
+        xq, retrieval_params=build_retrieval_params(fetch_batch_size=batch_size),
+        filters=filters, limit=10,
+    )
+    res_default = _ff_search(xq, filters=filters, limit=10)
+    assert_bit_wise_equal(res_clamped, res_default)

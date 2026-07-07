@@ -555,13 +555,14 @@ class VearchCase:
         self.test_deleteDB()
 
 
-# for FLAT HNSW IVFFLAT, now only support one store_type, no need to set
+# for HNSW IVFFLAT, now only support one store_type, no need to set
 
 
 @pytest.mark.parametrize(
     ["training_threshold", "index_type", "store_type"],
     [
-        [1, "FLAT", ""],
+        [1, "FLAT", "MemoryOnly"],
+        [1, "FLAT", "RocksDB"],
         [990, "IVFPQ", "MemoryOnly"],
         [990, "IVFPQ", "RocksDB"],
         [1, "HNSW", ""],
@@ -592,7 +593,8 @@ def test_vearch_basic_usage_with_realtime(training_threshold: int, index_type: s
 @pytest.mark.parametrize(
     ["training_threshold", "index_type", "store_type"],
     [
-        [1, "FLAT", ""],
+        [1, "FLAT", "MemoryOnly"],
+        [1, "FLAT", "RocksDB"],
         [990, "IVFPQ", "MemoryOnly"],
         [990, "IVFPQ", "RocksDB"],
         [1, "HNSW", ""],
@@ -611,7 +613,6 @@ def test_vearch_usage_operator_metadata(training_threshold: int, index_type: str
 @pytest.mark.parametrize(
     ["training_threshold", "index_type", "store_type"],
     [
-        [1, "FLAT", "RocksDB"],
         [1, "FLAT", "NOTSUPPORTTYPE"],
         [1, "HNSW", "RocksDB"],
         [990, "IVFFLAT", "MemoryOnly"],

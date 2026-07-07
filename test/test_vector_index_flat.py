@@ -162,6 +162,7 @@ gt = sift10k.get_groundtruth()
     ["store_type"],
     [
         ["MemoryOnly"],
+        ["RocksDB"],
     ],
 )
 def test_vearch_index_flat_l2(store_type: str):
@@ -178,6 +179,7 @@ glove_gt = glove25.get_groundtruth()[:100]
     ["store_type"],
     [
         ["MemoryOnly"],
+        ["RocksDB"],
     ],
 )
 def test_vearch_index_flat_ip(store_type: str):

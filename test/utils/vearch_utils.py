@@ -36,7 +36,32 @@ SCALAR_INDEX_TYPE_STRING = "SCALAR"
 INVERTED_INDEX_TYPE_STRING = "INVERTED"
 BITMAP_INDEX_TYPE_STRING = "BITMAP"
 
+SCORE_EPS = 1e-5
+
 __description__ = """ test utils for vearch """
+
+
+def build_retrieval_params(disable_filter_first=None, fetch_batch_size=None, **extra):
+    params = {}
+    if disable_filter_first is not None:
+        params["disable_filter_first"] = int(disable_filter_first)
+    if fetch_batch_size is not None:
+        params["fetch_batch_size"] = int(fetch_batch_size)
+    params.update(extra)
+    return params
+
+
+def assert_bit_wise_equal(res_a, res_b):
+    assert len(res_a) == len(res_b), \
+        f"length mismatch: {len(res_a)} != {len(res_b)}"
+    sa = sorted(res_a, key=lambda x: x["_id"])
+    sb = sorted(res_b, key=lambda x: x["_id"])
+    for a, b in zip(sa, sb):
+        assert a["_id"] == b["_id"], \
+            f"id mismatch: {a['_id']} != {b['_id']}"
+        diff = abs(a["_score"] - b["_score"])
+        assert diff < SCORE_EPS, \
+            f"score diff {diff} >= eps {SCORE_EPS} on id={a['_id']}"
 
 
 def process_add_data(items):
