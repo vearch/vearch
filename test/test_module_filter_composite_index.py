@@ -557,7 +557,10 @@ class TestIntIntString:
             ]},
             limit=TOTAL_DOCS
         )
-        assert len(docs) == 0
+        expected = _expected_docs(a_lo=lo, a_hi=hi, b_eq=b_val)
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_range_prefix_eq_all_suffix(self):
         lo, hi = 30, 40
@@ -572,7 +575,10 @@ class TestIntIntString:
             ]},
             limit=TOTAL_DOCS
         )
-        assert len(docs) == 0
+        expected = _expected_docs(a_lo=lo, a_hi=hi, b_eq=b_val, c_in=c_vals)
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
 # ----- Range on prefix field + Range on suffix field -----------------------------------------------
     """field_A >= lo AND field_A <= hi AND ((field_B >= v1 and field_B <= v1) OR field_C in [v2])"""
@@ -589,7 +595,10 @@ class TestIntIntString:
             ]},
             limit=TOTAL_DOCS
         )
-        assert len(docs) == 0
+        expected = _expected_docs(a_lo=lo, a_hi=hi, b_lo=b_lo, b_hi=b_hi)
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_range_prefix_range_suffix_no_match(self):
         lo, hi = 70, 80
@@ -621,7 +630,10 @@ class TestIntIntString:
             ]},
             limit=TOTAL_DOCS
         )
-        assert len(docs) == 0
+        expected = _expected_docs(a_lo=lo, a_hi=hi, b_lo=b_lo, b_hi=b_hi, c_in=c_vals)
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_range_prefix_range_all_suffix(self):
         lo, hi = 310, 350
@@ -637,7 +649,10 @@ class TestIntIntString:
             ]},
             limit=TOTAL_DOCS
         )
-        assert len(docs) == 0
+        expected = _expected_docs(a_lo=lo, a_hi=hi, b_lo=b_lo, b_hi=b_hi, c_in=c_vals)
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
 # ----- Eq prefix + Range suffix (no suffix filter) --------------------------
     """field_A = v AND field_B IN [b_lo..b_hi]  (suffix empty after B, Range on B)"""
@@ -841,9 +856,12 @@ class TestIntIntString:
             ]},
             limit=TOTAL_DOCS
         )
-        assert len(docs) == 0
+        expected = _expected_docs(c_in=c_vals)
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
-    def test_in_suffix(self):
+    def test_in_suffix_no_match(self):
         """field_C IN with valid values"""
         c_vals = ["3", "5"]   # field_C do not hava
         docs = _query(
@@ -957,7 +975,9 @@ class TestIntIntString:
             limit=TOTAL_DOCS
         )
         expected = _expected_docs(a_eq=a_val, b_lo=b_lo, b_hi=b_hi, c_in=[c_val])
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_range_in_all_overlap_b_first(self):
         a_val = 50           # => b=500
@@ -973,9 +993,11 @@ class TestIntIntString:
             limit=TOTAL_DOCS
         )
         expected = _expected_docs(a_eq=a_val, b_lo=b_lo, b_hi=b_hi, c_in=[c_val])
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
-    def test_eq_range_in_all_overlap_b_first(self):
+    def test_eq_range_in_all_overlap_c_first(self):
         a_val = 50           # => b=500
         b_lo, b_hi = 400, 600   # 500 in range
         c_val = str(500 % NUM_C_VALUES)   # field_C for b=500
@@ -989,7 +1011,9 @@ class TestIntIntString:
             limit=TOTAL_DOCS
         )
         expected = _expected_docs(a_eq=a_val, b_lo=b_lo, b_hi=b_hi, c_in=[c_val])
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
 
 # ----- Empty result edge cases ---------------------------------------------
@@ -1124,7 +1148,9 @@ class TestStringIntFloat:
             {"field": "field_int", "operator": "=", "value": i_val}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if f_int[i] == i_val]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_all_three(self):
         vectors, f_str, f_int, f_float = _generate_s1_data()
@@ -1152,7 +1178,9 @@ class TestStringIntFloat:
             {"field": "field_float", "operator": "<=", "value": fl_hi}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if fl_lo <= f_float[i] <= fl_hi]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_str_range_int(self):
         """string = v AND int in range"""
@@ -1196,7 +1224,9 @@ class TestStringIntFloat:
         expected = [i for i in range(TOTAL_DOCS)
                     if f_str[i] == "5" and fl_lo <= f_float[i] <= fl_hi]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
 
 # Schema 2: int + float + string  (string as suffix)
@@ -1344,7 +1374,9 @@ class TestIntFloatString:
         expected = [i for i in range(TOTAL_DOCS)
                     if f_int[i] == 42 and f_str[i] in ["2", "12"]]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_range_int_in_str(self):
         """int range + IN on string suffix"""
@@ -1356,7 +1388,9 @@ class TestIntFloatString:
         expected = [i for i in range(TOTAL_DOCS)
                     if 100 <= f_int[i] <= 199 and f_str[i] in ["5", "9"]]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_float_in_str(self):
         vectors, f_int, f_float, f_str = _generate_s2_data()
@@ -1509,7 +1543,9 @@ class TestIntFloatStringArray:
             {"field": "field_float", "operator": "<=", "value": 99.9}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if 70.0 <= f_float[i] <= 99.9]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_int_in_stra(self):
         vectors, f_int, f_float, f_stra = _generate_s3_data()
@@ -1520,7 +1556,9 @@ class TestIntFloatStringArray:
         expected = [i for i in range(TOTAL_DOCS)
                     if f_int[i] == 300 and any(t in stra_vals for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_int_eq_float_in_stra(self):
         vectors, f_int, f_float, f_stra = _generate_s3_data()
@@ -1543,7 +1581,9 @@ class TestIntFloatStringArray:
             {"field": "field_float", "operator": "<=", "value": fl_hi}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if fl_lo <= f_float[i] <= fl_hi]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
 
 # Schema 4: string_array + int + float  (string_array as prefix)
@@ -1680,7 +1720,9 @@ class TestStringArrayIntFloat:
         expected = [i for i in range(TOTAL_DOCS)
                     if any(t in ["5"] for t in f_stra[i]) and f_int[i] != int_val]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_stra_range_int(self):
         vectors, f_int, f_stra, f_float = _generate_s4_data()
@@ -1730,7 +1772,9 @@ class TestStringArrayIntFloat:
             {"field": "field_int", "operator": "=", "value": int_val}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if f_int[i] == int_val]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_range_int(self):
         vectors, f_int, f_stra, f_float = _generate_s4_data()
@@ -1740,7 +1784,9 @@ class TestStringArrayIntFloat:
             {"field": "field_int", "operator": "<=", "value": int_hi}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if int_lo <= f_int[i] <= int_hi]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_float(self):
         vectors, f_int, f_stra, f_float = _generate_s4_data()
@@ -1749,8 +1795,10 @@ class TestStringArrayIntFloat:
             {"field": "field_float", "operator": "=", "value": float_val}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if f_float[i] == float_val]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
-    
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
     def test_range_float(self):
         vectors, f_int, f_stra, f_float = _generate_s4_data()
         float_lo, float_hi = 55.0, 57.0
@@ -1759,7 +1807,9 @@ class TestStringArrayIntFloat:
             {"field": "field_float", "operator": "<=", "value": float_hi}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if float_lo <= f_float[i] <= float_hi]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
 
 # Schema 5: int + string + string_array  (string_array as suffix)
@@ -1880,7 +1930,7 @@ class TestIntStringStringArray:
             {"field": "field_int", "operator": "=", "value": 360},
             {"field": "field_str", "operator": "IN", "value": ["0"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS)
-                    if f_int[i] == 360 and any(t in ["0"] for t in f_str[i])]
+                    if f_int[i] == 360 and f_str[i] in ["0"]]
         logger.info(f"expected: {expected}")
         assert len(docs) == len(expected)
         doc_ids = sorted(int(d["_id"]) for d in docs)
@@ -1892,9 +1942,11 @@ class TestIntStringStringArray:
             {"field": "field_int", "operator": "!=", "value": 360},
             {"field": "field_str", "operator": "IN", "value": ["0"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS)
-                    if f_int[i] != 360 and any(t in ["0"] for t in f_str[i])]
+                    if f_int[i] != 360 and f_str[i] in ["0"]]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_int_in_str(self):
         vectors, f_int, f_str, f_stra = _generate_s5_data()
@@ -1902,7 +1954,7 @@ class TestIntStringStringArray:
             {"field": "field_int", "operator": "=", "value": 360},
             {"field": "field_str", "operator": "IN", "value": ["0"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS)
-                    if f_int[i] == 360 and any(t in ["0"] for t in f_str[i])]
+                    if f_int[i] == 360 and f_str[i] in ["0"]]
         logger.info(f"expected: {expected}")
         assert len(docs) == len(expected)
         doc_ids = sorted(int(d["_id"]) for d in docs)
@@ -1916,7 +1968,9 @@ class TestIntStringStringArray:
         expected = [i for i in range(TOTAL_DOCS)
                     if f_int[i] == 300 and any(t in ["0"] for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_int_eq_str_eq_stra(self):
         vectors, f_int, f_str, f_stra = _generate_s5_data()
@@ -1941,7 +1995,9 @@ class TestIntStringStringArray:
         expected = [i for i in range(TOTAL_DOCS)
                     if 300 <= f_int[i] <= 302 and f_str[i] == "0" and any(t in ["0"] for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_range_int_eq_str_not_eq_stra(self):
         vectors, f_int, f_str, f_stra = _generate_s5_data()
@@ -1963,9 +2019,11 @@ class TestIntStringStringArray:
             {"field": "field_str", "operator": "IN", "value": ["0", "1"]},
             {"field": "field_stra", "operator": "IN", "value": ["0", "1"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS)
-                    if 300 <= f_int[i] <= 302 and any(t in ["0", "1"] for t in f_str[i]) and any(t in ["0", "1"] for t in f_stra[i])]
+                    if 300 <= f_int[i] <= 302 and f_str[i] in ["0", "1"] and any(t in ["0", "1"] for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_int_in_stra(self):
         vectors, f_int, f_str, f_stra = _generate_s5_data()
@@ -1976,25 +2034,31 @@ class TestIntStringStringArray:
         expected = [i for i in range(TOTAL_DOCS)
                     if f_int[i] == 300 and any(t in stra_vals for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_str(self):
         vectors, f_int, f_str, f_stra = _generate_s5_data()
         docs = _s5_query({"operator": "AND", "conditions": [
             {"field": "field_str", "operator": "IN", "value": ["0"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS)
-                    if any(t in ["0"] for t in f_str[i])]
+                    if f_str[i] in ["0"]]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_in_str(self):
         vectors, f_int, f_str, f_stra = _generate_s5_data()
         docs = _s5_query({"operator": "AND", "conditions": [
             {"field": "field_str", "operator": "IN", "value": ["0", "1"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS)
-                    if any(t in ["0", "1"] for t in f_str[i])]
+                    if f_str[i] in ["0", "1"]]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_stra(self):
         vectors, f_int, f_str, f_stra = _generate_s5_data()
@@ -2003,7 +2067,9 @@ class TestIntStringStringArray:
         expected = [i for i in range(TOTAL_DOCS)
                     if any(t in ["0"] for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_in_stra(self):
         vectors, f_int, f_str, f_stra = _generate_s5_data()
@@ -2012,7 +2078,9 @@ class TestIntStringStringArray:
         expected = [i for i in range(TOTAL_DOCS)
                     if any(t in ["0", "1"] for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_str_eq_stra(self):
         vectors, f_int, f_str, f_stra = _generate_s5_data()
@@ -2022,11 +2090,13 @@ class TestIntStringStringArray:
         expected = [i for i in range(TOTAL_DOCS)
                     if f_str[i] == "0" and any(t in ["0"] for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
 
 # Schema 6: string + string_array + int  (int as suffix)
-_STR_STRA_INT_NAME = "composite_s6_space"
+_S6_NAME = "composite_s6_space"
 
 _cached_s6 = None
 
@@ -2056,11 +2126,11 @@ def _build_s6_space_config():
     indexes = [
         {"name": "idx_composite_s6",  "type": "COMPOSITE", "field_names": ["field_str", "field_stra", "field_int"]}
     ]
-    return {"name": _STR_STRA_INT_NAME, "partition_num": 1, "replica_num": 1, "fields": fields, "indexes": indexes}
+    return {"name": _S6_NAME, "partition_num": 1, "replica_num": 1, "fields": fields, "indexes": indexes}
 
 
 def _s6_query(filters, limit=10):
-    payload = {"db_name": db_name, "space_name": _STR_STRA_INT_NAME,
+    payload = {"db_name": db_name, "space_name": _S6_NAME,
                "filters": filters, "limit": limit}
     rs = requests.post(router_url + "/document/query",
                        auth=(username, password), json=payload)
@@ -2079,7 +2149,7 @@ def _s6_batch_upsert():
         if len(docs) >= 100 or i == TOTAL_DOCS - 1:
             url = router_url + "/document/upsert?timeout=120000"
             rs = requests.post(url, auth=(username, password),
-                              json={"db_name": db_name, "space_name": _STR_STRA_INT_NAME,
+                              json={"db_name": db_name, "space_name": _S6_NAME,
                                     "documents": docs})
             assert rs.json()["code"] == 0
             docs = []
@@ -2088,13 +2158,13 @@ def _s6_batch_upsert():
 @pytest.fixture(scope="module")
 def composite_s6_space():
     logger.info("Setting up schema-6 (string+string_array+int) test space...")
-    destroy(router_url, db_name, _STR_STRA_INT_NAME)
+    destroy(router_url, db_name, _S6_NAME)
     create_db(router_url, db_name)
     resp = create_space(router_url, db_name, _build_s6_space_config())
     assert resp.json()["code"] == 0
     _s6_batch_upsert()
     yield
-    destroy(router_url, db_name, _STR_STRA_INT_NAME)
+    destroy(router_url, db_name, _S6_NAME)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -2156,7 +2226,9 @@ class TestStringStringArrayInt:
             {"field": "field_stra", "operator": "NOT IN", "value": ["3"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if f_str[i] == "7" and "3" not in f_stra[i]]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_on_str_in_stra(self):
         vectors, f_str, f_stra, f_int = _generate_s6_data()
@@ -2250,7 +2322,9 @@ class TestStringStringArrayInt:
             {"field": "field_stra", "operator": "IN", "value": ["3"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if any(t in ["3"] for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_in_on_stra(self):
         vectors, f_str, f_stra, f_int = _generate_s6_data()
@@ -2258,7 +2332,9 @@ class TestStringStringArrayInt:
             {"field": "field_stra", "operator": "IN", "value": ["3", "4"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if any(t in ["3", "4"] for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_in_stra_eq_int(self):
         vectors, f_str, f_stra, f_int = _generate_s6_data()
@@ -2279,11 +2355,13 @@ class TestStringStringArrayInt:
         expected = [i for i in range(TOTAL_DOCS)
                     if any(t in ["4", "5"] for t in f_stra[i]) and 6 <= f_int[i] <= 60]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
 
 # Schema 7: string + string_array + int  (int as suffix) with other scalar index
-_STR_STRA_INT_NAME = "composite_s7_space"
+_S7_NAME = "composite_s7_space"
 
 _cached_s7 = None
 
@@ -2313,10 +2391,10 @@ def _build_s7_space_config():
     indexes = [
         {"name": "idx_composite_s7",  "type": "COMPOSITE", "field_names": ["field_str", "field_stra", "field_int"]}
     ]
-    return {"name": _STR_STRA_INT_NAME, "partition_num": 1, "replica_num": 1, "fields": fields, "indexes": indexes}
+    return {"name": _S7_NAME, "partition_num": 1, "replica_num": 1, "fields": fields, "indexes": indexes}
 
 def _s7_query(filters, limit=10):
-    payload = {"db_name": db_name, "space_name": _STR_STRA_INT_NAME,
+    payload = {"db_name": db_name, "space_name": _S7_NAME,
                "filters": filters, "limit": limit}
     rs = requests.post(router_url + "/document/query",
                        auth=(username, password), json=payload)
@@ -2326,7 +2404,7 @@ def _s7_query(filters, limit=10):
 
 
 def _s7_batch_upsert():
-    vectors, f_str, f_stra, f_int = _generate_s6_data()
+    vectors, f_str, f_stra, f_int = _generate_s7_data()
     docs = []
     for i in range(TOTAL_DOCS):
         docs.append({"_id": str(i), "field_str": str(f_str[i]),
@@ -2335,7 +2413,7 @@ def _s7_batch_upsert():
         if len(docs) >= 100 or i == TOTAL_DOCS - 1:
             url = router_url + "/document/upsert?timeout=120000"
             rs = requests.post(url, auth=(username, password),
-                              json={"db_name": db_name, "space_name": _STR_STRA_INT_NAME,
+                              json={"db_name": db_name, "space_name": _S7_NAME,
                                     "documents": docs})
             assert rs.json()["code"] == 0
             docs = []
@@ -2344,13 +2422,13 @@ def _s7_batch_upsert():
 @pytest.fixture(scope="module")
 def composite_s7_space():
     logger.info("Setting up schema-7 (string+string_array+int) test space...")
-    destroy(router_url, db_name, _STR_STRA_INT_NAME)
+    destroy(router_url, db_name, _S7_NAME)
     create_db(router_url, db_name)
     resp = create_space(router_url, db_name, _build_s7_space_config())
     assert resp.json()["code"] == 0
     _s7_batch_upsert()
     yield
-    destroy(router_url, db_name, _STR_STRA_INT_NAME)
+    destroy(router_url, db_name, _S7_NAME)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -2412,7 +2490,9 @@ class TestStringStringArrayIntWithOtherScalarIndex:
             {"field": "field_stra", "operator": "NOT IN", "value": ["3"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if f_str[i] == "7" and "3" not in f_stra[i]]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_on_str_in_stra(self):
         vectors, f_str, f_stra, f_int = _generate_s7_data()
@@ -2506,7 +2586,9 @@ class TestStringStringArrayIntWithOtherScalarIndex:
             {"field": "field_stra", "operator": "IN", "value": ["3"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if any(t in ["3"] for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_in_on_stra(self):
         vectors, f_str, f_stra, f_int = _generate_s7_data()
@@ -2514,7 +2596,9 @@ class TestStringStringArrayIntWithOtherScalarIndex:
             {"field": "field_stra", "operator": "IN", "value": ["3", "4"]}]}, limit=TOTAL_DOCS)
         expected = [i for i in range(TOTAL_DOCS) if any(t in ["3", "4"] for t in f_stra[i])]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_in_stra_eq_int(self):
         vectors, f_str, f_stra, f_int = _generate_s7_data()
@@ -2535,7 +2619,9 @@ class TestStringStringArrayIntWithOtherScalarIndex:
         expected = [i for i in range(TOTAL_DOCS)
                     if any(t in ["4", "5"] for t in f_stra[i]) and 6 <= f_int[i] <= 60]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_eq_int(self):
         vectors, f_str, f_stra, f_int = _generate_s7_data()
@@ -2713,6 +2799,25 @@ class TestMultiCompositeIndexes:
         doc_ids = sorted(int(d["_id"]) for d in docs)
         assert doc_ids == expected
 
+    def test_eq_A_C(self):
+        """Query A AND C: [A,B] for A (prefix EQUAL), [B,C] for C (SCAN fallback).
+
+        Before SCAN fallback this returned 0 because A could only be served
+        by [A,B] and C only by [B,C] but neither could form a usable prefix
+        for the single field present, so the planner gave up. With SCAN
+        the [B,C] index can iterate and filter C; [A,B] handles A.
+        """
+        vectors, f_a, f_b, f_c, f_d = _generate_s8_data()
+        docs = _s8_query({"operator": "AND", "conditions": [
+            {"field": "field_A", "operator": "=", "value": 300},
+            {"field": "field_C", "operator": "IN", "value": ["0"]}]}, limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS)
+                    if f_a[i] == 300 and f_c[i] == "0"]
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
     def test_eq_A_B_C(self):
         """Query A AND B AND C: merge [A,B] + [B,C] -> both execute, intersection gives result.
 
@@ -2767,7 +2872,9 @@ class TestMultiCompositeIndexes:
         assert doc_ids == expected
 
     def test_range_A_B(self):
-        """Query range on A and B: [A,B] composite handles Range on both fields."""
+        """Range on A and Range on B: composites need SCAN since same field
+        repeats (lower + upper as two filters). Both [A,B] and [B,C] are
+        valid SCAN candidates; their intersection gives the result."""
         vectors, f_a, f_b, f_c, f_d = _generate_s8_data()
         docs = _s8_query({"operator": "AND", "conditions": [
             {"field": "field_A", "operator": ">=", "value": 100},
@@ -2777,10 +2884,14 @@ class TestMultiCompositeIndexes:
         expected = [i for i in range(TOTAL_DOCS)
                     if 100 <= f_a[i] <= 105 and 1000 <= f_b[i] <= 1050]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
 
     def test_range_A_in_B_C(self):
-        """Query range on A, IN on B and C: [A,B] + [B,C] both execute, intersection."""
+        """Range on A, Equal on B, IN on C: [A,B] has duplicate-field A so
+        only SCAN works; [B,C] still uses prefix IN. Together they fully
+        cover A/B/C."""
         vectors, f_a, f_b, f_c, f_d = _generate_s8_data()
         docs = _s8_query({"operator": "AND", "conditions": [
             {"field": "field_A", "operator": ">=", "value": 50},
@@ -2792,4 +2903,595 @@ class TestMultiCompositeIndexes:
                     and f_b[i] == 500
                     and f_c[i] in ["5", "10"]]
         logger.info(f"expected: {expected}")
-        assert len(docs) == 0
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+
+# Schema 9: composite [A,B,C] with scalar indexes on B and C.
+# Tests: ABC uses composite, AC/BC/B/C fall through to scalar indexes.
+_S9_SPACE_NAME = "composite_s9_space"
+_cached_s9 = None
+
+
+def _generate_s9_data():
+    global _cached_s9
+    if _cached_s9 is not None:
+        return _cached_s9
+    rng = np.random.default_rng(seed=99)
+    vectors = rng.random((TOTAL_DOCS, EMBEDDING_DIM), dtype=np.float32)
+    f_a = np.arange(TOTAL_DOCS, dtype=np.int32)
+    f_b = (f_a * 10).astype(np.int32)
+    f_c = np.array([str(x) for x in f_a], dtype=object)
+    _cached_s9 = (vectors, f_a, f_b, f_c)
+    return _cached_s9
+
+
+def _build_s9_space_config():
+    fields = [
+        {"name": "field_A", "type": "integer"},
+        {"name": "field_B", "type": "integer", "index": {"name": "idx_B", "type": "SCALAR"}},
+        {"name": "field_C", "type": "string", "index": {"name": "idx_C", "type": "SCALAR"}},
+        {"name": "field_vector", "type": "vector",
+         "dimension": EMBEDDING_DIM, "store_type": "MemoryOnly",
+         "index": {"name": "gamma", "type": "FLAT", "params": {"metric_type": "L2"}}},
+    ]
+    indexes = [
+        {"name": "idx_composite_ABC", "type": "COMPOSITE",
+         "field_names": ["field_A", "field_B", "field_C"]},
+    ]
+    return {
+        "name": _S9_SPACE_NAME,
+        "partition_num": 1,
+        "replica_num": 1,
+        "fields": fields,
+        "indexes": indexes,
+    }
+
+
+def _s9_query(filters, limit=10):
+    payload = {"db_name": db_name, "space_name": _S9_SPACE_NAME,
+               "filters": filters, "limit": limit}
+    rs = requests.post(router_url + "/document/query",
+                       auth=(username, password), json=payload)
+    assert rs.status_code == 200, f"s9 query failed: {rs.text}"
+    assert rs.json()["code"] == 0, f"s9 query code != 0: {rs.json()}"
+    return rs.json()["data"]["documents"]
+
+
+def _s9_batch_upsert():
+    vectors, f_a, f_b, f_c = _generate_s9_data()
+    docs = []
+    for i in range(TOTAL_DOCS):
+        docs.append({
+            "_id": str(i),
+            "field_A": int(f_a[i]),
+            "field_B": int(f_b[i]),
+            "field_C": str(f_c[i]),
+            "field_vector": vectors[i].tolist(),
+        })
+        if len(docs) >= 100 or i == TOTAL_DOCS - 1:
+            url = router_url + "/document/upsert?timeout=120000"
+            rs = requests.post(url, auth=(username, password),
+                              json={"db_name": db_name, "space_name": _S9_SPACE_NAME,
+                                    "documents": docs})
+            assert rs.json()["code"] == 0
+            docs = []
+
+
+@pytest.fixture(scope="module")
+def composite_s9_space():
+    logger.info("Setting up schema-9 (composite [A,B,C] + scalar on B and C) test space...")
+    destroy(router_url, db_name, _S9_SPACE_NAME)
+    create_db(router_url, db_name)
+    resp = create_space(router_url, db_name, _build_s9_space_config())
+    assert resp.json()["code"] == 0, f"create_space s9 failed: {resp.json()}"
+    _s9_batch_upsert()
+    yield
+    destroy(router_url, db_name, _S9_SPACE_NAME)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _request_s9(composite_s9_space):
+    pass
+
+
+class TestCompositeWithScalarOverlap:
+    """Schema: [A:int, B:int, C:string] with composite [A,B,C] and scalar [B], [C].
+
+    Composite [A,B,C] requires all three fields in order to be usable.
+    Queries that don't provide all three (or a valid prefix) fall back to scalar indexes.
+
+    Test matrix:
+      - ABC: composite [A,B,C] (all 3 fields present)
+      - AC:  composite [A,B,C] for A (partial prefix usage) + scalar [C] for C 
+      - BC:  scalar [B] + scalar [C] (A is missing at start -> composite unusable)
+      - B:   scalar [B]
+      - C:   scalar [C]
+    """
+
+    def test_eq_A_B_C(self):
+        """Query A AND B AND C: composite [A,B,C] handles all three fields."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_A", "operator": "=", "value": 100},
+            {"field": "field_B", "operator": "=", "value": 1000},
+            {"field": "field_C", "operator": "IN", "value": ["100"]}]}, limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS)
+                    if f_a[i] == 100 and f_b[i] == 1000 and f_c[i] == "100"]
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    def test_eq_A_C(self):
+        """Query A AND C: composite [A,B,C] for A (partial prefix), scalar [C] for C.
+        The composite index contributes only the A filter (first field of its prefix);
+        C is not covered by the composite so it falls back to the scalar index."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_A", "operator": "=", "value": 200},
+            {"field": "field_C", "operator": "IN", "value": ["200"]}]}, limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS)
+                    if f_a[i] == 200 and f_c[i] == "200"]
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    def test_eq_B_C(self):
+        """Query B AND C: A is missing (required at start of composite), composite skipped.
+        Falls back to scalar [B] AND scalar [C]."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_B", "operator": "=", "value": 500},
+            {"field": "field_C", "operator": "IN", "value": ["50"]}]}, limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS)
+                    if f_b[i] == 500 and f_c[i] == "50"]
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    def test_eq_C_B(self):
+        """Query B AND C: A is missing (required at start of composite), composite skipped.
+        Falls back to scalar [B] AND scalar [C]."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_C", "operator": "IN", "value": ["50"]},
+            {"field": "field_B", "operator": "=", "value": 500}]}, limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS)
+                    if f_c[i] == "50" and f_b[i] == 500]
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    def test_eq_B(self):
+        """Query B alone: scalar [B] used."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_B", "operator": "=", "value": 500}]}, limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS) if f_b[i] == 500]
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    def test_eq_C(self):
+        """Query C alone: scalar [C] used."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_C", "operator": "IN", "value": ["50"]}]}, limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS) if f_c[i] == "50"]
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+
+class TestCompositeOrSemantics:
+    """Schema-9 OR queries against composite [A,B,C] with scalar on B and C.
+
+    These tests assert the *correct* OR semantics. With the current code
+    (scalar_index_manager.cc has_composite_filter && Or -> return -1),
+    OR queries touching any composite field return empty for pure
+    /document/query and lose filtering for vector search. After SCAN
+    fallback is implemented, these should pass.
+
+    Each test logs the expected docid set so the failure message tells
+    you exactly what's missing.
+    """
+
+    def test_or_A_B(self):
+        """A=100 OR B=5000. A has only composite; B has scalar.
+        Expected union: docids where f_a==100 or f_b==5000."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "OR", "conditions": [
+            {"field": "field_A", "operator": "=", "value": 100},
+            {"field": "field_B", "operator": "=", "value": 5000}]}, limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if f_a[i] == 100 or f_b[i] == 5000})
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    def test_or_A_C(self):
+        """A=200 OR C IN ['200']. A only in composite; C has scalar.
+        With Bug 2 the response is currently empty."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "OR", "conditions": [
+            {"field": "field_A", "operator": "=", "value": 200},
+            {"field": "field_C", "operator": "IN", "value": ["200"]}]}, limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if f_a[i] == 200 or f_c[i] == "200"})
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    def test_or_B_C(self):
+        """B=500 OR C IN ['50']. Neither references A, so composite is
+        skipped from candidate selection. Currently passes because no
+        composite filter is produced; included as a control."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "OR", "conditions": [
+            {"field": "field_B", "operator": "=", "value": 500},
+            {"field": "field_C", "operator": "IN", "value": ["50"]}]}, limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if f_b[i] == 500 or f_c[i] == "50"})
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    def test_or_A_only_two_vals(self):
+        """A=100 OR A=200. Both filters target the same composite-only
+        field; CanUseCompositeFilter rejects duplicates (line 449),
+        and A has no scalar fallback. Currently empty."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "OR", "conditions": [
+            {"field": "field_A", "operator": "=", "value": 100},
+            {"field": "field_A", "operator": "=", "value": 200}]}, limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if f_a[i] == 100 or f_a[i] == 200})
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    def test_or_A_B_C(self):
+        """A=100 OR B=2000 OR C IN ['300']. Mixed composite-only + scalar
+        fields under OR; currently returns empty."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "OR", "conditions": [
+            {"field": "field_A", "operator": "=", "value": 100},
+            {"field": "field_B", "operator": "=", "value": 2000},
+            {"field": "field_C", "operator": "IN", "value": ["300"]}]}, limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if f_a[i] == 100 or f_b[i] == 2000 or f_c[i] == "300"})
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    def test_or_A_range(self):
+        """A>=100 AND A<=102 expressed as range -- single filter, but A
+        only sits in composite. Sanity check that single-filter OR-equiv
+        path also works. Currently the single-filter shortcut in
+        ScalarIndexManager::Query bypasses OrganizeFiltersToIndex
+        (line 674) so this may actually pass today; control case."""
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "OR", "conditions": [
+            {"field": "field_A", "operator": ">=", "value": 100},
+            {"field": "field_A", "operator": "<=", "value": 102}]}, limit=TOTAL_DOCS)
+        # OR semantics: A>=100 OR A<=102 covers ALL docs (since every int
+        # satisfies one side); this primarily tests that the path doesn't
+        # crash or silently return empty.
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if f_a[i] >= 100 or f_a[i] <= 102})
+        logger.info(f"expected count: {len(expected)}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+
+
+class TestCompositeScanRegressions:
+    """Targeted regression tests for the composite SCAN fallback.
+
+    These exercise paths that the existing schema-specific tests don't
+    cover cleanly:
+      * STRINGARRAY NOT IN aggregation (per-docid value set, not per-key)
+      * Single-filter non-prefix query routed through Query -> Search
+      * AND with composite SCAN combined with a scalar index hit
+      * SCAN with offset/limit truncation
+      * Range with exclusive bounds (>, <)
+      * OR SCAN with NOT IN on a composite-only field
+      * Same field appearing in >=3 OR filters
+      * Filter that matches zero documents
+    """
+
+    # ---- 1. STRINGARRAY NOT IN aggregation regression -------------------
+    # Schema 5: [int, str, stra]; f_stra[i] = [str(i%6), str((i+1)%6)].
+    # A doc with stra containing "0" must be excluded by NOT IN ["0"],
+    # regardless of whether the array also contains other values that
+    # individually wouldn't match. Pre-fix, the "1"/"5" key entry for a
+    # doc with stra=["0","1"] would slip through.
+    def test_stringarray_not_in_excludes_all_occurrences(self):
+        vectors, f_int, f_str, f_stra = _generate_s5_data()
+        docs = _s5_query({"operator": "AND", "conditions": [
+            {"field": "field_stra", "operator": "NOT IN", "value": ["0"]}]},
+            limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS) if "0" not in f_stra[i]]
+        logger.info(f"expected count: {len(expected)}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # ---- 2. Single-filter non-prefix field via Query fast-path fallback --
+    # Pre-fix, Query's single-filter fast path returned 0 whenever the
+    # field had no scalar index and was not the first column of a
+    # composite. After the fix it falls through to Search/SCAN. Test the
+    # two paths separately:
+    #   (a) NotEqual on A: A is first column, fast path takes it
+    #       directly via CompositeIndex's inherited NotEqual.
+    #   (b) Eq on B: B is middle of composite [A,B,C] and also has a
+    #       scalar index, so the fast path resolves via scalar. This
+    #       confirms the rebuilt branching still picks an index.
+    def test_single_not_equal_composite_only_field(self):
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_A", "operator": "!=", "value": 100}]},
+            limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS) if f_a[i] != 100]
+        logger.info(f"expected count: {len(expected)}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # B is middle field of composite [A,B,C]; using only B forces SCAN
+    # because B alone is not a valid prefix. B also has a scalar index,
+    # so the planner could pick either. Asserting correctness regardless.
+    def test_single_filter_middle_field(self):
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_B", "operator": "=", "value": 5000}]},
+            limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS) if f_b[i] == 5000]
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # Single filter on a non-prefix composite-only field. Schema 5
+    # composite is [field_int, field_str, field_stra] with NO scalar
+    # indexes. A single filter on field_str hits the exact path that was
+    # previously returning 0: GetFieldIndex returns null, the composite
+    # exists but field_str is not its first column so
+    # GetCompositeIndexByFieldId also returns null. The fix falls through
+    # to Search, which routes via composite SCAN.
+    def test_single_filter_non_prefix_composite_only(self):
+        vectors, f_int, f_str, f_stra = _generate_s5_data()
+        docs = _s5_query({"operator": "AND", "conditions": [
+            {"field": "field_str", "operator": "IN", "value": ["3"]}]},
+            limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS) if f_str[i] == "3"]
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # ---- 3. AND: composite SCAN + scalar index in same query -----------
+    # A only in composite; C has scalar index. A=x AND C=y forces A
+    # through composite SCAN and C through scalar. Verify Intersection
+    # combines them.
+    def test_and_composite_scan_with_scalar(self):
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_A", "operator": "=", "value": 250},
+            {"field": "field_C", "operator": "IN", "value": ["250"]}]},
+            limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS)
+                    if f_a[i] == 250 and f_c[i] == "250"]
+        logger.info(f"expected: {expected}")
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # ---- 4. SCAN with limit truncation ---------------------------------
+    # field_B alone forces SCAN on [A,B,C] composite. Range matches many
+    # docs; limit clamps the response. Verify count == limit and ids are
+    # a subset of the expected set.
+    def test_scan_limit_truncates(self):
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        limit = 5
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_B", "operator": ">=", "value": 0},
+            {"field": "field_B", "operator": "<=", "value": 1000}]},
+            limit=limit)
+        expected_set = {i for i in range(TOTAL_DOCS) if 0 <= f_b[i] <= 1000}
+        assert len(docs) <= limit
+        doc_ids = {int(d["_id"]) for d in docs}
+        assert doc_ids.issubset(expected_set)
+
+    # ---- 5. Range with exclusive bounds via SCAN -----------------------
+    # B is middle field; > and < force SCAN. Verify AdjustDataTypeBoundary
+    # produces the exclusive bound correctly through the SCAN path.
+    def test_scan_range_exclusive_bounds(self):
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_B", "operator": ">", "value": 1000},
+            {"field": "field_B", "operator": "<", "value": 1050}]},
+            limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS)
+                    if f_b[i] > 1000 and f_b[i] < 1050]
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # Boundary case: exclusive bounds where raw data values fall on the
+    # adjusted bound (lower+1, upper-1). f_b is step-10, so `> 999`
+    # adjusts the lower bound to 1000 and raw=1000 exists. A double
+    # adjustment in PrepareFilters would drop f_b == 1000.
+    def test_scan_range_exclusive_boundary_value(self):
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_B", "operator": ">", "value": 999},
+            {"field": "field_B", "operator": "<=", "value": 1010}]},
+            limit=TOTAL_DOCS)
+        expected = [i for i in range(TOTAL_DOCS)
+                    if f_b[i] > 999 and f_b[i] <= 1010]
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # ---- 6. OR SCAN with NOT IN on composite-only string field ---------
+    # Use schema 7 (StringStringArrayIntWithOtherScalarIndex). Composite
+    # is [field_str, field_stra, field_int]; field_int additionally has a
+    # scalar index. NOT IN on field_str (composite-only at the prefix
+    # position, but combined with OR forces SCAN bucketing) OR'd with a
+    # scalar-backed equality on field_int.
+    def test_or_not_in_composite_string_with_scalar(self):
+        vectors, f_str, f_stra, f_int = _generate_s7_data()
+        docs = _s7_query({"operator": "OR", "conditions": [
+            {"field": "field_str", "operator": "NOT IN", "value": ["0"]},
+            {"field": "field_int", "operator": "=", "value": 100}]},
+            limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if f_str[i] not in ["0"] or f_int[i] == 100})
+        logger.info(f"expected count: {len(expected)}")
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # ---- 7. Three OR filters on the same field via composite SCAN ------
+    # A has no scalar index; three Eq filters on A are bucketed into one
+    # SCAN with inner_op=Or. Verify all three values are reachable.
+    def test_or_three_values_same_composite_field(self):
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "OR", "conditions": [
+            {"field": "field_A", "operator": "=", "value": 100},
+            {"field": "field_A", "operator": "=", "value": 200},
+            {"field": "field_A", "operator": "=", "value": 300}]},
+            limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if f_a[i] in (100, 200, 300)})
+        assert len(docs) == len(expected)
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # ---- 8. SCAN that matches zero documents ---------------------------
+    # B has values 0..9990 step 10. Range entirely outside that produces
+    # an empty result via SCAN; verify no crash and empty response.
+    def test_scan_empty_result(self):
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_B", "operator": ">=", "value": 10_000_000},
+            {"field": "field_B", "operator": "<=", "value": 10_000_100}]},
+            limit=TOTAL_DOCS)
+        assert docs == []
+
+    # ---- 9. AND SCAN with Equal-prefix on A + NotEqual on B ------------
+    # Exercises the seek-prefix optimization: A = single value pins the
+    # leading composite column, while B != v cannot contribute to the
+    # prefix (Not predicates break the prefix chain). The iterator should
+    # seek directly to the A=v segment and stop when the prefix no longer
+    # matches, applying the NotEqual filter to B inline. NOT IN is not
+    # supported on numeric fields at the API layer, so NotEqual is the
+    # right surrogate for "negative numeric filter past the prefix".
+    def test_scan_eq_prefix_a_with_not_eq_b(self):
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        a_val = 250
+        b_excluded = int(f_b[a_val])  # one specific B value to exclude
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_A", "operator": "=", "value": a_val},
+            {"field": "field_B", "operator": "!=", "value": b_excluded}]},
+            limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if f_a[i] == a_val and int(f_b[i]) != b_excluded})
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # ---- 10. AND SCAN: Equal A + Range B (numeric range sub-scan) ------
+    # A pins the leading column; B has a numeric Range. The optimizer
+    # should produce a single segment seeking to A=v|B>=lo and
+    # short-circuit the segment when the iterator advances past B>hi.
+    # We can only assert correctness from the API surface, not the
+    # internal scanned counter, so we verify result equivalence.
+    def test_scan_eq_prefix_a_range_b(self):
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        a_val = 300
+        b_lo, b_hi = 1000, 5000
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_A", "operator": "=", "value": a_val},
+            {"field": "field_B", "operator": ">=", "value": b_lo},
+            {"field": "field_B", "operator": "<=", "value": b_hi}]},
+            limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if f_a[i] == a_val
+                           and b_lo <= f_b[i] <= b_hi})
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # ---- 11. AND SCAN: STRINGARRAY at prefix position, single-value IN -
+    # Composite s4 is [field_stra, field_int, field_float]. The leading
+    # STRINGARRAY column is now allowed into the seek prefix when the
+    # filter is positive single-value (IN with one item) AND that field
+    # has no other filter in the query. Pair it with a Range on field_int
+    # to also exercise the per-entry suffix evaluation.
+    def test_scan_stra_prefix_single_value_in(self):
+        vectors, f_int, f_stra, f_float = _generate_s4_data()
+        stra_target = "3"
+        int_lo, int_hi = 100, 400
+        docs = _s4_query({"operator": "AND", "conditions": [
+            {"field": "field_stra", "operator": "IN", "value": [stra_target]},
+            {"field": "field_int", "operator": ">=", "value": int_lo},
+            {"field": "field_int", "operator": "<=", "value": int_hi}]},
+            limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if stra_target in f_stra[i]
+                           and int_lo <= int(f_int[i]) <= int_hi})
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # ---- 12. AND SCAN: STRINGARRAY at prefix position, IN + NOT IN -----
+    # Regression: when the leading STRINGARRAY field has BOTH a positive
+    # IN filter and a NOT IN filter in the same query, the prefix
+    # optimizer must NOT cut the iteration to the IN segment, because the
+    # per-docid aggregated view of array values would then miss elements
+    # that live in other segments and the NOT IN judgement would flip
+    # incorrectly. Verify the result matches brute-force expectation.
+    def test_scan_stra_in_and_not_in_same_field(self):
+        vectors, f_int, f_stra, f_float = _generate_s4_data()
+        included = "3"
+        excluded = "5"
+        docs = _s4_query({"operator": "AND", "conditions": [
+            {"field": "field_stra", "operator": "IN", "value": [included]},
+            {"field": "field_stra", "operator": "NOT IN", "value": [excluded]}]},
+            limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if included in f_stra[i]
+                           and excluded not in f_stra[i]})
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected
+
+    # ---- 13. AND SCAN: Equal A + IN C (string IN multi-segment) --------
+    # Same shape as the numeric IN test but on the trailing string column,
+    # so the multi-segment expansion has to encode each item via the
+    # sortable length-prefixed string format.
+    def test_scan_eq_prefix_a_in_c_strings(self):
+        vectors, f_a, f_b, f_c = _generate_s9_data()
+        a_val = 500
+        c_vals = [f_c[i] for i in range(TOTAL_DOCS)
+                  if f_a[i] == a_val][:1]
+        c_vals = list({*c_vals, f_c[a_val + 1], f_c[a_val + 2]})
+        docs = _s9_query({"operator": "AND", "conditions": [
+            {"field": "field_A", "operator": "=", "value": a_val},
+            {"field": "field_C", "operator": "IN", "value": c_vals}]},
+            limit=TOTAL_DOCS)
+        expected = sorted({i for i in range(TOTAL_DOCS)
+                           if f_a[i] == a_val and f_c[i] in c_vals})
+        assert len(docs) == len(expected), f"got {len(docs)}, expected {len(expected)}"
+        doc_ids = sorted(int(d["_id"]) for d in docs)
+        assert doc_ids == expected

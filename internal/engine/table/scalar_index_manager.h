@@ -24,56 +24,17 @@ namespace vearch {
 
 enum class ResultStatus : int64_t { ZERO = 0, INTERNAL_ERR = -1, KILLED = -2 };
 
-typedef struct {
-  int field;
-  std::string lower_value;
-  std::string upper_value;
-  bool include_lower;
-  bool include_upper;
-  FilterOperator is_union;
-
-  std::string ToString(enum DataType data_type) const {
-    std::stringstream ss;
-    ss << "field=" << field << ", include_lower=" << include_lower << ", include_upper=" << include_upper
-       << ", is_union=" << (is_union == FilterOperator::And ? "And" : is_union == FilterOperator::Or ? "Or" : "Not")
-       << ", data_type=" << DataTypeToString(data_type);
-    if (data_type == DataType::STRING || data_type == DataType::STRINGARRAY) {
-      ss << ", lower_value=" << lower_value << ", upper_value=" << upper_value;
-    } else if (data_type == DataType::INT) {
-      int lower_value_int;
-      memcpy(&lower_value_int, lower_value.c_str(), sizeof(int));
-      int upper_value_int;
-      memcpy(&upper_value_int, upper_value.c_str(), sizeof(int));
-      ss << ", lower_value=" << lower_value_int << ", upper_value=" << upper_value_int;
-    } else if (data_type == DataType::LONG || data_type == DataType::DATE) {
-      long lower_value_long;
-      memcpy(&lower_value_long, lower_value.c_str(), sizeof(long));
-      long upper_value_long;
-      memcpy(&upper_value_long, upper_value.c_str(), sizeof(long));
-      ss << ", lower_value=" << lower_value_long << ", upper_value=" << upper_value_long;
-    } else if (data_type == DataType::FLOAT) {
-      float lower_value_float;
-      memcpy(&lower_value_float, lower_value.c_str(), sizeof(float));
-      float upper_value_float;
-      memcpy(&upper_value_float, upper_value.c_str(), sizeof(float));
-      ss << ", lower_value=" << lower_value_float << ", upper_value=" << upper_value_float;
-    } else if (data_type == DataType::DOUBLE) {
-      double lower_value_double;
-      memcpy(&lower_value_double, lower_value.c_str(), sizeof(double));
-      double upper_value_double;
-      memcpy(&upper_value_double, upper_value.c_str(), sizeof(double));
-      ss << ", lower_value=" << lower_value_double << ", upper_value=" << upper_value_double;
-    }
-    return ss.str();
-  }
-} FilterInfo;
-
 struct FilterIndexPair {
   ScalarIndex* index;
   CompositeIndex* composite_index;
   std::vector<FilterInfo> filters;
   bool is_composite;
   CompositeStrategy strategy;
+  // For SCAN strategy only: how filters inside this bucket combine.
+  // AND -> entry must satisfy every filter to be emitted.
+  // OR  -> entry emitted if any filter matches.
+  // Ignored when strategy != SCAN.
+  FilterOperator inner_op = FilterOperator::And;
 };
 
 // ============================================================================
@@ -157,6 +118,12 @@ class ScalarIndexManager {
   // Check if a field belongs to any composite index and update them.
   int UpdateCompositeIndexes(int64_t docid, int field_id, bool is_add);
 
+  // OR-branch dispatch for OrganizeFiltersToIndex. Builds per-filter pairs:
+  // scalar where available, else SCAN-bucket on a composite that owns the
+  // field. Returns -1 when any field has no index that can serve it.
+  int OrganizeFiltersForOr(const std::vector<FilterInfo>& filters,
+                           std::vector<FilterIndexPair>& filter_index_pairs);
+
   /**
    * Execute EQUAL strategy: all composite fields have single-value filters (Eq mode).
    * Uses composite->Equal() for a single RocksDB seek.
@@ -194,6 +161,15 @@ class ScalarIndexManager {
   void ExecuteNotEqualCase(CompositeIndex* composite_idx,
                            const FilterInfo& filter,
                            ScalarIndexResult& result);
+
+  /**
+   * Execute SCAN strategy: full-iteration fallback when filters cannot form
+   * a valid composite key prefix. Delegates to CompositeIndex::Scan.
+   */
+  void ExecuteScanCase(CompositeIndex* composite_idx,
+                       const std::vector<FilterInfo>& match_filters,
+                       FilterOperator inner_op,
+                       ScalarIndexResult& result);
 
  public:
   Table *table_;

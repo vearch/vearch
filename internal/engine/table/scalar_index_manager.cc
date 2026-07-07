@@ -303,7 +303,7 @@ int ScalarIndexManager::Filter(ScalarIndex* scalar_idx, const FilterInfo &filter
       return 0;
     }
     if (filter.lower_value == filter.upper_value) {
-      if (filter.is_union == FilterOperator::Not) {
+      if (filter.filter_operator == FilterOperator::Not) {
         result = scalar_idx->NotEqual(filter.lower_value, offset, limit);
       } else {
         result = scalar_idx->Equal(filter.lower_value, offset, limit);
@@ -335,7 +335,7 @@ int ScalarIndexManager::Filter(ScalarIndex* scalar_idx, const FilterInfo &filter
     }
     std::vector<std::string> items;
     items = utils::split(filter.lower_value, kStringArrayValueDelimiter);
-    if (filter.is_union == FilterOperator::Not) {
+    if (filter.filter_operator == FilterOperator::Not) {
       result = scalar_idx->NotIn(items, offset, limit);
     } else {
       result = scalar_idx->In(items, offset, limit);
@@ -367,7 +367,7 @@ static ScalarIndex* GetCompositeIndexByFieldId(int field_id, const std::map<std:
 // Determine the filter mode for composite index matching.
 // Supports:
 //   - Equal (=): lower_value == upper_value, both inclusive
-//   - In (IN): for STRING/STRINGARRAY fields, is_union==Or with lower_value containing values
+//   - In (IN): for STRING/STRINGARRAY fields, filter_operator==Or with lower_value containing values
 //   - Range (>=, <=, >, <): for numeric fields (INT, LONG, FLOAT, DOUBLE, DATE)
 static bool GetFilterMode(const FilterInfo& filter, Table* table, CompositeFilterMode& out_mode) {
   DataType dtype;
@@ -379,26 +379,26 @@ static bool GetFilterMode(const FilterInfo& filter, Table* table, CompositeFilte
 
   // STRING/STRINGARRAY: IN or NotIn query mode
   if (dtype == DataType::STRING || dtype == DataType::STRINGARRAY) {
-    // IN query: is_union == Or, lower_value contains the values
-    if (filter.is_union == FilterOperator::Or && !filter.lower_value.empty()) {
+    // IN query: filter_operator == Or, lower_value contains the values
+    if (filter.filter_operator == FilterOperator::Or && !filter.lower_value.empty()) {
       out_mode = CompositeFilterMode::In;
       return true;
     }
-    // NotIn query: is_union == Not, lower_value contains the excluded values
-    if (filter.is_union == FilterOperator::Not && !filter.lower_value.empty()) {
+    // NotIn query: filter_operator == Not, lower_value contains the excluded values
+    if (filter.filter_operator == FilterOperator::Not && !filter.lower_value.empty()) {
       out_mode = CompositeFilterMode::NotIn;
       return true;
     }
     // Not supported for STRING
-    LOG(WARNING) << "GetFilterMode: unsupported STRING filter mode, is_union="
-                 << static_cast<int>(filter.is_union)
+    LOG(WARNING) << "GetFilterMode: unsupported STRING filter mode, filter_operator="
+                 << static_cast<int>(filter.filter_operator)
                  << ", lower_value.empty=" << filter.lower_value.empty();
     return false;
   }
 
   // Numeric fields
-  // NotEqual: single-value Not query (lower_value == upper_value, both inclusive, is_union == Not)
-  if (filter.is_union == FilterOperator::Not &&
+  // NotEqual: single-value Not query (lower_value == upper_value, both inclusive, filter_operator == Not)
+  if (filter.filter_operator == FilterOperator::Not &&
       filter.lower_value == filter.upper_value &&
       filter.include_lower && filter.include_upper) {
     out_mode = CompositeFilterMode::NotEqual;
@@ -406,7 +406,7 @@ static bool GetFilterMode(const FilterInfo& filter, Table* table, CompositeFilte
   }
   bool is_range = (filter.lower_value != filter.upper_value) ||
                   !filter.include_lower || !filter.include_upper ||
-                  filter.is_union == FilterOperator::Not;
+                  filter.filter_operator == FilterOperator::Not;
   if (is_range) {
     out_mode = CompositeFilterMode::Range;
     return true;
@@ -434,6 +434,11 @@ int ScalarIndexManager::CompositeFilter(CompositeIndex* composite_idx, const std
     case CompositeStrategy::NOT_EQUAL:
       ExecuteNotEqualCase(composite_idx, filters[0], result);
       break;
+    case CompositeStrategy::SCAN:
+      // Default to AND. OR-bucket SCANs go through ExecuteScanCase
+      // directly from the Search loop.
+      ExecuteScanCase(composite_idx, filters, FilterOperator::And, result);
+      break;
     default:
       LOG(WARNING) << "Unknown composite strategy, skipping";
   }
@@ -444,7 +449,11 @@ bool CanUseCompositeFilter(CompositeIndex* composite, Table* table,
   const std::vector<FilterInfo>& filters, CompositeStrategy& strategy) {
   std::vector<int> field_ids;
   std::vector<CompositeFilterMode> modes;
+  std::set<int> seen;
   for (const auto& filter : filters) {
+    if (!seen.insert(filter.field).second) {
+      return false;
+    }
     field_ids.push_back(filter.field);
     CompositeFilterMode mode;
     if (!GetFilterMode(filter, table, mode)) {
@@ -456,6 +465,162 @@ bool CanUseCompositeFilter(CompositeIndex* composite, Table* table,
   return composite->CanUseFilterMode(field_ids, modes, strategy);
 }
 
+namespace {
+
+// Plan chosen for a single composite index in the AND branch.
+struct ChosenPlan {
+  std::vector<FilterInfo> filters;
+  CompositeStrategy strategy;
+};
+
+// Build per-composite filter views for the AND branch:
+//   prefix_out: continuous prefix from the composite's fid order, used by the
+//     legacy EQUAL / RANGE / IN strategies (requires CanUseCompositeFilter).
+//   all_out:   every query filter whose field belongs to this composite,
+//     regardless of order or duplicates; used as the SCAN fallback input.
+static void BuildCompositeViews(
+    const std::vector<FilterInfo>& filters,
+    const std::map<std::string, std::shared_ptr<CompositeIndex>>& composite_indexes,
+    std::map<CompositeIndex*, std::vector<FilterInfo>>& prefix_out,
+    std::map<CompositeIndex*, std::vector<FilterInfo>>& all_out) {
+  for (auto& composite_index : composite_indexes) {
+    CompositeIndex* idx = composite_index.second.get();
+    const std::vector<int>& idx_fields = idx->GetFieldIds();
+
+    std::vector<FilterInfo> prefix_filters;
+    for (size_t i = 0; i < idx_fields.size(); ++i) {
+      int cf = idx_fields[i];
+      std::vector<FilterInfo> field_filters;
+      for (size_t j = 0; j < filters.size(); ++j) {
+        if (filters[j].field == cf) {
+          field_filters.push_back(filters[j]);
+        }
+      }
+      if (field_filters.empty()) {
+        break;
+      }
+      prefix_filters.insert(prefix_filters.end(), field_filters.begin(), field_filters.end());
+    }
+    if (!prefix_filters.empty()) {
+      prefix_out[idx] = std::move(prefix_filters);
+    }
+
+    std::vector<FilterInfo> all_filters;
+    for (const auto& f : filters) {
+      if (idx->IsIndexField(f.field)) {
+        all_filters.push_back(f);
+      }
+    }
+    if (!all_filters.empty()) {
+      all_out[idx] = std::move(all_filters);
+    }
+  }
+}
+
+// For each composite index that owns some query field, pick a plan: prefix
+// strategy when it covers every candidate field, else SCAN over all candidate
+// filters. Composites that cannot serve either path are skipped.
+static void ChoosePerCompositeStrategy(
+    const std::map<CompositeIndex*, std::vector<FilterInfo>>& prefix_filters_for_idx,
+    const std::map<CompositeIndex*, std::vector<FilterInfo>>& all_filters_for_idx,
+    Table* table,
+    std::map<CompositeIndex*, ChosenPlan>& chosen) {
+  for (const auto& kv : all_filters_for_idx) {
+    CompositeIndex* idx = kv.first;
+    const std::vector<FilterInfo>& all_f = kv.second;
+
+    std::set<int> all_fields;
+    for (const auto& f : all_f) all_fields.insert(f.field);
+
+    auto pf_it = prefix_filters_for_idx.find(idx);
+    if (pf_it != prefix_filters_for_idx.end()) {
+      CompositeStrategy strategy = CompositeStrategy::NONE;
+      std::set<int> prefix_fields;
+      for (const auto& f : pf_it->second) prefix_fields.insert(f.field);
+
+      bool prefix_covers_all = (prefix_fields == all_fields);
+      if (prefix_covers_all &&
+          CanUseCompositeFilter(idx, table, pf_it->second, strategy)) {
+        chosen[idx] = {pf_it->second, strategy};
+        continue;
+      }
+    }
+
+    // Fallback to SCAN.
+    std::vector<int> qf_ids;
+    std::vector<CompositeFilterMode> modes;
+    bool ok = true;
+    for (const auto& f : all_f) {
+      CompositeFilterMode m;
+      if (!GetFilterMode(f, table, m)) { ok = false; break; }
+      qf_ids.push_back(f.field);
+      modes.push_back(m);
+    }
+    if (ok && idx->CanUseScan(qf_ids, modes)) {
+      chosen[idx] = {all_f, CompositeStrategy::SCAN};
+    }
+  }
+}
+
+}  // namespace
+
+// OR branch: prefix strategies can't be combined safely across filter buckets
+// when some bucket would Union with a *partial* result. Build per-filter pairs:
+// scalar where available, else SCAN-bucket on a composite that owns the field.
+// Fail when a field has no index at all.
+int ScalarIndexManager::OrganizeFiltersForOr(
+    const std::vector<FilterInfo>& filters,
+    std::vector<FilterIndexPair>& filter_index_pairs) {
+  std::map<CompositeIndex*, std::vector<FilterInfo>> or_scan_buckets;
+  for (const auto& f : filters) {
+    if (auto sidx = GetFieldIndex(f.field)) {
+      FilterIndexPair pair;
+      pair.index = sidx;
+      pair.filters = {f};
+      pair.is_composite = false;
+      filter_index_pairs.push_back(std::move(pair));
+      continue;
+    }
+    // No scalar index: find a composite that owns this field.
+    CompositeIndex* host = nullptr;
+    for (auto& kv : composite_indexes_) {
+      if (kv.second->IsIndexField(f.field)) {
+        host = kv.second.get();
+        break;
+      }
+    }
+    if (host == nullptr) {
+      // Field has no index at all -> OR cannot be satisfied via indexes.
+      return -1;
+    }
+    or_scan_buckets[host].push_back(f);
+  }
+  for (auto& kv : or_scan_buckets) {
+    // Verify SCAN is applicable for this bucket.
+    std::vector<int> field_ids;
+    std::vector<CompositeFilterMode> modes;
+    bool ok = true;
+    for (const auto& f : kv.second) {
+      CompositeFilterMode m;
+      if (!GetFilterMode(f, table_, m)) { ok = false; break; }
+      field_ids.push_back(f.field);
+      modes.push_back(m);
+    }
+    if (!ok || !kv.first->CanUseScan(field_ids, modes)) {
+      return -1;
+    }
+    FilterIndexPair pair;
+    pair.composite_index = kv.first;
+    pair.is_composite = true;
+    pair.filters = std::move(kv.second);
+    pair.strategy = CompositeStrategy::SCAN;
+    pair.inner_op = FilterOperator::Or;
+    filter_index_pairs.push_back(std::move(pair));
+  }
+  if (filter_index_pairs.empty()) return -1;
+  return 0;
+}
+
 int ScalarIndexManager::OrganizeFiltersToIndex(
   const std::vector<FilterInfo>& filters,
   std::vector<FilterIndexPair>& filter_index_pairs,
@@ -463,97 +628,64 @@ int ScalarIndexManager::OrganizeFiltersToIndex(
   if (filters.empty()) {
     return 0;
   }
-  std::vector<int> field_ids;
   std::set<int> wanted_execute_fields;
-  std::map<CompositeIndex*, std::vector<FilterInfo>> composite_filters;
   for (const auto& filter : filters) {
-    field_ids.push_back(filter.field);
     wanted_execute_fields.insert(filter.field);
   }
-  for (auto composite_index : composite_indexes_) {
-    for (size_t i = 0; i < field_ids.size(); i++) {
-      int field_id = field_ids[i];
-      if (composite_index.second->IsIndexField(field_id)) {
-        if (composite_filters.find(composite_index.second.get()) == composite_filters.end()) {
-          composite_filters[composite_index.second.get()] = std::vector<FilterInfo>();
-          composite_filters[composite_index.second.get()].push_back(filters[i]);
-        } else {
-          composite_filters[composite_index.second.get()].push_back(filters[i]);
-        }
-      }
-    }
-  }
-  // Sort filters according to CompositeIndex field order (not user query order).
-  for (auto& kv : composite_filters) {
-    CompositeIndex* idx = kv.first;
-    std::vector<int> idx_field_order = idx->GetFieldIds();
-    std::map<int, std::vector<FilterInfo>> field_to_filters;
-    for (const auto& f : kv.second) {
-      field_to_filters[f.field].push_back(f);
-    }
-    kv.second.clear();
-    for (int fid : idx_field_order) {
-      auto it = field_to_filters.find(fid);
-      if (it != field_to_filters.end()) {
-        for (const auto& f : it->second) {
-          kv.second.push_back(f);
-        }
-      }
-    }
-  }
-  std::map<CompositeIndex*, std::vector<FilterInfo>> usable_composite;
-  std::map<CompositeIndex*, CompositeStrategy> strategies;
-  std::set<int> composite_covered_fields;
-  for (const auto& kv : composite_filters) {
-    CompositeStrategy strategy = CompositeStrategy::NONE;
-    if (CanUseCompositeFilter(kv.first, table_, kv.second, strategy)) {
-      usable_composite[kv.first] = kv.second;
-      strategies[kv.first] = strategy;
-      for (const auto& f : kv.second) {
-        composite_covered_fields.insert(f.field);
-      }
-    }
+
+  if (query_filter_operator == FilterOperator::Or) {
+    return OrganizeFiltersForOr(filters, filter_index_pairs);
   }
 
-  std::vector<std::pair<CompositeIndex*, std::vector<FilterInfo>>> sorted_composite;
-  for (const auto& kv : usable_composite) {
-    sorted_composite.push_back(kv);
-  }
+  // ----- AND branch -----
+  std::map<CompositeIndex*, std::vector<FilterInfo>> prefix_filters_for_idx;
+  std::map<CompositeIndex*, std::vector<FilterInfo>> all_filters_for_idx;
+  BuildCompositeViews(filters, composite_indexes_,
+                      prefix_filters_for_idx, all_filters_for_idx);
+
+  std::map<CompositeIndex*, ChosenPlan> chosen;
+  ChoosePerCompositeStrategy(prefix_filters_for_idx, all_filters_for_idx,
+                             table_, chosen);
+
+  // Order: prefix strategies first, then SCANs. Within each group prefer
+  // composites covering more fields, so we don't double-scan the same field.
+  std::vector<std::pair<CompositeIndex*, ChosenPlan>> sorted_composite(
+      chosen.begin(), chosen.end());
   std::sort(sorted_composite.begin(), sorted_composite.end(),
       [](const auto& a, const auto& b) {
+        bool a_scan = a.second.strategy == CompositeStrategy::SCAN;
+        bool b_scan = b.second.strategy == CompositeStrategy::SCAN;
+        if (a_scan != b_scan) return !a_scan;  // prefix first
         return a.first->NumFields() > b.first->NumFields();
       });
 
   std::set<int> covered_fields;
-  bool has_composite_filter = false;
   for (const auto& kv : sorted_composite) {
     bool already_covered = true;
-    for (int fid : kv.first->GetFieldIds()) {
-      if (covered_fields.find(fid) == covered_fields.end()) {
+    for (const auto& f : kv.second.filters) {
+      if (covered_fields.find(f.field) == covered_fields.end()) {
         already_covered = false;
         break;
       }
     }
     if (already_covered) continue;
 
-    for (int fid : kv.first->GetFieldIds()) {
-      covered_fields.insert(fid);
-      composite_covered_fields.insert(fid);
+    for (const auto& f : kv.second.filters) {
+      covered_fields.insert(f.field);
     }
 
     FilterIndexPair pair;
     pair.composite_index = kv.first;
     pair.is_composite = true;
-    pair.filters = kv.second;
-    pair.strategy = strategies.at(kv.first);
+    pair.filters = kv.second.filters;
+    pair.strategy = kv.second.strategy;
+    pair.inner_op = FilterOperator::And;
     filter_index_pairs.push_back(std::move(pair));
-    has_composite_filter = true;
   }
+
   // Remaining filters not covered by any composite index: fall through to scalar index.
-  // Iterate directly over filters rather than field_ids to handle the case where
-  // the same field appears multiple times with different filter conditions.
   for (const auto& f : filters) {
-    if (composite_covered_fields.find(f.field) != composite_covered_fields.end()) continue;
+    if (covered_fields.find(f.field) != covered_fields.end()) continue;
     if (auto index = GetFieldIndex(f.field)) {
       FilterIndexPair pair;
       pair.index = index;
@@ -563,9 +695,6 @@ int ScalarIndexManager::OrganizeFiltersToIndex(
     }
   }
   if (filter_index_pairs.empty()) {
-    return -1;
-  }
-  if (has_composite_filter && query_filter_operator == FilterOperator::Or) {
     return -1;
   }
   std::set<int> can_execute_fields;
@@ -630,7 +759,14 @@ int64_t ScalarIndexManager::Search(
   for (const auto& filter_index_pair : filter_index_pairs) {
     ScalarIndexResult result_tmp;
     if (filter_index_pair.is_composite) {
-      CompositeFilter(filter_index_pair.composite_index, filter_index_pair.filters, filter_index_pair.strategy, result_tmp);
+      if (filter_index_pair.strategy == CompositeStrategy::SCAN) {
+        ExecuteScanCase(filter_index_pair.composite_index,
+                        filter_index_pair.filters,
+                        filter_index_pair.inner_op,
+                        result_tmp);
+      } else {
+        CompositeFilter(filter_index_pair.composite_index, filter_index_pair.filters, filter_index_pair.strategy, result_tmp);
+      }
     } else {
       Filter(filter_index_pair.index, filter_index_pair.filters[0], result_tmp);
     }
@@ -675,23 +811,26 @@ int64_t ScalarIndexManager::Query(
     }
   }
 
-  // Single field filter can return early if get enough result
+  // Single field filter can return early if get enough result.
+  // Only takes the fast path when a scalar index exists, or the field is the
+  // first column of a composite index (so a single prefix-seek is valid).
+  // Otherwise fall through to Search, which can use composite SCAN fallback.
   if (origin_filters.size() == 1) {
     const auto& filter = origin_filters[0];
     if (filter.lower_value.empty() && filter.upper_value.empty()) {
       return 0;
     }
-    ScalarIndexResult result;
-    auto index = GetFieldIndex(filter.field);
+    ScalarIndex* index = GetFieldIndex(filter.field);
     if (index == nullptr) {
       index = GetCompositeIndexByFieldId(filter.field, composite_indexes_);
-      if (index == nullptr) {
-        return 0;
-      }
     }
-    Filter(index, filter, result, offset, topn);
-    docids = result.GetDocIDs(topn);
-    return static_cast<int64_t>(docids.size());
+    if (index != nullptr) {
+      ScalarIndexResult result;
+      Filter(index, filter, result, offset, topn);
+      docids = result.GetDocIDs(topn);
+      return static_cast<int64_t>(docids.size());
+    }
+    // Fall through to Search; it can route the filter through composite SCAN.
   }
 
   ScalarIndexResults scalar_index_results;
@@ -855,6 +994,14 @@ void ScalarIndexManager::ExecuteInCase(
   }
 
   result = std::move(combined);
+}
+
+void ScalarIndexManager::ExecuteScanCase(
+    CompositeIndex* composite_idx,
+    const std::vector<FilterInfo>& match_filters,
+    FilterOperator inner_op,
+    ScalarIndexResult& result) {
+  result = composite_idx->Scan(match_filters, inner_op, 0, 0);
 }
 
 }  // namespace vearch
