@@ -120,6 +120,46 @@ class CompositeIndex : public InvertedIndex {
 
   bool CanUseFilterMode(const std::vector<int>& field_ids, const std::vector<CompositeFilterMode>& modes, CompositeStrategy& strategy);
 
+  /**
+   * Check whether the given filter fields can be served by SCAN fallback.
+   * SCAN does not require fields to form a key prefix; it iterates every
+   * entry of the composite index and applies filters per entry.
+   *
+   * Requirements:
+   *   - every query field must belong to this composite index
+   *   - every mode must be point-decidable (Equal / Range / In / NotIn / NotEqual)
+   *
+   * @param query_field_ids fields appearing in the query (any order, may
+   *                        repeat — e.g. OR-of-equals on the same field).
+   * @param modes           corresponding filter modes, parallel to
+   *                        query_field_ids.
+   */
+  bool CanUseScan(const std::vector<int>& query_field_ids,
+                  const std::vector<CompositeFilterMode>& modes) const;
+
+  /**
+   * Filter scan over this composite index.
+   *
+   * Logically equivalent to iterating every entry under the composite
+   * header, decoding each field value from the key, evaluating the
+   * filters, and emitting matching docids. Internally narrows the
+   * iterated range when the filter set permits: builds a leading-Equal
+   * seek prefix from consecutive AND filters that pin a single value,
+   * and may further split into per-value sub-scans (string IN) or a
+   * range-bounded sub-scan (numeric Range). Cases that would compromise
+   * per-docid aggregation (OR semantics, NotEqual / NotIn, multi-filter
+   * on the same STRINGARRAY field) fall back to the full header scan.
+   * Duplicates produced by STRINGARRAY cartesian expansion are folded
+   * by ScalarIndexResult::Add.
+   *
+   * @param filters  filters to evaluate; field ids must belong to this index.
+   * @param inner_op AND -> every filter must match; OR -> any filter matches.
+   * @param offset/limit  applied to the final result set (post-filter).
+   */
+  ScalarIndexResult Scan(const std::vector<FilterInfo>& filters,
+                         FilterOperator inner_op,
+                         int offset, int limit);
+
   std::string GetHeaderKey() const { return header_key_; }
 
   // Override InvertedIndex's key helpers with composite binary format:

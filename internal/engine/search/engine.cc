@@ -466,7 +466,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
       filters[idx].upper_value = filter.upper_value;
       filters[idx].include_lower = filter.include_lower;
       filters[idx].include_upper = filter.include_upper;
-      filters[idx].is_union = static_cast<FilterOperator>(filter.is_union);
+      filters[idx].filter_operator = static_cast<FilterOperator>(filter.is_union);
 
       ++idx;
     }
@@ -476,7 +476,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
 
       filters[idx].field = table_->GetAttrIdx(filter.field);
       filters[idx].lower_value = filter.value;
-      filters[idx].is_union = static_cast<FilterOperator>(filter.is_union);
+      filters[idx].filter_operator = static_cast<FilterOperator>(filter.is_union);
 
       ++idx;
     }
@@ -543,7 +543,7 @@ int64_t Engine::ScalarIndexQuery(Request &request, SearchCondition *condition,
     filters[idx].upper_value = filter.upper_value;
     filters[idx].include_lower = filter.include_lower;
     filters[idx].include_upper = filter.include_upper;
-    filters[idx].is_union = static_cast<FilterOperator>(filter.is_union);
+    filters[idx].filter_operator = static_cast<FilterOperator>(filter.is_union);
 
     ++idx;
   }
@@ -553,7 +553,7 @@ int64_t Engine::ScalarIndexQuery(Request &request, SearchCondition *condition,
 
     filters[idx].field = table_->GetAttrIdx(filter.field);
     filters[idx].lower_value = filter.value;
-    filters[idx].is_union = static_cast<FilterOperator>(filter.is_union);
+    filters[idx].filter_operator = static_cast<FilterOperator>(filter.is_union);
 
     ++idx;
   }
@@ -754,12 +754,12 @@ int Engine::AddOrUpdate(Doc &doc) {
       indexing_state_.load() == IndexingState::IDLE and
       index_status_ == UNINDEXED) {
     if (vec_manager_ != nullptr && vec_manager_->SupportIncrement()) {
-    if (max_docid_ - delete_num_ >= training_threshold_) {
-      LOG(INFO) << space_name_ << " begin indexing. training_threshold="
-                << training_threshold_;
-      this->BuildIndex();
+      if (max_docid_ - delete_num_ >= training_threshold_) {
+        LOG(INFO) << space_name_ << " begin indexing. training_threshold="
+                  << training_threshold_;
+        this->BuildIndex();
+      }
     }
-  }
   }
 #ifdef PERFORMANCE_TESTING
   double end = utils::getmillisecs();
@@ -885,11 +885,11 @@ int Engine::Delete(std::string &key) {
 
   vec_manager_->Delete(docid);
   is_dirty_ = true;
+
   if (vec_manager_ != nullptr &&
       !vec_manager_->SupportIncrement() && index_status_ == INDEXED) {
     return 1;
   }
-
   return ret;
 }
 
@@ -1376,12 +1376,12 @@ int Engine::Load() {
       indexing_state_.load() == IndexingState::IDLE and
       index_status_ == UNINDEXED) {
     if (vec_manager_ != nullptr && vec_manager_->SupportIncrement()) {
-    if (max_docid_ - delete_num_ >= training_threshold_) {
-      LOG(INFO) << space_name_ << " begin indexing. training_threshold="
-                << training_threshold_;
-      this->BuildIndex();
+      if (max_docid_ - delete_num_ >= training_threshold_) {
+        LOG(INFO) << space_name_ << " begin indexing. training_threshold="
+                  << training_threshold_;
+        this->BuildIndex();
+      }
     }
-  }
   }
   // remove directorys which are not done
   for (const std::string &folder : folders_not_done) {

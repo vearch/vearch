@@ -13,7 +13,6 @@
 #include <sstream>
 #include <unordered_set>
 #include <unordered_map>
-#include <iomanip>
 
 #include "inverted_index.h"
 #include "scalar_index_utils.h"
@@ -382,14 +381,6 @@ ScalarIndexResult CompositeIndex::Equal(const std::vector<std::string>& prefix_v
   return result;
 }
 
-std::string toHexString(const std::string& binary) {
-  std::ostringstream oss;
-  for (unsigned char c : binary) {
-      oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c);
-  }
-  return oss.str();
-}
-
 ScalarIndexResult CompositeIndex::Range(const std::vector<std::string>& prefix_values,
                                        const std::string& lower_value,
                                        const std::string& upper_value,
@@ -546,6 +537,528 @@ ScalarIndexResult CompositeIndex::In(const std::vector<std::string>& prefix_valu
     return ScalarIndexResult(combined_result, offset, limit);
   }
   return combined_result;
+}
+
+bool CompositeIndex::CanUseScan(const std::vector<int>& query_field_ids,
+                                const std::vector<CompositeFilterMode>& modes) const {
+  if (query_field_ids.empty() || query_field_ids.size() != modes.size()) {
+    return false;
+  }
+  std::unordered_set<int> idx_set(field_ids_.begin(), field_ids_.end());
+  for (int f : query_field_ids) {
+    if (idx_set.find(f) == idx_set.end()) return false;
+  }
+  // All modes in the enum are point-decidable; reject nothing here, but keep
+  // the gate so future None / wildcard modes are explicitly excluded.
+  for (auto m : modes) {
+    switch (m) {
+      case CompositeFilterMode::Equal:
+      case CompositeFilterMode::NotEqual:
+      case CompositeFilterMode::In:
+      case CompositeFilterMode::NotIn:
+      case CompositeFilterMode::Range:
+        break;
+      default:
+        return false;
+    }
+  }
+  return true;
+}
+
+namespace {
+
+// Pull the i-th field value out of a composite key body (the bytes between
+// header and trailing docid). Returns false on malformed key. On success
+// `cursor` advances past the consumed bytes and `out` holds the raw value:
+//   numeric: sortable bytes (caller compares against sortable filter bounds)
+//   string : raw content (length prefix stripped)
+bool ExtractField(const std::string& body, size_t& cursor,
+                  enum DataType dtype, std::string& out) {
+  switch (dtype) {
+    case DataType::INT:
+    case DataType::FLOAT: {
+      constexpr size_t kBytes = sizeof(int32_t);
+      if (cursor + kBytes > body.size()) return false;
+      out.assign(body, cursor, kBytes);
+      cursor += kBytes;
+      return true;
+    }
+    case DataType::LONG:
+    case DataType::DATE:
+    case DataType::DOUBLE: {
+      constexpr size_t kBytes = sizeof(int64_t);
+      if (cursor + kBytes > body.size()) return false;
+      out.assign(body, cursor, kBytes);
+      cursor += kBytes;
+      return true;
+    }
+    case DataType::STRING:
+    case DataType::STRINGARRAY: {
+      if (cursor + kStringLenBytes > body.size()) return false;
+      uint32_t len = 0;
+      for (size_t i = 0; i < kStringLenBytes; ++i) {
+        len = (len << 8) | static_cast<uint8_t>(body[cursor + i]);
+      }
+      cursor += kStringLenBytes;
+      if (cursor + len > body.size()) return false;
+      out.assign(body, cursor, len);
+      cursor += len;
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+
+// Apply one filter to one entry's raw field value. For numeric fields the
+// raw value is sortable bytes; we compare directly against pre-encoded
+// filter bounds (caller is responsible for encoding lower/upper the same
+// way). For string fields, raw is the literal content.
+bool MatchOne(const std::string& raw,
+              enum DataType dtype,
+              const FilterInfo& filter,
+              const std::string& enc_lower,
+              const std::string& enc_upper,
+              const std::vector<std::string>* string_in_items) {
+  if (dtype == DataType::STRING || dtype == DataType::STRINGARRAY) {
+    if (string_in_items == nullptr) return false;
+    bool found = false;
+    for (const auto& item : *string_in_items) {
+      if (raw == item) { found = true; break; }
+    }
+    if (filter.filter_operator == FilterOperator::Not) return !found;
+    return found;
+  }
+  // Numeric: raw is already sortable, so memcmp gives correct order.
+  // Equal: raw == enc_lower (enc_lower == enc_upper, both inclusive)
+  // NotEqual: raw != enc_lower
+  // Range: lower <= raw <= upper, with inclusive flags
+  bool eq_bounds = (enc_lower == enc_upper);
+  if (eq_bounds && filter.include_lower && filter.include_upper) {
+    bool eq = (raw == enc_lower);
+    if (filter.filter_operator == FilterOperator::Not) return !eq;
+    return eq;
+  }
+  if (!enc_lower.empty()) {
+    if (filter.include_lower) {
+      if (raw < enc_lower) return false;
+    } else {
+      if (raw <= enc_lower) return false;
+    }
+  }
+  if (!enc_upper.empty()) {
+    if (filter.include_upper) {
+      if (raw > enc_upper) return false;
+    } else {
+      if (raw >= enc_upper) return false;
+    }
+  }
+  return true;
+}
+
+// ============================================================================
+// Scan: internal helpers
+// ============================================================================
+
+// Precomputed view of a FilterInfo against this composite index: which
+// position in field_ids_ it constrains, its data type, and any sortable-
+// encoded bounds / split items that the per-entry evaluator will want.
+struct PreparedFilter {
+  int idx_pos;             // position in field_ids_
+  enum DataType dtype;
+  const FilterInfo* fi;
+  std::string enc_lower;   // sortable-encoded lower bound (numeric)
+  std::string enc_upper;   // sortable-encoded upper bound (numeric)
+  std::vector<std::string> string_items;  // split for IN/NotIn
+};
+
+// One contiguous RocksDB iterator range that the segmented scan visits.
+struct ScanSegment {
+  std::string seek_start;    // iter->Seek target
+  std::string prefix_match;  // require key.starts_with(prefix_match)
+  // Optional upper-bound short-circuit: applies to the raw bytes
+  // extracted at position upper_pos. Empty enc_upper disables.
+  int upper_pos = -1;
+  std::string enc_upper;
+  bool include_upper = true;
+};
+
+constexpr size_t kInSegmentThreshold = 16;
+
+// Resolve every filter against the composite layout, dropping filters whose
+// field isn't part of this index. Numeric bounds are sortable-encoded once
+// here so the hot loop only has to memcmp.
+std::vector<PreparedFilter> PrepareFilters(
+    const std::vector<FilterInfo>& filters,
+    const std::vector<int>& field_ids,
+    const std::vector<enum DataType>& data_types) {
+  std::vector<PreparedFilter> prepared;
+  prepared.reserve(filters.size());
+  for (const auto& f : filters) {
+    auto it = std::find(field_ids.begin(), field_ids.end(), f.field);
+    if (it == field_ids.end()) {
+      LOG(WARNING) << "Scan: filter field " << f.field
+                   << " not in composite, skip filter";
+      continue;
+    }
+    PreparedFilter pf;
+    pf.idx_pos = static_cast<int>(it - field_ids.begin());
+    pf.dtype = data_types[pf.idx_pos];
+    pf.fi = &f;
+    if (pf.dtype == DataType::STRING || pf.dtype == DataType::STRINGARRAY) {
+      pf.string_items = utils::split(f.lower_value, kStringArrayValueDelimiter);
+    } else {
+      if (!f.lower_value.empty()) {
+        pf.enc_lower = EncodeSortableValue(pf.dtype, f.lower_value);
+      }
+      if (!f.upper_value.empty()) {
+        pf.enc_upper = EncodeSortableValue(pf.dtype, f.upper_value);
+      }
+    }
+    prepared.push_back(std::move(pf));
+  }
+  return prepared;
+}
+
+// True iff any field in this composite is STRINGARRAY. When true, multiple
+// RocksDB entries can share one docid (cartesian expansion), so the scan
+// must aggregate per-docid before evaluating NOT IN / IN semantics.
+bool HasStringArray(const std::vector<enum DataType>& data_types) {
+  for (auto dt : data_types) {
+    if (dt == DataType::STRINGARRAY) return true;
+  }
+  return false;
+}
+
+// Build the longest leading-Equal seek prefix: walk field_ids from position
+// 0 and append encoded values for each consecutive position whose filter
+// pins the field to a single value. The first position NOT covered is
+// returned in `out_next_pos`.
+//
+// Anything that breaks the chain (no filter, negation, range, multi-value
+// IN, ambiguous STRINGARRAY case, or OR semantics across filters) stops
+// the prefix at that point; remaining fields still get evaluated via the
+// existing per-entry / per-docid aggregation path.
+//
+// STRINGARRAY rule: each doc with an N-element array writes N RocksDB
+// entries (cartesian-expanded over other STRINGARRAY fields too). A prefix
+// on a STRINGARRAY position would skip the doc's other-element rows. That
+// is safe iff:
+//   1. the field is constrained by exactly one filter in this query, AND
+//   2. that filter is positive single-value (IN with one item or "=").
+// Otherwise the per-docid aggregated view would be missing values that
+// live in skipped segments, leading to wrong results. Multi-value IN can
+// be safely handled via multi-segment sub-scans below; that path is taken
+// when the prefix chain ends, not here.
+std::string BuildEqualPrefix(const std::string& header_key,
+                             const std::vector<int>& field_ids,
+                             const std::vector<PreparedFilter>& prepared,
+                             FilterOperator inner_op,
+                             size_t* out_next_pos) {
+  std::string equal_prefix = header_key;
+  size_t next_pos = 0;
+  if (inner_op != FilterOperator::And) {
+    *out_next_pos = next_pos;
+    return equal_prefix;
+  }
+
+  std::unordered_map<int, int> pos_filter_count;
+  std::unordered_map<int, const PreparedFilter*> by_pos;
+  for (const auto& pf : prepared) {
+    pos_filter_count[pf.idx_pos]++;
+    by_pos.emplace(pf.idx_pos, &pf);
+  }
+
+  for (size_t pos = 0; pos < field_ids.size(); ++pos) {
+    auto it = by_pos.find(static_cast<int>(pos));
+    if (it == by_pos.end()) break;
+    const PreparedFilter* pf = it->second;
+    if (pf->fi->filter_operator == FilterOperator::Not) break;
+    if (pf->dtype == DataType::STRINGARRAY) {
+      if (pos_filter_count[pf->idx_pos] != 1) break;
+      if (pf->string_items.size() != 1) break;
+      equal_prefix += EncodeSortableValue(pf->dtype, pf->string_items[0]);
+    } else if (pf->dtype == DataType::STRING) {
+      if (pf->string_items.size() != 1) break;
+      equal_prefix += EncodeSortableValue(pf->dtype, pf->string_items[0]);
+    } else {
+      if (pf->enc_lower.empty() || pf->enc_lower != pf->enc_upper) break;
+      if (!pf->fi->include_lower || !pf->fi->include_upper) break;
+      equal_prefix += pf->enc_lower;
+    }
+    next_pos = pos + 1;
+  }
+  *out_next_pos = next_pos;
+  return equal_prefix;
+}
+
+// Derive scan segments from equal_prefix + the next field's filter, if one
+// exists and is amenable to further narrowing:
+//   * IN with <= kInSegmentThreshold values  -> N segments, one per value
+//   * Range with a lower bound               -> 1 segment, start at lower,
+//                                               early-break when this field
+//                                               exceeds the encoded upper.
+//   * Anything else                          -> 1 segment == equal_prefix
+std::vector<ScanSegment> BuildScanSegments(
+    const std::string& equal_prefix,
+    size_t equal_prefix_pos,
+    const std::vector<int>& field_ids,
+    const std::vector<PreparedFilter>& prepared,
+    FilterOperator inner_op) {
+  std::vector<ScanSegment> segments;
+
+  if (inner_op == FilterOperator::And &&
+      equal_prefix_pos < field_ids.size()) {
+    const PreparedFilter* next_pf = nullptr;
+    for (const auto& pf : prepared) {
+      if (pf.idx_pos == static_cast<int>(equal_prefix_pos)) {
+        next_pf = &pf;
+        break;
+      }
+    }
+    if (next_pf != nullptr &&
+        next_pf->fi->filter_operator != FilterOperator::Not &&
+        next_pf->dtype != DataType::STRINGARRAY) {
+      bool is_string_in =
+          (next_pf->dtype == DataType::STRING) &&
+          next_pf->string_items.size() >= 2 &&
+          next_pf->string_items.size() <= kInSegmentThreshold;
+      // Numeric Range path: has a lower bound; upper may be empty.
+      bool is_numeric_range =
+          (next_pf->dtype != DataType::STRING) &&
+          !next_pf->enc_lower.empty();
+      if (is_string_in) {
+        segments.reserve(next_pf->string_items.size());
+        for (const auto& item : next_pf->string_items) {
+          ScanSegment s;
+          s.seek_start = equal_prefix + EncodeSortableValue(next_pf->dtype, item);
+          s.prefix_match = s.seek_start;
+          segments.push_back(std::move(s));
+        }
+      } else if (is_numeric_range) {
+        ScanSegment s;
+        s.seek_start = equal_prefix + next_pf->enc_lower;
+        s.prefix_match = equal_prefix;
+        s.upper_pos = static_cast<int>(equal_prefix_pos);
+        s.enc_upper = next_pf->enc_upper;  // may be empty (open upper)
+        s.include_upper = next_pf->fi->include_upper;
+        segments.push_back(std::move(s));
+      }
+    }
+  }
+
+  if (segments.empty()) {
+    ScanSegment s;
+    s.seek_start = equal_prefix;
+    s.prefix_match = equal_prefix;
+    segments.push_back(std::move(s));
+  }
+  return segments;
+}
+
+// Decode each composite field's raw value from a RocksDB key body. Returns
+// false on malformed key (caller should skip it).
+bool DecodeKeyFields(const std::string& key,
+                     size_t header_len,
+                     const std::vector<enum DataType>& data_types,
+                     std::vector<std::string>* raw_vals) {
+  if (key.size() < header_len + sizeof(int64_t)) return false;
+  size_t body_end = key.size() - sizeof(int64_t);
+  std::string body(key.data() + header_len, body_end - header_len);
+  size_t cursor = 0;
+  raw_vals->assign(data_types.size(), {});
+  for (size_t i = 0; i < data_types.size(); ++i) {
+    if (!ExtractField(body, cursor, data_types[i], (*raw_vals)[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Per-docid filter evaluation. For STRINGARRAY-bearing composites the
+// caller has aggregated every observed value for the field; semantics:
+//   - IN  (Or):  match iff ANY observed value is in the IN list.
+//   - NotIn(Not): match iff NO observed value is in the list.
+//   - Range/Equal/NotEqual (numeric): same any/none rules.
+bool EvalFilterForDocid(const PreparedFilter& pf,
+                        const std::vector<std::string>& values) {
+  if (values.empty()) return false;
+  if (pf.dtype == DataType::STRING || pf.dtype == DataType::STRINGARRAY) {
+    bool any_in_list = false;
+    for (const auto& v : values) {
+      for (const auto& item : pf.string_items) {
+        if (v == item) { any_in_list = true; break; }
+      }
+      if (any_in_list) break;
+    }
+    if (pf.fi->filter_operator == FilterOperator::Not) return !any_in_list;
+    return any_in_list;
+  }
+  bool eq_bounds = (pf.enc_lower == pf.enc_upper);
+  if (eq_bounds && pf.fi->include_lower && pf.fi->include_upper) {
+    bool any_eq = false;
+    for (const auto& v : values) {
+      if (v == pf.enc_lower) { any_eq = true; break; }
+    }
+    if (pf.fi->filter_operator == FilterOperator::Not) return !any_eq;
+    return any_eq;
+  }
+  for (const auto& v : values) {
+    if (!pf.enc_lower.empty()) {
+      if (pf.fi->include_lower) { if (v < pf.enc_lower) continue; }
+      else { if (v <= pf.enc_lower) continue; }
+    }
+    if (!pf.enc_upper.empty()) {
+      if (pf.fi->include_upper) { if (v > pf.enc_upper) continue; }
+      else { if (v >= pf.enc_upper) continue; }
+    }
+    return true;
+  }
+  return false;
+}
+
+}  // namespace
+
+ScalarIndexResult CompositeIndex::Scan(const std::vector<FilterInfo>& filters,
+                                       FilterOperator inner_op,
+                                       int offset, int limit) {
+  ScalarIndexResult result;
+
+  auto prepared = PrepareFilters(filters, field_ids_, data_types_);
+  if (prepared.empty()) return result;
+
+  const bool has_stringarray = HasStringArray(data_types_);
+
+  size_t equal_prefix_pos = 0;
+  std::string equal_prefix = BuildEqualPrefix(
+      header_key_, field_ids_, prepared, inner_op, &equal_prefix_pos);
+
+  auto segments = BuildScanSegments(
+      equal_prefix, equal_prefix_pos, field_ids_, prepared, inner_op);
+
+  // Field positions referenced by prepared filters; only these are aggregated
+  // in the STRINGARRAY path.
+  std::unordered_set<int> needed_positions;
+  for (const auto& pf : prepared) needed_positions.insert(pf.idx_pos);
+
+  auto& db = storage_mgr_->GetDB();
+  rocksdb::ColumnFamilyHandle* cf_handler = CfHandler();
+  rocksdb::ReadOptions read_options;
+  std::unique_ptr<rocksdb::Iterator> iter(db->NewIterator(read_options, cf_handler));
+
+  const size_t header_len = header_key_.size();
+  size_t matched = 0;
+  int skipped = 0;
+
+  // STRINGARRAY aggregation buffer: docid -> per-position observed values.
+  std::unordered_map<int64_t, std::vector<std::vector<std::string>>> agg;
+  std::unordered_set<int64_t> emitted;
+
+  auto try_emit = [&](int64_t docid) -> bool {
+    if (emitted.count(docid)) return false;
+    emitted.insert(docid);
+    if (skipped < offset) { ++skipped; return false; }
+    result.Add(docid);
+    ++matched;
+    return true;
+  };
+
+  auto flush_docid = [&](int64_t docid) -> bool {
+    auto it = agg.find(docid);
+    if (it == agg.end()) return false;
+    const auto& per_pos = it->second;
+    bool hit = (inner_op == FilterOperator::And);
+    for (const auto& pf : prepared) {
+      bool m = EvalFilterForDocid(pf, per_pos[pf.idx_pos]);
+      if (inner_op == FilterOperator::And) {
+        if (!m) { hit = false; break; }
+      } else {
+        if (m) { hit = true; break; }
+        hit = false;
+      }
+    }
+    agg.erase(it);
+    if (!hit) return false;
+    return try_emit(docid);
+  };
+
+  bool reached_limit = false;
+  std::vector<std::string> raw_vals;
+  for (const auto& seg : segments) {
+    if (reached_limit) break;
+    for (iter->Seek(seg.seek_start);
+         iter->Valid() && iter->key().starts_with(seg.prefix_match);
+         iter->Next()) {
+      std::string key = iter->key().ToString();
+      if (!DecodeKeyFields(key, header_len, data_types_, &raw_vals)) continue;
+
+      // Range upper-bound short-circuit: keys within the same prefix_match
+      // are sorted by this field's sortable encoding, so once we move past
+      // enc_upper we can stop the segment entirely.
+      if (seg.upper_pos >= 0 && !seg.enc_upper.empty()) {
+        const std::string& v = raw_vals[seg.upper_pos];
+        bool past = seg.include_upper ? (v > seg.enc_upper)
+                                       : (v >= seg.enc_upper);
+        if (past) break;
+      }
+
+      int64_t docid = DecodeDocidFromBinaryKey(key);
+      if (docid < 0) continue;
+
+      if (!has_stringarray) {
+        // Fast path: one entry per docid, evaluate inline against the key.
+        bool hit = (inner_op == FilterOperator::And);
+        for (const auto& pf : prepared) {
+          bool m = MatchOne(raw_vals[pf.idx_pos], pf.dtype, *pf.fi,
+                            pf.enc_lower, pf.enc_upper,
+                            (pf.dtype == DataType::STRING ||
+                             pf.dtype == DataType::STRINGARRAY)
+                                ? &pf.string_items : nullptr);
+          if (inner_op == FilterOperator::And) {
+            if (!m) { hit = false; break; }
+          } else {
+            if (m) { hit = true; break; }
+            hit = false;
+          }
+        }
+        if (!hit) continue;
+        if (!try_emit(docid)) continue;
+        if (limit > 0 && static_cast<int>(matched) >= limit) {
+          reached_limit = true;
+          break;
+        }
+        continue;
+      }
+
+      // STRINGARRAY path: accumulate; defer evaluation to the post-loop flush
+      // because a later entry for the same docid can contribute a value that
+      // flips a NOT IN result.
+      auto& per_pos = agg[docid];
+      if (per_pos.empty()) per_pos.assign(field_ids_.size(), {});
+      for (int pos : needed_positions) {
+        auto& bucket = per_pos[pos];
+        const std::string& v = raw_vals[pos];
+        bool dup = false;
+        for (const auto& existing : bucket) {
+          if (existing == v) { dup = true; break; }
+        }
+        if (!dup) bucket.push_back(v);
+      }
+    }
+  }
+
+  if (has_stringarray) {
+    std::vector<int64_t> docids;
+    docids.reserve(agg.size());
+    for (auto& kv : agg) docids.push_back(kv.first);
+    std::sort(docids.begin(), docids.end());
+    for (int64_t docid : docids) {
+      flush_docid(docid);
+      if (limit > 0 && static_cast<int>(matched) >= limit) break;
+    }
+  }
+
+  return result;
 }
 
 } // namespace vearch
