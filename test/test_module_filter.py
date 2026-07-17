@@ -1031,31 +1031,39 @@ def test_module_filter_bitmap_index_thread_safety():
 
     def reader(read_count: list):
         """Continuously read data"""
-        try:
-            for _ in range(total):
+        # Reuse one keep-alive connection per thread. Without this each of the
+        # `total` iterations opens a fresh TCP connection, and the writer/reader/
+        # deleter threads together flood the router's accept backlog, tripping
+        # ConnectionReset (104).
+        with requests.Session() as session:
+            session.auth = (username, password)
+            try:
                 url = f"{router_url}/document/query"
-                data = build_query_data(total)
-                rs = requests.post(url, auth=(username, password), json=data)
-                if rs.status_code == 200 and rs.json().get("code") == 0:
-                    read_count[0] += 1
-                else:
-                    logger.error(f"Reader error: {rs.json()}")
-        except Exception as e:
-            logger.warning(f"Reader error: {e}")
+                for _ in range(total):
+                    data = build_query_data(total)
+                    rs = session.post(url, json=data)
+                    if rs.status_code == 200 and rs.json().get("code") == 0:
+                        read_count[0] += 1
+                    else:
+                        logger.error(f"Reader error: {rs.json()}")
+            except Exception as e:
+                logger.warning(f"Reader error: {e}")
 
     def deleter(delete_count: list):
         """Continuously delete data"""
-        try:
-            for _ in range(total):
+        with requests.Session() as session:
+            session.auth = (username, password)
+            try:
                 url = f"{router_url}/document/delete"
-                data = build_query_data(total)
-                rs = requests.post(url, auth=(username, password), json=data)
-                if rs.status_code == 200 and rs.json().get("code") == 0:
-                    delete_count[0] += 1
-                else:
-                    logger.error(f"Deleter error: {rs.json()}")
-        except Exception as e:
-            logger.warning(f"Deleter error: {e}")
+                for _ in range(total):
+                    data = build_query_data(total)
+                    rs = session.post(url, json=data)
+                    if rs.status_code == 200 and rs.json().get("code") == 0:
+                        delete_count[0] += 1
+                    else:
+                        logger.error(f"Deleter error: {rs.json()}")
+            except Exception as e:
+                logger.warning(f"Deleter error: {e}")
 
     # Start threads
     import threading
