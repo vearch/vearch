@@ -1481,11 +1481,13 @@ def search(xq, k: int, batch: bool, query_dict: dict):
         json_str = json.dumps(query_dict)
         rs = requests.post(url, auth=(username, password), data=json_str)
 
-        if rs.status_code != 200 or "documents" not in rs.json()["data"]:
-            logger.info(rs.json())
+        resp = rs.json()
+        if rs.status_code != 200 or "data" not in resp or "documents" not in resp["data"]:
+            logger.error(resp)
             logger.info(json_str)
+            assert False, f"search failed: status_code={rs.status_code}, response={resp}"
 
-        for results in rs.json()["data"]["documents"]:
+        for results in resp["data"]["documents"]:
             field_int = []
             for result in results:
                 field_int.append(result["field_int"])
@@ -1501,12 +1503,14 @@ def search(xq, k: int, batch: bool, query_dict: dict):
             json_str = json.dumps(query_dict)
             rs = requests.post(url, auth=(username, password), data=json_str)
 
-            if rs.status_code != 200 or "documents" not in rs.json()["data"]:
-                logger.info(rs.json())
+            resp = rs.json()
+            if rs.status_code != 200 or "data" not in resp or "documents" not in resp["data"]:
+                logger.error(resp)
                 logger.info(json_str)
+                assert False, f"search failed: status_code={rs.status_code}, response={resp}"
 
             field_int = []
-            for results in rs.json()["data"]["documents"]:
+            for results in resp["data"]["documents"]:
                 for result in results:
                     field_int.append(result["field_int"])
             if len(field_int) != k:

@@ -1003,46 +1003,16 @@ func (w *watcherJob) serverDelete(cacheKey string) (err error) {
 	return err
 }
 
-// find alias from cache
+// find alias from cache. aliasCache is kept as a full set by initAlias (startup
+// bulk load) + the alias watcher (etcd sync), so a miss means alias_name is not
+// an alias — return immediately instead of reload+retry. The old retry loop hit
+// every non-alias space lookup (the common case) and burned ~3ms of sleep for
+// nothing, since the async reload was a no-op and the cache was already complete.
 func (cliCache *clientCache) AliasByCache(ctx context.Context, alias_name string) (*entity.Alias, error) {
-	get, found := cliCache.aliasCache.Get(alias_name)
-	if found {
+	if get, found := cliCache.aliasCache.Get(alias_name); found {
 		return get.(*entity.Alias), nil
 	}
-
-	err := cliCache.reloadAliasCache(ctx, false, alias_name)
-	if err != nil {
-		return nil, fmt.Errorf("alias_name:[%s] err:[%s]", alias_name,
-			vearchpb.NewError(vearchpb.ErrorEnum_ALIAS_NOT_EXIST, nil))
-	}
-
-	for i := 0; i < retryNum; i++ {
-		if get, found = cliCache.aliasCache.Get(alias_name); found {
-			return get.(*entity.Alias), nil
-		}
-		time.Sleep(retrySleepTime)
-	}
-
 	return nil, fmt.Errorf("alias_name:[%s] err:[%s]", alias_name, vearchpb.NewError(vearchpb.ErrorEnum_ALIAS_NOT_EXIST, nil))
-}
-
-func (cliCache *clientCache) reloadAliasCache(ctx context.Context, sync bool, alias_name string) error {
-	fun := func() error {
-		log.Info("to reload alias_name:[%s]", alias_name)
-
-		alias, err := cliCache.mc.QueryAliasByName(ctx, alias_name)
-
-		if err != nil {
-			return fmt.Errorf("can not found alias by name:[%s] err:[%s]", alias_name, err.Error())
-		}
-		cliCache.aliasCache.Set(alias_name, alias, cache.NoExpiration)
-		return nil
-	}
-
-	if sync {
-		return fun()
-	}
-	return nil
 }
 
 func (cliCache *clientCache) initAlias(ctx context.Context) error {
