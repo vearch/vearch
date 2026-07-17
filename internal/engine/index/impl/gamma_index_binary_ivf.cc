@@ -318,11 +318,11 @@ int GammaIndexBinaryIVF::Search(RetrievalContext *retrieval_context, int n,
   int32_t dists[n * k];
   search_preassigned(retrieval_context, n, x, k, idx.get(), coarse_dis.get(),
                      dists, ids, nprobe, false);
+  if (RequestContext::is_killed()) {
+    return -2;
+  }
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < k; j++) {
-      if (RequestContext::is_killed()) {
-        return -2;
-      }
       distances[i * k + j] = dists[i * k + j];
     }
   }
@@ -448,7 +448,7 @@ struct GammaIVFBinaryScannerL2 : GammaBinaryInvertedListScanner {
 
     size_t nup = 0;
     for (size_t j = 0; j < n; j++, codes += code_size) {
-      if (RequestContext::is_killed()) break;
+      if (RequestContext::is_killed_every<1024>(j)) break;
       idx_t id = store_pairs ? (list_no << 32 | j) : ids[j];
       if (retrieval_context_->IsValid(id) == false) {
         continue;

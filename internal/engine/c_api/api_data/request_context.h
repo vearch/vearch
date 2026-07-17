@@ -83,6 +83,19 @@ class RequestContext {
   static void set_kill_status(std::string request_id, int partition_id, int reason);
   static bool is_killed(std::string request_id, int partition_id);
   static bool is_killed();
+
+  // Amortized kill-check for hot scan loops: only calls the (relatively
+  // expensive) is_killed() once every `Stride` iterations. `i` is the loop
+  // counter, so i == 0 (each list's first iteration) always checks. Stride is
+  // a template parameter forced to a power of two, so the mask trick can never
+  // be misconfigured to a non-power-of-two period.
+  template <size_t Stride>
+  static bool is_killed_every(size_t i) {
+    static_assert((Stride & (Stride - 1)) == 0,
+                  "Stride must be a power of two");
+    return (i & (Stride - 1)) == 0 && is_killed();
+  }
+
   static void delete_kill_status(std::string request_id, int partition_id);
 
 };
