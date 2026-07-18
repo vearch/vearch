@@ -686,7 +686,7 @@ void compute_dis(int k, const float *xi, float *simi, idx_t *idxi,
     }
     int raw_d = vec->MetaInfo()->Dimension();
     for (int j = 0; j < recall_num; j++) {
-      if (RequestContext::is_killed()) return;
+      if (RequestContext::is_killed_every<256>(j)) return;
       if (recall_idxi[j] < 0) continue;
       float dis = 0;
       if (scope_vecs.Get(j) == nullptr) {
@@ -898,16 +898,14 @@ void GammaIVFPQIndex::search_preassigned(
 #pragma omp barrier
 #pragma omp critical
           {
-            if (!RequestContext::is_killed()) {
-              if (metric_type == faiss::METRIC_INNER_PRODUCT) {
-                faiss::heap_addn<HeapForIP>(recall_num, recall_simi, recall_idxi,
-                                          local_dis.data(), local_idx.data(),
-                                          recall_num);
-              } else {
-                faiss::heap_addn<HeapForL2>(recall_num, recall_simi, recall_idxi,
-                                          local_dis.data(), local_idx.data(),
-                                          recall_num);
-              }
+            if (metric_type == faiss::METRIC_INNER_PRODUCT) {
+              faiss::heap_addn<HeapForIP>(recall_num, recall_simi, recall_idxi,
+                                        local_dis.data(), local_idx.data(),
+                                        recall_num);
+            } else {
+              faiss::heap_addn<HeapForL2>(recall_num, recall_simi, recall_idxi,
+                                        local_dis.data(), local_idx.data(),
+                                        recall_num);
             }
           }
 #pragma omp barrier

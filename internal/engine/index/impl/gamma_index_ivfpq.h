@@ -924,7 +924,7 @@ struct GammaIVFPQScanner : IVFPQScannerT<idx_t, METRIC_TYPE, PQCodeDist>,
   void scan_list_with_table(size_t ncode, const uint8_t *codes,
                             SearchResultType &res) const {
     for (size_t j = 0; j < ncode; j++) {
-      if (RequestContext::is_killed()) {
+      if (RequestContext::is_killed_every<1024>(j)) {
         return;
       }
       if (res.ids[j] & realtime::kDelIdxMask) {

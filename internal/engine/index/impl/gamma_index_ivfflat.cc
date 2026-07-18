@@ -760,21 +760,17 @@ void GammaIVFFlatIndex::search_preassigned(RetrievalContext *retrieval_context,
 #pragma omp barrier
 #pragma omp critical
         {
-          if (!RequestContext::is_killed()) {
-            if (metric_type == METRIC_INNER_PRODUCT) {
-              heap_addn<HeapForIP>(k, simi, idxi, local_dis.data(),
-                                   local_idx.data(), k);
-            } else {
-              heap_addn<HeapForL2>(k, simi, idxi, local_dis.data(),
-                                   local_idx.data(), k);
-            }
+          if (metric_type == METRIC_INNER_PRODUCT) {
+            heap_addn<HeapForIP>(k, simi, idxi, local_dis.data(),
+                                 local_idx.data(), k);
+          } else {
+            heap_addn<HeapForL2>(k, simi, idxi, local_dis.data(),
+                                 local_idx.data(), k);
           }
         }
 #pragma omp barrier
 #pragma omp single
-        if (!RequestContext::is_killed()) {
-          reorder_result(simi, idxi);
-        }
+        reorder_result(simi, idxi);
       }
     } else {
       FAISS_THROW_FMT("parallel_mode %d not supported\n", pmode);

@@ -408,7 +408,7 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
 
     if (retrieval_params->GetDistanceComputeType() ==
         DistanceComputeType::INNER_PRODUCT) {
-      while (!result.empty() && !RequestContext::is_killed()) {
+      while (!result.empty()) {
         auto &top = result.top();
         idxs[i * k + k - j - 1] = top.second;
         distances[i * k + k - j - 1] = 1 - top.first;
@@ -416,7 +416,7 @@ int GammaIndexHNSWLIB::Search(RetrievalContext *retrieval_context, int n,
         result.pop();
       }
     } else {
-      while (!result.empty() && !RequestContext::is_killed()) {
+      while (!result.empty()) {
         auto &top = result.top();
         idxs[i * k + k - j - 1] = top.second;
         distances[i * k + k - j - 1] = top.first;
