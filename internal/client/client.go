@@ -869,7 +869,12 @@ func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchRespon
 			}
 
 			for _, resp := range result {
-				quickSort(resp.ResultItems, desc, 0, len(resp.ResultItems)-1)
+				sort.Slice(resp.ResultItems, func(i, j int) bool {
+					if desc {
+						return resp.ResultItems[i].Score > resp.ResultItems[j].Score
+					}
+					return resp.ResultItems[i].Score < resp.ResultItems[j].Score
+				})
 				if len(resp.ResultItems) > 0 {
 					if searchReq.PageSize > 0 && searchReq.PageNum >= 1 {
 						start := searchReq.PageSize * (searchReq.PageNum - 1)
@@ -1176,43 +1181,6 @@ func (r *routerRequest) QueryFieldSortExecute() *vearchpb.SearchResponse {
 			canceled = true
 		}
 	}
-}
-
-func quickSort(items []*vearchpb.ResultItem, desc bool, low, high int) {
-	if low < high {
-		var pivot = partition(items, desc, low, high)
-		quickSort(items, desc, low, pivot)
-		quickSort(items, desc, pivot+1, high)
-	}
-}
-
-func partition(items []*vearchpb.ResultItem, desc bool, low, high int) int {
-	var pivot = items[low]
-	var i = low
-	var j = high
-	for i < j {
-		if desc {
-			for j > low && items[j].Score <= pivot.Score {
-				j--
-			}
-			for i < high && items[i].Score > pivot.Score {
-				i++
-			}
-		} else {
-			for j > low && items[j].Score >= pivot.Score {
-				j--
-			}
-			for i < high && items[i].Score < pivot.Score {
-				i++
-			}
-		}
-		if i < j {
-			items[i], items[j] = items[j], items[i]
-		}
-	}
-
-	items[low], items[j] = items[j], pivot
-	return j
 }
 
 func setDocs(keys []string) (docs []*vearchpb.Document, err error) {
