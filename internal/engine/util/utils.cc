@@ -520,6 +520,10 @@ std::string ToRowKey(int32_t key) {
   return key_str;
 }
 
+std::string ToStringFieldKey(const std::string &field_name, int32_t id) {
+  return field_name + ":" + ToRowKey(id);
+}
+
 int64_t FromRowKey64(const std::string &key) {
   if (key.size() != sizeof(int64_t)) {
     return -1;
