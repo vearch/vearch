@@ -109,7 +109,7 @@ const (
 
 // NewRouterRequest create a new request for router
 func NewRouterRequest(ctx context.Context, client *Client) *routerRequest {
-	return &routerRequest{ctx: ctx, client: client, md: make(map[string]string)}
+	return &routerRequest{ctx: ctx, client: client, md: make(map[string]string), errNotify: make(chan struct{})}
 }
 
 type routerRequest struct {
@@ -123,6 +123,9 @@ type routerRequest struct {
 	clientMap sync.Map
 	// Err if error else nil
 	Err error
+
+	errOnce   sync.Once
+	errNotify chan struct{}
 }
 
 // GetMD
@@ -145,6 +148,10 @@ func (r *routerRequest) GetMsgID() string {
 	msgID = uuid.NewString()
 	r.md[MessageID] = msgID
 	return msgID
+}
+
+func (r *routerRequest) signalErr() {
+	r.errOnce.Do(func() { close(r.errNotify) })
 }
 
 // SetMethod set method
@@ -696,6 +703,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 	if r.Err == nil {
 		if searchResponse != nil && searchResponse.Head != nil && searchResponse.Head.Err != nil && searchResponse.Head.Err.GetCode() == vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED {
 			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, errors.New("request canceled"))
+			r.signalErr()
 			replyPartition.Err = searchResponse.Head.Err
 		} else if searchResponse != nil {
 			if trace {
@@ -718,6 +726,7 @@ func (r *routerRequest) searchFromPartition(ctx context.Context, partitionID ent
 			flatBytes := searchResponse.FlatBytes
 			if entity.CheckVirtualMemExceed(len(flatBytes)) {
 				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, errors.New("request canceled"))
+				r.signalErr()
 				replyPartition.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, Msg: "request canceled"}
 			} else if flatBytes != nil {
 				deSerializeStartTime := time.Now()
@@ -915,19 +924,13 @@ func (r *routerRequest) SearchFieldSortExecute(desc bool) *vearchpb.SearchRespon
 		}
 	}()
 
-	canceled := false
-	for {
-		select {
-		case <-doneCh:
-			return searchResponse
-		default:
-		}
-
-		if r.Err != nil && !canceled {
-			r.CancelRequestFromPartition()
-			canceled = true
-		}
+	select {
+	case <-doneCh:
+	case <-r.errNotify:
+		r.CancelRequestFromPartition()
+		<-doneCh
 	}
+	return searchResponse
 }
 
 func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID entity.PartitionID, pd *vearchpb.PartitionData, space *entity.Space, respChain chan *response.SearchDocResult) {
@@ -1038,12 +1041,14 @@ func (r *routerRequest) queryFromPartition(ctx context.Context, partitionID enti
 		searchResponse := replyPartition.SearchResponse
 		if searchResponse != nil && searchResponse.Head.Err != nil && searchResponse.Head.Err.GetCode() == vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED {
 			r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, errors.New("request canceled"))
+			r.signalErr()
 			replyPartition.Err = searchResponse.Head.Err
 		}
 		if searchResponse != nil {
 			flatBytes := searchResponse.FlatBytes
 			if entity.CheckVirtualMemExceed(len(flatBytes)) {
 				r.Err = vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, errors.New("request canceled"))
+				r.signalErr()
 				replyPartition.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_PARTITION_SERVER_MEMORYEXCEED, Msg: "request canceled"}
 			} else if flatBytes != nil {
 				gamma.DeSerialize(flatBytes, searchResponse)
@@ -1168,19 +1173,13 @@ func (r *routerRequest) QueryFieldSortExecute() *vearchpb.SearchResponse {
 		}
 	}()
 
-	canceled := false
-	for {
-		select {
-		case <-doneCh:
-			return searchResponse
-		default:
-		}
-
-		if r.Err != nil && !canceled {
-			r.CancelRequestFromPartition()
-			canceled = true
-		}
+	select {
+	case <-doneCh:
+	case <-r.errNotify:
+		r.CancelRequestFromPartition()
+		<-doneCh
 	}
+	return searchResponse
 }
 
 func setDocs(keys []string) (docs []*vearchpb.Document, err error) {
