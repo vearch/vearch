@@ -719,10 +719,10 @@ int ParseSearchResult(int n, int k, VectorResult &result, IndexModel *index) {
   for (int i = 0; i < n; i++) {
     int pos = 0;
     std::map<int, int> docid2count;
+    if (RequestContext::is_killed()) {
+      return -2;
+    }
     for (int j = 0; j < k; j++) {
-      if (RequestContext::is_killed()) {
-        return -2;
-      }
       int64_t *docid = result.docids + i * k + j;
       if (docid[0] == -1) continue;
       int vector_id = (int)docid[0];

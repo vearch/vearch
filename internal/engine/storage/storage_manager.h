@@ -49,6 +49,13 @@ class StorageManager {
                                         const std::vector<int64_t> &vids,
                                         std::vector<std::string> &values);
 
+  // Batch read by arbitrary string keys in one column family. Keys do NOT
+  // need to be sorted - this helper sorts internally and passes
+  // sorted_input=true to rocksdb so each SST is opened at most once.
+  std::vector<rocksdb::Status> MultiGetByKeys(
+      int cf_id, const std::vector<std::string> &keys,
+      std::vector<std::string> &values);
+
   std::unique_ptr<rocksdb::Iterator> NewIterator(int cf_id) {
     return std::unique_ptr<rocksdb::Iterator>(
         db_->NewIterator(rocksdb::ReadOptions(), cf_handles_[cf_id]));

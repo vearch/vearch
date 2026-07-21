@@ -12,6 +12,8 @@
 #include <rocksdb/utilities/checkpoint.h>
 
 #include <sstream>
+#include <algorithm>
+#include <numeric>
 
 #include "util/log.h"
 #include "util/utils.h"
@@ -256,8 +258,7 @@ Status StorageManager::Add(int cf_id, int64_t id, const uint8_t *value,
 
 Status StorageManager::AddString(int cf_id, int64_t id, std::string field_name,
                                  const char *value, int len) {
-  std::string key_str = utils::ToRowKey(id);
-  key_str = field_name + ":" + key_str;
+  std::string key_str = utils::ToStringFieldKey(field_name, id);
 
   rocksdb::Status s =
       db_->Put(rocksdb::WriteOptions(), cf_handles_[cf_id],
@@ -311,8 +312,7 @@ Status StorageManager::Delete(int cf_id, const std::string &key) {
 
 Status StorageManager::DeleteString(int cf_id, int64_t id,
                                     std::string field_name) {
-  std::string key_str = utils::ToRowKey(id);
-  key_str = field_name + ":" + key_str;
+  std::string key_str = utils::ToStringFieldKey(field_name, id);
 
   rocksdb::WriteOptions write_options;
   rocksdb::Status s = db_->Delete(write_options, cf_handles_[cf_id], key_str);
@@ -371,8 +371,7 @@ Status StorageManager::Get(int cf_id, const std::string &key,
 
 Status StorageManager::GetString(int cf_id, int64_t id, std::string &field_name,
                                  std::string &value) {
-  std::string key_str = utils::ToRowKey(id);
-  key_str = field_name + ":" + key_str;
+  std::string key_str = utils::ToStringFieldKey(field_name, id);
 
   rocksdb::Status s = db_->Get(rocksdb::ReadOptions(), cf_handles_[cf_id],
                                rocksdb::Slice(key_str), &value);
@@ -389,23 +388,52 @@ std::vector<rocksdb::Status> StorageManager::MultiGet(
     int cf_id, const std::vector<int64_t> &vids,
     std::vector<std::string> &values) {
   size_t k = vids.size();
-  std::vector<rocksdb::Slice> keys;
   std::vector<std::string> keys_data(k);
-  std::vector<rocksdb::ColumnFamilyHandle *> column_families;
-  keys.reserve(k);
-  column_families.reserve(k);
-
   for (size_t i = 0; i < k; i++) {
-    if (RequestContext::is_killed()) {
-      return {};
-    }
     keys_data[i] = utils::ToRowKey(vids[i]);
-    keys.emplace_back(std::move(keys_data[i]));
-    column_families.emplace_back(cf_handles_[cf_id]);
+  }
+  return MultiGetByKeys(cf_id, keys_data, values);
+}
+
+std::vector<rocksdb::Status> StorageManager::MultiGetByKeys(
+    int cf_id, const std::vector<std::string> &keys,
+    std::vector<std::string> &values) {
+  // Sorts keys by std::string operator< (bytewise) and passes
+  // sorted_input=true to db_->MultiGet. This is correct only while the CF uses
+  // the default BytewiseComparator; if a custom comparator is ever configured
+  // for this CF, the sort order would diverge and MultiGet could return wrong
+  // results. values/statuses are returned de-permuted back to input order.
+  size_t k = keys.size();
+  if (k == 0) {
+    values.clear();
+    return {};
+  }
+  std::vector<size_t> order(k);
+  std::iota(order.begin(), order.end(), 0);
+  std::sort(order.begin(), order.end(),
+            [&](size_t a, size_t b) { return keys[a] < keys[b]; });
+
+  std::vector<rocksdb::Slice> sorted_keys(k);
+  for (size_t i = 0; i < k; i++) {
+    sorted_keys[i] = rocksdb::Slice(keys[order[i]]);
   }
 
-  std::vector<rocksdb::Status> statuses =
-      db_->MultiGet(rocksdb::ReadOptions(), column_families, keys, &values);
+  std::vector<rocksdb::PinnableSlice> sorted_values(k);
+  std::vector<rocksdb::Status> sorted_statuses(k);
+  rocksdb::ReadOptions ro;
+  db_->MultiGet(ro, cf_handles_[cf_id], k, sorted_keys.data(),
+                sorted_values.data(), sorted_statuses.data(),
+                true /*sorted_input*/);
+
+  values.assign(k, std::string());
+  std::vector<rocksdb::Status> statuses(k);
+  for (size_t i = 0; i < k; i++) {
+    size_t orig = order[i];
+    if (sorted_statuses[i].ok()) {
+      values[orig].assign(sorted_values[i].data(), sorted_values[i].size());
+    }
+    statuses[orig] = std::move(sorted_statuses[i]);
+  }
   return statuses;
 }
 

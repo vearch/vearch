@@ -199,6 +199,12 @@ struct ScopeDeleter1 {
 std::string ToRowKey64(int64_t key);
 std::string ToRowKey(int32_t key);
 
+// Storage key for a single string-typed field of a doc:
+// "<field_name>:<ToRowKey(id)>". Fixed-type fields live in the doc's packed row
+// (ToRowKey alone); each string field is stored under its own key in this
+// format. Read and write paths must agree on it, so keep it in one place.
+std::string ToStringFieldKey(const std::string &field_name, int32_t id);
+
 int64_t FromRowKey64(const std::string &key);
 int32_t FromRowKey(const std::string &key);
 

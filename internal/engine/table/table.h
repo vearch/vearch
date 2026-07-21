@@ -160,6 +160,12 @@ class Table {
   bool GetEnableIdCache() { return enable_id_cache_; }
   void SetEnableIdCache(bool enabled);
 
+  const std::vector<DataType> &Attrs() const { return attrs_; }
+  size_t FieldOffset(int field_id) const { return idx_attr_offset_[field_id]; }
+  int CfId() const { return cf_id_; }
+  StorageManager *GetStorageMgr() const { return storage_mgr_; }
+  static int FTypeSize(DataType fType);
+
   DumpConfig *GetDumpConfig() { return table_params_; }
 
   int64_t GetStorageManagerSize();
@@ -169,8 +175,6 @@ class Table {
   int64_t last_docid_;
 
  private:
-  int FTypeSize(DataType fType);
-
   Status AddField(const std::string &name, DataType ftype, bool is_index);
 
   std::string name_;   // table name
