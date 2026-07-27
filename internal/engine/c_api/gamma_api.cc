@@ -15,6 +15,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "api_data/doc.h"
 #include "api_data/response.h"
@@ -318,34 +319,45 @@ struct CStatus Backup(void *engine, int command) {
   return cstatus;
 }
 
-struct CStatus AddFieldIndexWithParams(void *engine, const char *field_name,
-                                       int field_name_len,
+struct CStatus AddFieldIndexWithParams(void *engine,
+                                       const char *index_name,
+                                       int index_name_len,
+                                       const char *const *field_names,
+                                       const int *field_name_lens,
+                                       int field_name_count,
                                        const char *index_type,
                                        int index_type_len,
                                        const char *index_params,
                                        int index_params_len) {
-  std::string fieldName = std::string(field_name, field_name_len);
-  std::string indexType = std::string(index_type, index_type_len);
-  std::string indexParams = std::string(index_params, index_params_len);
+  std::string indexName(index_name, index_name_len);
+  std::string indexType(index_type, index_type_len);
+  std::string indexParams(index_params, index_params_len);
 
-  LOG(INFO) << "adding index for field: " << fieldName
-            << " with type: " << indexType << " and params: " << indexParams;
+  std::vector<std::string> fieldNames;
+  fieldNames.reserve(field_name_count);
+  for (int i = 0; i < field_name_count; ++i) {
+    fieldNames.emplace_back(field_names[i], field_name_lens[i]);
+  }
+
+  LOG(INFO) << "adding index name=" << indexName
+            << " fields=" << utils::join(fieldNames, ',') << " type=" << indexType
+            << " params=" << indexParams;
 
   vearch::Status status;
   status = static_cast<vearch::Engine *>(engine)->AddFieldIndex(
-      fieldName, indexType, indexParams);
+      indexName, fieldNames, indexType, indexParams);
 
   struct CStatus cstatus;
   Status2CStatus(status, cstatus);
   return cstatus;
 }
 
-struct CStatus RemoveFieldIndex(void *engine, const char *field_name,
-                                int field_name_len) {
-  std::string fieldName = std::string(field_name, field_name_len);
-  LOG(INFO) << "removing index for field: " << fieldName;
+struct CStatus RemoveFieldIndex(void *engine, const char *index_name,
+                                int index_name_len) {
+  std::string indexName(index_name, index_name_len);
+  LOG(INFO) << "removing index name=" << indexName;
   vearch::Status status;
-  status = static_cast<vearch::Engine *>(engine)->RemoveFieldIndex(fieldName);
+  status = static_cast<vearch::Engine *>(engine)->RemoveFieldIndex(indexName);
   struct CStatus cstatus;
   Status2CStatus(status, cstatus);
   return cstatus;

@@ -288,4 +288,12 @@ void BitmapIndex::Clear() {
   data_.clear();
 }
 
+int BitmapIndex::DropAll() {
+  // Pure in-memory: clearing data_ discards every (value -> docids) bucket.
+  // No persisted RocksDB keys exist to delete (Init rebuilds data_ from
+  // storage), so this fully drops the index's contents.
+  Clear();
+  return 0;
+}
+
 } // namespace vearch

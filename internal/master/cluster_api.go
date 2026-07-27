@@ -49,6 +49,7 @@ const (
 	paramDbName         = "db_name"
 	paramSpaceName      = "space_name"
 	paramAliasName      = "alias_name"
+	paramIndexName      = "index_name"
 	paramUserName       = "user_name"
 	paramRoleName       = "role_name"
 	paramMemberId       = "member_id"
@@ -73,8 +74,10 @@ func (ca *clusterAPI) handleError(c *gin.Context, err error) int {
 		return httpCode
 	}
 
-	// Check if it's a VearchErr and handle specific error types
-	if vErr, ok := err.(*vearchpb.VearchErr); ok {
+	// A pre-built ErrRequest already carries its HTTP status; otherwise map by error type.
+	if reqErr, ok := err.(*errors.ErrRequest); ok {
+		httpCode = response.New(c).JsonError(reqErr)
+	} else if vErr, ok := err.(*vearchpb.VearchErr); ok {
 		switch vErr.GetError().Code {
 		case vearchpb.ErrorEnum_DB_EXIST, vearchpb.ErrorEnum_SPACE_EXIST, vearchpb.ErrorEnum_ALIAS_EXIST,
 			vearchpb.ErrorEnum_USER_EXIST, vearchpb.ErrorEnum_ROLE_EXIST:
@@ -284,6 +287,13 @@ func ExportToClusterHandler(router *gin.Engine, masterService *masterService, se
 	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces", paramDbName), c.getSpace)
 	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", paramDbName, paramSpaceName), c.deleteSpace)
 	groupAuth.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", paramDbName, paramSpaceName), c.updateSpace)
+
+	// space indexes handler (dynamically add/remove/list indexes on a space)
+	groupAuth.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s/indexes", paramDbName, paramSpaceName), c.listIndexes)
+	groupAuth.POST(fmt.Sprintf("/dbs/:%s/spaces/:%s/indexes", paramDbName, paramSpaceName), c.createIndexes)
+	groupAuth.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s/indexes/:%s", paramDbName, paramSpaceName, paramIndexName), c.deleteIndex)
+
+	// backup handler
 	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s", paramDbName, paramSpaceName), c.backupSpace)
 	groupAuth.POST(fmt.Sprintf("/backup/dbs/:%s", paramDbName), c.backupDb)
 	groupAuth.GET(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s/versions/:%s/progress", paramDbName, paramSpaceName, versionID), c.getBackupProgress)
@@ -821,6 +831,80 @@ func (ca *clusterAPI) updateSpace(c *gin.Context) {
 	} else {
 		httpCode = response.New(c).JsonSuccess(spaceResult)
 	}
+}
+
+// listIndexes returns all indexes currently defined on a space.
+func (ca *clusterAPI) listIndexes(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleListIndexes"
+	httpCode := http.StatusOK
+	dbName := c.Param(paramDbName)
+	spaceName := c.Param(paramSpaceName)
+	detail := c.Query(paramDetail)
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+
+	indexes, err := ca.masterService.Space().ListIndexes(c, dbName, spaceName, detail == "true")
+	if err != nil {
+		httpCode = ca.handleError(c, err)
+		return
+	}
+	httpCode = response.New(c).JsonSuccess(indexes)
+}
+
+// createIndexes appends one or more indexes to the space's indexes list.
+func (ca *clusterAPI) createIndexes(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleCreateIndex"
+	httpCode := http.StatusOK
+	dbName := c.Param(paramDbName)
+	spaceName := c.Param(paramSpaceName)
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+
+	var req entity.AddIndexesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpCode = ca.handleError(c, errors.NewErrBadRequest(err))
+		return
+	}
+	if len(req.Indexes) == 0 {
+		httpCode = ca.handleError(c, errors.NewErrBadRequest(
+			fmt.Errorf("`indexes` cannot be empty")))
+		return
+	}
+
+	log.Debug("createIndexes db=%s space=%s count=%d", dbName, spaceName, len(req.Indexes))
+
+	spaceResult, err := ca.masterService.Space().AddIndexes(c, dbName, spaceName, req.Indexes)
+	if err != nil {
+		httpCode = ca.handleError(c, err)
+		return
+	}
+	httpCode = response.New(c).JsonSuccess(spaceResult)
+}
+
+// deleteIndex removes a single index (by name) from a space.
+func (ca *clusterAPI) deleteIndex(c *gin.Context) {
+	startTime := time.Now()
+	operateName := "handleDeleteIndex"
+	httpCode := http.StatusOK
+	dbName := c.Param(paramDbName)
+	spaceName := c.Param(paramSpaceName)
+	indexName := c.Param(paramIndexName)
+	defer func() {
+		defer monitor.Profiler(operateName, startTime, httpCode, dbName, spaceName)
+	}()
+
+	log.Debug("deleteIndex db=%s space=%s index=%s", dbName, spaceName, indexName)
+
+	spaceResult, err := ca.masterService.Space().RemoveIndex(c, dbName, spaceName, indexName)
+	if err != nil {
+		httpCode = ca.handleError(c, err)
+		return
+	}
+	httpCode = response.New(c).JsonSuccess(spaceResult)
 }
 
 func (ca *clusterAPI) backupDb(c *gin.Context) {

@@ -34,6 +34,12 @@ class BitmapIndex : public ScalarIndex {
   // Delete a document from the index
   int DeleteDoc(int64_t docid) override;
 
+  // Drop all entries. BitmapIndex is pure in-memory (data_ is rebuilt from
+  // storage on Init), so this just clears the map — unlike Inverted/Composite
+  // there are no persisted RocksDB keys to delete. Overrides the base no-op so
+  // an index rebuild actually discards stale bucket entries.
+  int DropAll() override;
+
   // Get index data size
   size_t GetIndexDataSize() override;
 

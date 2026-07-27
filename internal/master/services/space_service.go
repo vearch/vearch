@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -630,15 +631,21 @@ func (s *SpaceService) handleConfigurationUpdate(ctx context.Context, space *ent
 	if err != nil {
 		return nil, err
 	}
-	// Handle schema updates (field additions and index changes)
-	hasIndexChanges := false
+	// Handle schema updates (field additions only). Index add/remove is NOT
+	// accepted here anymore: it goes through the dedicated INDEXCHANGE channel
+	// (POST/DELETE /dbs/:db/spaces/:space/indexes → AddIndexes/RemoveIndex). The
+	// PS-side UpdateMapping no longer builds or drops indexes, so letting an
+	// index option change through here would only rewrite etcd metadata while
+	// the engine did nothing — a silent drift. Reject it and point the caller at
+	// the right API.
 	if len(temp.Fields) > 0 {
-		// Use spaceProperties to detect index changes more efficiently
 		if indexChanges, err := s.detectIndexChangesWithProperties(space, spaceProperties); err != nil {
 			return nil, err
 		} else if len(indexChanges) > 0 {
-			hasIndexChanges = true
-			log.Info("detected index changes for space: %s, changes: %v", space.Name, indexChanges)
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+				fmt.Errorf("index changes are not supported via space update %v; "+
+					"use the space indexes API (POST/DELETE .../spaces/%s/indexes) instead",
+					indexChanges, space.Name))
 		}
 
 		if err := s.updateSpaceFields(space, temp.Fields); err != nil {
@@ -646,35 +653,13 @@ func (s *SpaceService) handleConfigurationUpdate(ctx context.Context, space *ent
 		}
 	}
 
-	// For index changes, we need a two-phase approach:
-	// Phase 1: Update partitions first (they will handle index operations)
-	// Phase 2: Update etcd metadata only after successful partition updates
-	if hasIndexChanges {
-		// Phase 1: Notify partitions first - they will apply index changes
-		log.Info("phase 1: applying index changes to partitions for space: %s", space.Name)
-		if err := s.notifyPartitionsConfigUpdate(ctx, space); err != nil {
-			// Rollback the field changes if partition update fails
-			log.Error("failed to apply index changes to partitions, rolling back: %v", err)
-			return nil, err
-		}
+	if err := s.notifyPartitionsConfigUpdate(ctx, space); err != nil {
+		return nil, err
+	}
 
-		// Phase 2: Update etcd metadata after successful partition updates
-		log.Info("phase 2: updating etcd metadata for space: %s", space.Name)
-		space.Version--
-		if err := s.UpdateSpaceData(ctx, space); err != nil {
-			log.Error("failed to update etcd metadata after index changes: %v", err)
-			return nil, err
-		}
-	} else {
-		// For non-index changes, use the original flow
-		if err := s.notifyPartitionsConfigUpdate(ctx, space); err != nil {
-			return nil, err
-		}
-
-		space.Version--
-		if err := s.UpdateSpaceData(ctx, space); err != nil {
-			return nil, err
-		}
+	space.Version--
+	if err := s.UpdateSpaceData(ctx, space); err != nil {
+		return nil, err
 	}
 
 	return space, nil
@@ -832,8 +817,10 @@ func (s *SpaceService) updateSpaceFields(space *entity.Space, newFields []byte) 
 		}
 	}
 
-	// Update the schema with all changes (new fields + index changes)
-	if newFieldCount > 0 || s.hasIndexChanges(space.Fields, newFields) {
+	// Merge in newly added fields (plus any inline index definitions they
+	// carry). Index option changes on existing fields are rejected upstream in
+	// handleConfigurationUpdate, so only new fields can reach here.
+	if newFieldCount > 0 {
 		log.Info("updating schema for space: %s, new fields: %d, schema: [%s]",
 			space.Name, newFieldCount, string(newFields))
 
@@ -900,42 +887,6 @@ func (s *SpaceService) isOnlyIndexOptionChangeWithProperties(oldProperty, newPro
 	return oldIsIndexed != newIsIndexed
 }
 
-// hasIndexChanges checks if there are any index-related changes between old and new schemas using SpaceProperties
-func (s *SpaceService) hasIndexChanges(oldFields, newFields []byte) bool {
-	oldSpaceProperties, err := entity.UnmarshalPropertyJSON(oldFields)
-	if err != nil {
-		return false
-	}
-
-	newSpaceProperties, err := entity.UnmarshalPropertyJSON(newFields)
-	if err != nil {
-		return false
-	}
-
-	// Check existing fields for index changes
-	for fieldName, oldProperty := range oldSpaceProperties {
-		if newProperty, exists := newSpaceProperties[fieldName]; exists {
-			oldIsIndexed := oldProperty.Option != vearchpb.FieldOption_Null
-			newIsIndexed := newProperty.Option != vearchpb.FieldOption_Null
-			if oldIsIndexed != newIsIndexed {
-				return true
-			}
-		}
-	}
-
-	// Check new fields with index
-	for fieldName, newProperty := range newSpaceProperties {
-		if _, exists := oldSpaceProperties[fieldName]; !exists {
-			newIsIndexed := newProperty.Option != vearchpb.FieldOption_Null
-			if newIsIndexed {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
 // notifyPartitionsConfigUpdate notifies all partitions of configuration changes
 func (s *SpaceService) notifyPartitionsConfigUpdate(ctx context.Context, space *entity.Space) error {
 	errorChannel := make(chan error, len(space.Partitions))
@@ -961,6 +912,54 @@ func (s *SpaceService) notifyPartitionsConfigUpdate(ctx context.Context, space *
 	for err := range errorChannel {
 		if err != nil {
 			log.Error("UpdatePartition err: %v", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+// notifyPartitionsIndexChange fans an explicit index add/remove instruction out
+// to every partition's leader (raft CmdType_INDEXCHANGE). Returns on the first
+// partition error.
+func (s *SpaceService) notifyPartitionsIndexChange(ctx context.Context, space *entity.Space, ic *vearchpb.IndexChange) error {
+	errorChannel := make(chan error, len(space.Partitions))
+	var waitGroup sync.WaitGroup
+	masterClient := s.client.Master()
+
+	for _, partition := range space.Partitions {
+		waitGroup.Add(1)
+		go func(currentPartition *entity.Partition) {
+			defer waitGroup.Done()
+			partitionInfo, err := masterClient.QueryPartition(ctx, currentPartition.Id)
+			if err != nil {
+				errorChannel <- err
+				return
+			}
+			server, err := masterClient.QueryServer(ctx, partitionInfo.LeaderID)
+			if err != nil {
+				errorChannel <- err
+				return
+			}
+			if !client.IsLive(server.RpcAddr()) {
+				errorChannel <- vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_IS_CLOSED,
+					fmt.Errorf("partition %s is shutdown", server.RpcAddr()))
+				return
+			}
+			if err := client.PartitionIndexChange(server.RpcAddr(), currentPartition.Id, ic); err != nil {
+				errorChannel <- err
+			}
+		}(partition)
+	}
+
+	go func() {
+		waitGroup.Wait()
+		close(errorChannel)
+	}()
+
+	for err := range errorChannel {
+		if err != nil {
+			log.Error("PartitionIndexChange err: %v", err)
 			return err
 		}
 	}
@@ -1368,4 +1367,457 @@ func (s *SpaceService) UpdateSpaceData(ctx context.Context, space *entity.Space)
 	}
 
 	return nil
+}
+
+// loadLockedSpace locates the space by name and acquires the distributed
+// space lock used by other space mutating operations. The returned unlock
+// function MUST be deferred by the caller.
+func (s *SpaceService) loadLockedSpace(ctx context.Context, dbName, spaceName string) (*entity.Space, func(), error) {
+	masterClient := s.client.Master()
+	spaceLock := masterClient.NewLock(ctx, entity.LockSpaceKey(dbName, spaceName), time.Second*300)
+	if err := spaceLock.Lock(); err != nil {
+		return nil, nil, err
+	}
+	unlock := func() {
+		if unlockErr := spaceLock.Unlock(); unlockErr != nil {
+			log.Error("failed to unlock space: %v", unlockErr)
+		}
+	}
+
+	// Release the lock on any error path; on success ownership of unlock is
+	// transferred to the caller, which MUST defer it.
+	release := true
+	defer func() {
+		if release {
+			unlock()
+		}
+	}()
+
+	databaseID, err := masterClient.QueryDBName2ID(ctx, dbName)
+	if err != nil {
+		return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("failed to find database id for %s: %v", dbName, err))
+	}
+	space, err := masterClient.QuerySpaceByName(ctx, databaseID, spaceName)
+	if err != nil {
+		return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("failed to find space %s: %v", spaceName, err))
+	}
+	if space == nil {
+		return nil, nil, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST,
+			fmt.Errorf("space not found: %s", spaceName))
+	}
+
+	release = false
+	return space, unlock, nil
+}
+
+// ListIndexes returns all indexes currently defined on the given space.
+// Read-only: it queries the space directly instead of taking the space lock
+// (loadLockedSpace holds a 300s exclusive lock meant for mutations), so listing
+// never blocks a concurrent add/remove. Mirrors the lock-free read path used by
+// space describe.
+//
+// When detail is true it additionally fans out to every replica of every
+// partition to collect per-replica index build state (see
+// collectIndexBuildState). That path makes one RPC per replica; the default
+// (detail=false) stays a pure-metadata, zero-RPC read.
+func (s *SpaceService) ListIndexes(ctx context.Context, dbName, spaceName string, detail bool) (*entity.IndexesInfo, error) {
+	masterClient := s.client.Master()
+	databaseID, err := masterClient.QueryDBName2ID(ctx, dbName)
+	if err != nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("failed to find database id for %s: %v", dbName, err))
+	}
+	space, err := masterClient.QuerySpaceByName(ctx, databaseID, spaceName)
+	if err != nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("failed to find space %s: %v", spaceName, err))
+	}
+	if space == nil {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_SPACE_NOT_EXIST,
+			fmt.Errorf("space not found: %s", spaceName))
+	}
+
+	// Return a copy to avoid exposing internal slice
+	indexes := make([]*entity.Index, 0, len(space.Indexes))
+	indexes = append(indexes, space.Indexes...)
+	info := &entity.IndexesInfo{
+		DbName:    dbName,
+		SpaceName: spaceName,
+		Indexes:   indexes,
+	}
+	if detail {
+		info.BuildState = s.collectIndexBuildState(ctx, space)
+	}
+	return info, nil
+}
+
+// collectIndexBuildState fans out to every replica of every partition and
+// gathers its index build state. index build state is per-replica local (each
+// PS builds independently), so this is the only way to observe follower state —
+// the describe path only ever queries the leader. Unreachable replicas are
+// recorded with an Error rather than failing the whole call, since an operator
+// running this is most often trying to diagnose exactly such a node.
+func (s *SpaceService) collectIndexBuildState(ctx context.Context, space *entity.Space) []*entity.PartitionIndexBuildState {
+	masterClient := s.client.Master()
+	result := make([]*entity.PartitionIndexBuildState, 0, len(space.Partitions))
+	for _, sp := range space.Partitions {
+		pbs := &entity.PartitionIndexBuildState{PartitionID: sp.Id}
+		partition, err := masterClient.QueryPartition(ctx, sp.Id)
+		if err != nil || partition == nil || partition.Replicas == nil {
+			if err != nil {
+				log.Error("collectIndexBuildState query partition[%d] err: %v", sp.Id, err)
+			}
+			result = append(result, pbs)
+			continue
+		}
+		for _, nodeID := range partition.Replicas {
+			rbs := &entity.ReplicaIndexBuildState{
+				NodeID:   uint64(nodeID),
+				IsLeader: nodeID == partition.LeaderID,
+			}
+			server, err := masterClient.QueryServer(ctx, nodeID)
+			if err != nil {
+				rbs.Error = err.Error()
+				pbs.Replicas = append(pbs.Replicas, rbs)
+				continue
+			}
+			rbs.Ip = server.Ip
+			pi, err := client.PartitionInfo(server.RpcAddr(), sp.Id, true)
+			if err != nil {
+				rbs.Error = err.Error()
+				pbs.Replicas = append(pbs.Replicas, rbs)
+				continue
+			}
+			rbs.IndexStatus = pi.IndexStatus
+			rbs.States = pi.IndexBuildState
+			pbs.Replicas = append(pbs.Replicas, rbs)
+		}
+		result = append(result, pbs)
+	}
+	return result
+}
+
+// compositeFieldKey builds a dedup key from a composite index's field list.
+// Field order is significant for a composite index, so the key preserves it.
+// The NUL separator cannot appear in a field name, so it is unambiguous.
+func compositeFieldKey(fieldNames []string) string {
+	return strings.Join(fieldNames, "\x00")
+}
+
+// compensateIndexChange best-effort reverses a partially-applied index change
+// after the forward fan-out or the etcd write failed. Because the engine's
+// index ADD/REMOVE are idempotent (adding an existing index or removing a
+// missing one is a no-op), it can send the reverse op to EVERY partition
+// without tracking which ones actually applied the forward change — a partition
+// that never applied it simply no-ops on the reverse.
+//
+// This is best-effort: the reverse fan-out can itself fail. That is acceptable
+// because etcd is the source of truth on restart — a partition that applied the
+// forward change but whose reverse failed will realign to etcd (which was NOT
+// updated on this failure path) the next time it reloads. Compensation only
+// shortens the transient inconsistency window; it is not required for eventual
+// correctness. A failed reverse is logged CRITICAL for observability.
+func (s *SpaceService) compensateIndexChange(space *entity.Space, reverse *vearchpb.IndexChange, dbName, spaceName, cause string) {
+	if err := s.notifyPartitionsIndexChange(context.Background(), space, reverse); err != nil {
+		log.Error("CRITICAL: index-change compensation failed for %s/%s after %s: %v; partitions may hold an index absent from etcd until they reload",
+			dbName, spaceName, cause, err)
+	} else {
+		log.Warn("compensated index change for %s/%s after %s", dbName, spaceName, cause)
+	}
+}
+
+// AddIndexes appends new indexes to the given space, validates them against
+// the current schema and propagates the change to all partitions and etcd.
+// Existing indexes are preserved; duplicate names are rejected.
+func (s *SpaceService) AddIndexes(ctx context.Context, dbName, spaceName string, newIndexes []*entity.Index) (*entity.Space, error) {
+	if len(newIndexes) == 0 {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("indexes cannot be empty"))
+	}
+
+	space, unlock, err := s.loadLockedSpace(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
+	// Build name set of current indexes for duplicate detection.
+	// Also collect the set of fields already covered by a single-field
+	// (non-COMPOSITE) index, so we can reject adding another single-field
+	// index on the same field. Composite indexes can share a field with
+	// other indexes, so they are intentionally excluded from this set.
+	// Composite indexes are instead deduplicated by their ordered field
+	// list (field order is significant for a composite index), so we can
+	// reject a new composite that indexes the exact same columns in the
+	// same order as an existing one.
+	existing := make(map[string]struct{}, len(space.Indexes))
+	indexedFields := make(map[string]string, len(space.Indexes))
+	compositeFields := make(map[string]string, len(space.Indexes))
+	for _, idx := range space.Indexes {
+		existing[idx.Name] = struct{}{}
+		if idx.Type == entity.CompositeIndexType {
+			compositeFields[compositeFieldKey(idx.FieldNames)] = idx.Name
+		} else {
+			indexedFields[idx.FieldName] = idx.Name
+		}
+	}
+	for _, idx := range newIndexes {
+		if idx == nil {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+				fmt.Errorf("index entry cannot be nil"))
+		}
+		if idx.Name == "" {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+				fmt.Errorf("index name cannot be empty"))
+		}
+		if _, ok := existing[idx.Name]; ok {
+			return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+				fmt.Errorf("index name %s already exists", idx.Name))
+		}
+		existing[idx.Name] = struct{}{}
+
+		// Reject adding another single-field index to a field that already
+		// has one. Composite indexes are allowed to share fields, but two
+		// composite indexes over the same ordered field list are rejected.
+		// Malformed entries (empty field_name / field_names) are skipped here
+		// and left for ValidateIndexes below to reject with a precise message.
+		if idx.Type == entity.CompositeIndexType {
+			if len(idx.FieldNames) > 0 {
+				key := compositeFieldKey(idx.FieldNames)
+				if existingName, ok := compositeFields[key]; ok {
+					return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+						fmt.Errorf("fields%v are already indexed by composite index [%s], cannot add another composite index on the same fields",
+							idx.FieldNames, existingName))
+				}
+				compositeFields[key] = idx.Name
+			}
+		} else if idx.FieldName != "" {
+			if existingName, ok := indexedFields[idx.FieldName]; ok {
+				return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+					fmt.Errorf("field[%s] is already indexed by [%s], cannot add another single-field index",
+						idx.FieldName, existingName))
+			}
+			indexedFields[idx.FieldName] = idx.Name
+		}
+	}
+
+	// Validate the merged index list against the space schema (fields).
+	// Note: we intentionally do NOT call MergeFieldIndexes here, because the
+	// inline `field.index` definitions have already been merged into
+	// space.Indexes during space creation. Re-merging would falsely report
+	// `field[xxx] index duplicated` for those inline-defined indexes.
+	props, err := entity.UnmarshalPropertyJSON(space.Fields)
+	if err != nil {
+		return nil, err
+	}
+	merged := make([]*entity.Index, 0, len(space.Indexes)+len(newIndexes))
+	merged = append(merged, space.Indexes...)
+	merged = append(merged, newIndexes...)
+	if err := entity.ValidateIndexes(merged, props); err != nil {
+		return nil, err
+	}
+
+	// Snapshot the pre-change index list so we can roll PS back if the
+	// etcd write fails. Element-level shallow copy is enough — we only
+	// reassign space.Indexes to the snapshot on rollback, never mutate
+	// individual *Index entries.
+	oldIndexes := make([]*entity.Index, len(space.Indexes))
+	copy(oldIndexes, space.Indexes)
+
+	// Apply changes
+	space.Indexes = merged
+
+	// Ship the explicit "add these indexes" instruction to partitions (raft
+	// INDEXCHANGE), then persist metadata. The PS applies exactly newIndexes
+	// rather than diffing the whole space.
+	addBytes, err := json.Marshal(newIndexes)
+	if err != nil {
+		return nil, err
+	}
+	addChange := &vearchpb.IndexChange{
+		Op:      vearchpb.IndexChangeOp_ADD_INDEX,
+		Indexes: addBytes,
+	}
+	// compensateAdd reverses a partially-applied ADD by removing each just-added
+	// index from all partitions. Used for both a fan-out failure (some
+	// partitions applied, some did not) and an etcd-write failure (all applied
+	// but metadata never persisted).
+	compensateAdd := func(cause string) {
+		space.Indexes = oldIndexes
+		for _, idx := range newIndexes {
+			if idx == nil || idx.Name == "" {
+				continue
+			}
+			s.compensateIndexChange(space, &vearchpb.IndexChange{
+				Op:        vearchpb.IndexChangeOp_REMOVE_INDEX,
+				IndexName: idx.Name,
+			}, dbName, spaceName, cause+" index["+idx.Name+"]")
+		}
+	}
+
+	if err := s.notifyPartitionsIndexChange(ctx, space, addChange); err != nil {
+		log.Error("failed to apply new indexes to partitions: %v", err)
+		// A partial fan-out may have applied the add on some partitions; reverse
+		// it everywhere so we don't leave indexes that etcd never recorded.
+		compensateAdd("fan-out failure")
+		return nil, err
+	}
+
+	if err := s.UpdateSpaceData(ctx, space); err != nil {
+		log.Error("failed to persist space metadata after index add: %v", err)
+		compensateAdd("etcd write failure")
+		return nil, err
+	}
+	log.Info("added %d indexes to space %s/%s", len(newIndexes), dbName, spaceName)
+	return space, nil
+}
+
+// inlineIndexMatches reports whether a field's inline index definition refers
+// to the same index being removed. Prefer the index name; fall back to type for
+// legacy spaces whose inline indexes predate per-index names (empty Name).
+func inlineIndexMatches(inline *entity.Index, removed *entity.Index) bool {
+	if inline == nil || removed == nil {
+		return false
+	}
+	if inline.Name != "" && removed.Name != "" {
+		return inline.Name == removed.Name
+	}
+	return inline.Type == removed.Type
+}
+
+// clearFieldInlineIndex removes the inline index from the field named by
+// removed.FieldName in the fields JSON (space.Fields). Returns the rewritten
+// JSON and whether anything changed. On any parse/marshal error it returns the
+// input unchanged so the caller keeps the original bytes. Uses []byte rather
+// than json.RawMessage because this file's json is internal/pkg/vjson, which
+// has no RawMessage type; space.Fields (encoding/json.RawMessage) assigns to
+// and from []byte freely.
+func clearFieldInlineIndex(fields []byte, removed *entity.Index) ([]byte, bool) {
+	if len(fields) == 0 || removed == nil {
+		return fields, false
+	}
+	var parsed []entity.Field
+	if err := json.Unmarshal(fields, &parsed); err != nil {
+		log.Error("clearFieldInlineIndex: unmarshal fields failed: %v", err)
+		return fields, false
+	}
+	changed := false
+	for i := range parsed {
+		if parsed[i].Name == removed.FieldName &&
+			inlineIndexMatches(parsed[i].Index, removed) {
+			parsed[i].Index = nil
+			changed = true
+		}
+	}
+	if !changed {
+		return fields, false
+	}
+	out, err := json.Marshal(parsed)
+	if err != nil {
+		log.Error("clearFieldInlineIndex: marshal fields failed: %v", err)
+		return fields, false
+	}
+	return out, true
+}
+
+// RemoveIndex removes a single index (by name) from the given space and
+// propagates the change to partitions and etcd.
+func (s *SpaceService) RemoveIndex(ctx context.Context, dbName, spaceName, indexName string) (*entity.Space, error) {
+	if indexName == "" {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("index name cannot be empty"))
+	}
+
+	space, unlock, err := s.loadLockedSpace(ctx, dbName, spaceName)
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+
+	found := -1
+	for i, idx := range space.Indexes {
+		if idx != nil && idx.Name == indexName {
+			found = i
+			break
+		}
+	}
+	if found < 0 {
+		return nil, vearchpb.NewError(vearchpb.ErrorEnum_PARAM_ERROR,
+			fmt.Errorf("index %s not found in space %s", indexName, spaceName))
+	}
+
+	oldIndexes := make([]*entity.Index, len(space.Indexes))
+	copy(oldIndexes, space.Indexes)
+	removedIndex := space.Indexes[found]
+
+	remaining := make([]*entity.Index, 0, len(space.Indexes)-1)
+	remaining = append(remaining, space.Indexes[:found]...)
+	remaining = append(remaining, space.Indexes[found+1:]...)
+	space.Indexes = remaining
+
+	// A single-field index may also be declared inline on the field (fields[].
+	// index), which is mirrored into both space.Fields and space.SpaceProperties.
+	// Removing it only from space.Indexes leaves those in place, so the metadata
+	// is inconsistent and — worse — once space.Indexes is empty the PS rebuild
+	// falls back to SpaceProperties (gammacb/util.go) and the index resurrects on
+	// restart. Clear the field's inline index too. Composite indexes cannot be
+	// declared inline on a field (MergeFieldIndexes rejects that), so skip them.
+	// oldFields/oldProps are captured for rollback below.
+	oldFields := space.Fields
+	oldProps := space.SpaceProperties
+	if removedIndex != nil && removedIndex.Type != entity.CompositeIndexType &&
+		removedIndex.FieldName != "" {
+		if newFields, changed := clearFieldInlineIndex(space.Fields, removedIndex); changed {
+			space.Fields = newFields
+		}
+		if space.SpaceProperties != nil {
+			if prop := space.SpaceProperties[removedIndex.FieldName]; prop != nil &&
+				inlineIndexMatches(prop.Index, removedIndex) {
+				prop.Index = nil
+				prop.Option = vearchpb.FieldOption_Null
+			}
+		}
+	}
+
+	// Ship the explicit "remove this index" instruction to partitions.
+	removeChange := &vearchpb.IndexChange{
+		Op:        vearchpb.IndexChangeOp_REMOVE_INDEX,
+		IndexName: indexName,
+	}
+	// compensateRemove reverses a partially-applied REMOVE by re-adding the
+	// removed index on all partitions. Used for both a fan-out failure and an
+	// etcd-write failure. If the reverse op cannot even be built (marshal
+	// error), that is logged CRITICAL and no compensation is attempted.
+	compensateRemove := func(cause string) {
+		space.Indexes = oldIndexes
+		space.Fields = oldFields
+		space.SpaceProperties = oldProps
+		addBytes, mErr := json.Marshal([]*entity.Index{removedIndex})
+		if mErr != nil {
+			log.Error("CRITICAL: index-change compensation marshal failed for %s/%s index[%s] after %s: %v",
+				dbName, spaceName, indexName, cause, mErr)
+			return
+		}
+		s.compensateIndexChange(space, &vearchpb.IndexChange{
+			Op:      vearchpb.IndexChangeOp_ADD_INDEX,
+			Indexes: addBytes,
+		}, dbName, spaceName, cause+" index["+indexName+"]")
+	}
+
+	if err := s.notifyPartitionsIndexChange(ctx, space, removeChange); err != nil {
+		log.Error("failed to apply index removal to partitions: %v", err)
+		// A partial fan-out may have removed the index on some partitions;
+		// re-add it everywhere so we don't drop an index etcd still lists.
+		compensateRemove("fan-out failure")
+		return nil, err
+	}
+	if err := s.UpdateSpaceData(ctx, space); err != nil {
+		log.Error("failed to persist space metadata after index removal: %v", err)
+		compensateRemove("etcd write failure")
+		return nil, err
+	}
+	log.Info("removed index %s from space %s/%s", indexName, dbName, spaceName)
+	return space, nil
 }

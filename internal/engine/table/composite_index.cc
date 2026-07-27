@@ -243,6 +243,38 @@ int CompositeIndex::DeleteDoc(int64_t docid) {
   return 0;
 }
 
+int CompositeIndex::DropAll() {
+  auto& db = storage_mgr_->GetDB();
+  rocksdb::ColumnFamilyHandle* cf_handler = CfHandler();
+  if (db == nullptr || cf_handler == nullptr) {
+    LOG(ERROR) << "DropAll: db or cf handler is null";
+    return -1;
+  }
+
+  // header_key_ ends with '_' and is the common prefix of every key this
+  // composite index writes. The exclusive upper bound must be the prefix with
+  // its last byte incremented (AdvancePrefix), NOT header_key_ + 0xFF: a
+  // sortable-encoded field value can begin with 0xFF (e.g. an INT near INT_MAX),
+  // so "header_key_ + 0xFF" would sort below such a key and DeleteRange would
+  // skip it, leaving stale keys behind.
+  std::string begin_key = header_key_;
+  std::string end_key = AdvancePrefix(header_key_);
+  if (end_key.empty()) {
+    // header_key_ ends with '_' (0x5F), so this never happens; guard anyway.
+    LOG(ERROR) << "CompositeIndex::DropAll: prefix is all 0xFF, cannot bound";
+    return -1;
+  }
+
+  rocksdb::Status s = db->DeleteRange(rocksdb::WriteOptions(), cf_handler,
+                                      rocksdb::Slice(begin_key),
+                                      rocksdb::Slice(end_key));
+  if (!s.ok()) {
+    LOG(ERROR) << "DropAll DeleteRange failed: " << s.ToString();
+    return -1;
+  }
+  return 0;
+}
+
 bool isPrefixUnordered(const std::vector<int>& A, const std::vector<int>& B) {
   if (B.size() > A.size()) return false;
   if (B.empty()) return false;

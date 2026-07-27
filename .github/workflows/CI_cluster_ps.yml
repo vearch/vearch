@@ -68,6 +68,68 @@ jobs:
         curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
         curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
 
+    - name: Run tests for index crash recovery
+      run: |
+        cd test
+        # Seed a large space and fire add-index; do not wait for READY.
+        pytest test_cluster_space.py -x -k "TestIndexCrashRecoveryPrepare" --log-cli-level=INFO
+        cd ../cloud
+        # Kill ps1 while the backfill is still running (replica_num=3 puts a
+        # replica on ps1), then restart so Engine::Load runs the drop-and-
+        # rebuild recovery for the half-built BUILDING index.
+        docker-compose stop ps1
+        sleep 30
+        docker-compose start ps1
+        sleep 30
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        echo "cluster status after ps1 restart: $status"
+        cd ../test
+        # Assert the index recovers to READY (as reported by the partition
+        # leader via describe) and filter results are complete (no
+        # silently-missing tail).
+        pytest test_cluster_space.py -x -k "TestIndexCrashRecoveryVerify" --log-cli-level=INFO
+        sleep 10
+        # Leave the cluster clean for the next step: no leftover dbs, health back.
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty after crash-recovery step"
+          exit 1
+        fi
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+
+    - name: Run tests for list indexes detail per-replica
+      run: |
+        cd test
+        # Create a 3-replica IVFPQ space, seed, dynamically add an index and
+        # assert GET /indexes?detail=true reports every replica's own build
+        # state (structure + is_leader + converge-to-READY).
+        pytest test_cluster_space.py -x -k "TestListIndexesDetailPrepare" --log-cli-level=INFO
+        cd ../cloud
+        # Stop ps1 so one replica becomes unreachable, then assert the detail
+        # response still succeeds and marks that replica's entry with an error
+        # while the survivors report normally.
+        docker-compose stop ps1
+        sleep 30
+        status=$(curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true\&timeout=1000000 | jq -r '.data[0].status')
+        echo "cluster status after ps1 stop: $status"
+        cd ../test
+        pytest test_cluster_space.py -x -k "TestListIndexesDetailVerify" --log-cli-level=INFO
+        cd ../cloud
+        docker-compose start ps1
+        sleep 30
+        cd ../test
+        # Drop the space/db only after ps1 is back (every other step starts the
+        # stopped PS before tearing down).
+        pytest test_cluster_space.py -x -k "TestListIndexesDetailCleanup" --log-cli-level=INFO
+        sleep 10
+        # Leave the cluster clean for the next step: no leftover dbs, health back.
+        db_num=$(curl -s -L -u root:secret http://127.0.0.1:8817/dbs | jq '.data | length')
+        if [ "$db_num" -ne 0 ]; then
+          echo "db is not empty after list-indexes-detail step"
+          exit 1
+        fi
+        curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
+
     - name: Run tests for upsert with faulty ps
       run: |
         cd test
@@ -347,6 +409,32 @@ jobs:
         curl -s -L -u root:secret http://127.0.0.1:8817/servers | jq
         curl -s -L -u root:secret http://127.0.0.1:8817/cluster/health?detail=true | jq
   
+    - name: Dump cluster logs on failure
+      if: failure()
+      run: |
+        echo "===== docker ps -a ====="
+        docker ps -a || true
+        for svc in master1 router1 ps1 ps2 ps3 ps4; do
+          echo "===== docker-compose logs (tail 10000): $svc ====="
+          docker-compose -f cloud/docker-compose.yml logs --tail 10000 "$svc" 2>&1 || true
+        done
+        # The engine writes its real runtime logs to files under /vearch/logs/
+        # (config global.log = "logs/"), NOT to stdout — docker logs only shows
+        # the raft logfile truncate lines. Copy the logs dir out of each PS
+        # container (docker cp works even if the container is exited) and cat it.
+        for c in vearch-ps1 vearch-ps2 vearch-ps3 vearch-master1 vearch-router1; do
+          echo "===== $c: /vearch/logs/ ====="
+          rm -rf "/tmp/$c-logs" || true
+          if docker cp "$c:/vearch/logs" "/tmp/$c-logs" 2>/dev/null; then
+            for f in "/tmp/$c-logs"/*.log; do
+              echo "--- $f (tail 5000) ---"
+              tail -n 5000 "$f" 2>/dev/null || true
+            done
+          else
+            echo "(could not copy logs from $c)"
+          fi
+        done
+
     - name: Clean cluster
       run: |
         docker-compose -f cloud/docker-compose.yml --profile cluster stop

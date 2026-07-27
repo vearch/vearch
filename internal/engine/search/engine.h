@@ -9,7 +9,12 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <deque>
+#include <map>
+#include <mutex>
 #include <string>
+#include <thread>
+#include <vector>
 
 #include "c_api/api_data/doc.h"
 #include "c_api/api_data/request.h"
@@ -30,6 +35,16 @@ enum class IndexingState : int {
   STARTING = 1,  // Starting indexing process
   RUNNING = 2,   // Actively indexing
   STOPPING = 3   // Stopping indexing process
+};
+
+// A queued schema-mutation task processed serially by the maintenance worker.
+enum class IndexTaskType { ADD, REMOVE };
+struct IndexTask {
+  IndexTaskType type;
+  std::string index_name;
+  std::vector<std::string> field_names;  // ADD only
+  std::string index_type;                // ADD only
+  std::string index_param;               // ADD only
 };
 
 class Engine {
@@ -86,31 +101,35 @@ class Engine {
   Status Backup(int command);
 
   /**
-   * @brief add index for a specific field
+   * @brief add an index identified by a user-defined name. The kind of index
+   *        is determined by inspecting field_names: a single vector field
+   *        creates a vector index, a single scalar field creates a scalar
+   *        index, and 2+ scalar fields create a composite scalar index.
    *
-   * @param field_name  field name to add index
-   * @param indexType  index type
-   * @param indexParam  index parameters
-   * @return Status
+   * @param index_name  user-defined index name (used as the deletion handle)
+   * @param field_names ordered list of fields the index is built on
+   * @param indexType   index type string
+   * @param indexParam  index parameters (JSON)
    */
-  Status AddFieldIndex(const std::string &field_name,
+  Status AddFieldIndex(const std::string &index_name,
+                       const std::vector<std::string> &field_names,
                        const std::string &indexType,
                        const std::string &indexParam);
 
   /**
-   * @brief remove index for a specific field
+   * @brief remove an index by its user-defined name. Routes to vector,
+   *        scalar, or composite removal based on internal bookkeeping.
    *
-   * @param field_name  field name to remove index
-   * @return Status
+   * @param index_name  user-defined index name to remove
    */
-  Status RemoveFieldIndex(const std::string &field_name);
+  Status RemoveFieldIndex(const std::string &index_name);
 
   int GetDocsNum();
 
   int GetTrainingThreshold() { return training_threshold_; }
   void SetIsDirty(bool is_dirty) { is_dirty_ = is_dirty; }
-  int GetMaxDocid() { return max_docid_; }
-  void SetMaxDocid(int max_docid) { max_docid_ = max_docid; }
+  int GetMaxDocid() { return max_docid_.load(); }
+  void SetMaxDocid(int max_docid) { max_docid_.store(max_docid); }
 
   Table *GetTable() { return table_; }
 
@@ -133,6 +152,11 @@ class Engine {
 
   int Indexing();
 
+  // Safely stop a running indexing thread (compare_exchange RUNNING->STOPPING,
+  // wait for completion) and join it. `reason` is interpolated into the log
+  // messages, e.g. "rebuild", "field index addition", "field removal".
+  void StopIndexingThread(const std::string &reason);
+
   int AddNumIndexFields();
 
   int64_t ScalarIndexQuery(Request &request, SearchCondition *condition,
@@ -141,11 +165,49 @@ class Engine {
 
   void BackupThread(int command);
 
-  void AddFieldIndexThread(const std::string &field_name,
+  // Executes one queued ADD task on the maintenance worker thread. Dispatches
+  // by index shape to AddVectorFieldIndex / AddCompositeFieldIndex /
+  // AddScalarFieldIndex.
+  void AddFieldIndexTask(const std::string &index_name,
+                         const std::vector<std::string> &field_names,
+                         const std::string &indexType,
+                         const std::string &indexParam);
+
+  // Branch implementations dispatched by AddFieldIndexTask, one per index
+  // shape. Each publishes its index and logs its own outcome. Scalar/composite
+  // use publish-then-backfill (empty index published BUILDING, backfilled
+  // off-lock, flipped READY). All run on the single maintenance worker, so no
+  // two schema mutations overlap.
+  void AddVectorFieldIndex(const std::string &index_name,
+                           const std::string &field_name,
                            const std::string &indexType,
                            const std::string &indexParam);
 
-  void RemoveFieldIndexThread(const std::string &field_name);
+  void AddCompositeFieldIndex(const std::string &index_name,
+                              const std::vector<std::string> &field_names);
+
+  void AddScalarFieldIndex(const std::string &index_name,
+                           const std::string &field_name,
+                           const std::string &indexType);
+
+  // Backfill an already-published (BUILDING) scalar/composite index object over
+  // docids [0, snapshot_max] inclusive, then flip it to READY and drop the
+  // persisted BUILDING marker. Shared by the dynamic add path and the
+  // crash-recovery path in Load(). `index` must already be in the manager map.
+  // Returns 0 on success.
+  int BackfillScalarIndex(const std::string &index_name,
+                          const std::shared_ptr<ScalarIndex> &index,
+                          int64_t snapshot_max);
+
+  void RemoveFieldIndexTask(const std::string &index_name);
+
+  // Maintenance worker: single FIFO thread that serializes every schema
+  // mutation (add+backfill, remove+DropAll) for this Engine, replacing the
+  // former fire-and-forget add/remove threads. Serialization here — not the
+  // raft applier — is what guarantees no two index mutations race.
+  void IndexMaintenanceLoop();
+  void EnsureIndexMaintThread();
+  void EnqueueIndexTask(IndexTask task);
 
  private:
   std::string index_root_path_;
@@ -159,7 +221,12 @@ class Engine {
   Table *table_;
   VectorManager *vec_manager_;
 
-  int64_t max_docid_;
+  // Next docid to assign. Atomic because the maintenance worker reads it as the
+  // backfill snapshot concurrently with the raft-apply write thread's
+  // increment, and search threads read it during queries. seq_cst ordering
+  // guarantees a snapshot read taken after publishing an index observes every
+  // increment that preceded the publish (see BackfillScalarIndex).
+  std::atomic<int64_t> max_docid_{0};
   int training_threshold_;
   int slow_search_time_;
   // all indexes: scalar index managed by scalar index manager and vector index managed by vector manager
@@ -180,8 +247,14 @@ class Engine {
   std::atomic<int> backup_status_;
   std::thread backup_thread_;
   std::thread indexing_thread_;
-  std::thread add_field_index_thread_;
-  std::thread remove_field_index_thread_;
+
+  // Maintenance worker: single thread draining index_task_queue_ in FIFO order.
+  std::thread index_maint_thread_;
+  std::mutex index_task_mutex_;
+  std::condition_variable index_task_cv_;
+  std::deque<IndexTask> index_task_queue_;
+  bool index_maint_stop_ = false;
+  bool index_maint_started_ = false;
 
   bool created_table_;
 

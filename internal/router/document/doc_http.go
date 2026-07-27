@@ -54,6 +54,7 @@ const (
 	URLParamRoleName    = "role_name"
 	URLParamMemberId    = "member_id"
 	URLParamVersionID   = "version_id"
+	URLParamIndexName   = "index_name"
 	NodeID              = "node_id"
 	URLParamRequestID   = "X-Request-Id"
 	defaultTimeout      = 10 * time.Second
@@ -219,12 +220,18 @@ func (handler *DocumentHandler) proxyMaster(group *gin.RouterGroup) error {
 	group.GET(fmt.Sprintf("/restore/dbs/:%s/spaces/:%s/progress", URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
 	group.DELETE(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s/versions/:%s", URLParamDbName, URLParamSpaceName, URLParamVersionID), handler.handleMasterRequest)
 	group.DELETE(fmt.Sprintf("/backup/dbs/:%s/spaces/:%s/versions/:%s/direct", URLParamDbName, URLParamSpaceName, URLParamVersionID), handler.handleMasterRequest)
+
 	// space handler
 	group.POST(fmt.Sprintf("/dbs/:%s/spaces", URLParamDbName), handler.handleMasterRequest)
 	group.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
 	group.GET(fmt.Sprintf("/dbs/:%s/spaces", URLParamDbName), handler.handleMasterRequest)
 	group.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
 	group.PUT(fmt.Sprintf("/dbs/:%s/spaces/:%s", URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
+
+	// space indexes handler
+	group.GET(fmt.Sprintf("/dbs/:%s/spaces/:%s/indexes", URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
+	group.POST(fmt.Sprintf("/dbs/:%s/spaces/:%s/indexes", URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)
+	group.DELETE(fmt.Sprintf("/dbs/:%s/spaces/:%s/indexes/:%s", URLParamDbName, URLParamSpaceName, URLParamIndexName), handler.handleMasterRequest)
 
 	// alias handler
 	group.POST(fmt.Sprintf("/alias/:%s/dbs/:%s/spaces/:%s", URLParamAliasName, URLParamDbName, URLParamSpaceName), handler.handleMasterRequest)

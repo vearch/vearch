@@ -74,6 +74,35 @@ func (s *Store) UpdateSpace(ctx context.Context, space *entity.Space) error {
 	return nil
 }
 
+// IndexChange proposes an explicit add/remove-index instruction through raft
+// (CmdType_INDEXCHANGE), instead of pushing the whole space and diffing. The
+// applier resolves op/payload in applyIndexChange.
+func (s *Store) IndexChange(ctx context.Context, ic *vearchpb.IndexChange) error {
+	if err := s.checkWritable(); err != nil {
+		return err
+	}
+
+	raftCmd := &vearchpb.RaftCommand{
+		Type:        vearchpb.CmdType_INDEXCHANGE,
+		IndexChange: ic,
+	}
+
+	data, err := json.Marshal(raftCmd)
+	if err != nil {
+		return err
+	}
+
+	future := s.RaftServer.Submit(uint64(s.Partition.Id), data)
+	response, err := future.Response()
+	if err != nil {
+		return err
+	}
+	if response.(*RaftApplyResponse).Err != nil {
+		return response.(*RaftApplyResponse).Err
+	}
+	return nil
+}
+
 func (s *Store) Write(ctx context.Context, request *vearchpb.DocCmd) (err error) {
 	if err = s.checkWritable(); err != nil {
 		return err

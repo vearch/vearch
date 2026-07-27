@@ -72,6 +72,7 @@ const (
 	DeletePartitionHandler = "DeletePartitionHandler"
 	DeleteReplicaHandler   = "DeleteReplicaHandler"
 	UpdatePartitionHandler = "UpdatePartitionHandler"
+	IndexChangePartitionHandler = "IndexChangePartitionHandler"
 	StatsHandler           = "StatsHandler"
 	IsLiveHandler          = "IsLiveHandler"
 	PartitionInfoHandler   = "PartitionInfoHandler"

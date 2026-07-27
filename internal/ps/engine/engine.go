@@ -72,6 +72,13 @@ type Engine interface {
 	UpdateMapping(space *entity.Space) error
 	GetMapping() *mapping.IndexMapping
 
+	// Apply an explicit index change delivered by a raft INDEXCHANGE command.
+	// AddIndexes adds each index (scalar/composite/vector); RemoveIndex drops
+	// one by name. These replace the old "diff the whole space in UpdateMapping"
+	// path — the caller already knows the exact operation.
+	AddIndexes(indexes []*entity.Index) error
+	RemoveIndex(indexName string) error
+
 	GetSpace() *entity.Space
 	GetPartitionID() entity.PartitionID
 

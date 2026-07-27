@@ -283,21 +283,67 @@ func BackupSpace(engine unsafe.Pointer, command string) *Status {
 	return status
 }
 
-// AddFieldIndexWithParams adds index for a field with specified index parameters
-func AddFieldIndexWithParams(engine unsafe.Pointer, fieldName string, indexType string, indexParams []byte) *Status {
-	fieldNameBytes := []byte(fieldName)
-	indexTypeBytes := []byte(indexType)
+// AddFieldIndexWithParams adds an index identified by indexName covering the
+// given field names. A single vector field => vector index, a single scalar
+// field => scalar index, 2+ scalar fields => composite scalar index. The
+// caller may pass a single-element slice for single-field indexes; this SDK
+// normalizes that into a uniform vector<string> on the C++ side.
+func AddFieldIndexWithParams(engine unsafe.Pointer, indexName string, fieldNames []string, indexType string, indexParams []byte) *Status {
+	if len(fieldNames) == 0 {
+		return &Status{Code: -1, Msg: "fieldNames is empty"}
+	}
+	for i, name := range fieldNames {
+		if name == "" {
+			return &Status{Code: -1, Msg: fmt.Sprintf("fieldNames[%d] is empty", i)}
+		}
+	}
 	if len(indexParams) == 0 {
 		indexParams = []byte("{}") // Default to empty JSON object if no params provided
 	}
 
+	// All buffers crossing the cgo boundary are allocated on the C heap to
+	// avoid the "cgo argument has Go pointer to unpinned Go pointer" check:
+	// the **char array would otherwise be a Go slice of Go-heap *C.char
+	// elements, which violates the cgo pointer rule (a Go pointer must not
+	// point to memory containing other Go pointers).
+	cIndexName := C.CString(indexName)
+	defer C.free(unsafe.Pointer(cIndexName))
+	cIndexType := C.CString(indexType)
+	defer C.free(unsafe.Pointer(cIndexType))
+	cIndexParams := (*C.char)(C.CBytes(indexParams))
+	defer C.free(unsafe.Pointer(cIndexParams))
+
+	count := len(fieldNames)
+	ptrSize := C.size_t(unsafe.Sizeof((*C.char)(nil)))
+	intSize := C.size_t(unsafe.Sizeof(C.int(0)))
+
+	cFieldNamesArr := (**C.char)(C.malloc(ptrSize * C.size_t(count)))
+	defer C.free(unsafe.Pointer(cFieldNamesArr))
+	cFieldNameLensArr := (*C.int)(C.malloc(intSize * C.size_t(count)))
+	defer C.free(unsafe.Pointer(cFieldNameLensArr))
+
+	cFieldNameSlots := unsafe.Slice(cFieldNamesArr, count)
+	cFieldNameLenSlots := unsafe.Slice(cFieldNameLensArr, count)
+	for i, name := range fieldNames {
+		cFieldNameSlots[i] = C.CString(name)
+		cFieldNameLenSlots[i] = C.int(len(name))
+	}
+	defer func() {
+		for i := 0; i < count; i++ {
+			C.free(unsafe.Pointer(cFieldNameSlots[i]))
+		}
+	}()
+
 	cstatus := C.AddFieldIndexWithParams(
 		engine,
-		(*C.char)(unsafe.Pointer(&fieldNameBytes[0])),
-		C.int(len(fieldNameBytes)),
-		(*C.char)(unsafe.Pointer(&indexTypeBytes[0])),
-		C.int(len(indexTypeBytes)),
-		(*C.char)(unsafe.Pointer(&indexParams[0])),
+		cIndexName,
+		C.int(len(indexName)),
+		cFieldNamesArr,
+		cFieldNameLensArr,
+		C.int(count),
+		cIndexType,
+		C.int(len(indexType)),
+		cIndexParams,
 		C.int(len(indexParams)))
 
 	status := &Status{
@@ -310,9 +356,11 @@ func AddFieldIndexWithParams(engine unsafe.Pointer, fieldName string, indexType 
 	return status
 }
 
-func RemoveFieldIndex(engine unsafe.Pointer, fieldName string) *Status {
-	fieldNameBytes := []byte(fieldName)
-	cstatus := C.RemoveFieldIndex(engine, (*C.char)(unsafe.Pointer(&fieldNameBytes[0])), C.int(len(fieldNameBytes)))
+// RemoveFieldIndex removes an index by its user-defined indexName.
+func RemoveFieldIndex(engine unsafe.Pointer, indexName string) *Status {
+	cIndexName := C.CString(indexName)
+	defer C.free(unsafe.Pointer(cIndexName))
+	cstatus := C.RemoveFieldIndex(engine, cIndexName, C.int(len(indexName)))
 
 	status := &Status{
 		Code: int32(cstatus.code),

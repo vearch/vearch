@@ -41,7 +41,7 @@ VectorManager::VectorManager(const VectorStorageType &store_type,
 
 VectorManager::~VectorManager() {
   Close();
-  int ret = pthread_rwlock_destroy(&index_rwmutex_);
+  int ret = pthread_rwlock_destroy(&vector_indexes_mutex_);
   if (0 != ret) {
     LOG(ERROR) << "destory read write lock error, ret=" << ret;
   }
@@ -160,8 +160,8 @@ void VectorManager::DestroyRawVectors() {
 }
 
 Status VectorManager::CreateVectorIndex(
-    std::string &index_type, std::string &index_params, RawVector *vec,
-    int training_threshold, bool destroy_vec,
+    const std::string &index_type, const std::string &index_params,
+    RawVector *vec, int training_threshold, bool destroy_vec,
     std::map<std::string, IndexModel *> &vector_indexes) {
   std::string vec_name = vec->MetaInfo()->Name();
   LOG(INFO) << desc_ << "create index model [" << index_type
@@ -202,23 +202,37 @@ Status VectorManager::CreateVectorIndex(
 }
 
 void VectorManager::DestroyVectorIndexes() {
-  pthread_rwlock_wrlock(&index_rwmutex_);
+  pthread_rwlock_wrlock(&vector_indexes_mutex_);
   for (const auto &[name, index] : vector_indexes_) {
     if (index != nullptr) {
       delete index;
     }
   }
   vector_indexes_.clear();
-  pthread_rwlock_unlock(&index_rwmutex_);
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
 
   LOG(INFO) << desc_ << "vector indexes cleared.";
 }
 
-Status VectorManager::RemoveVectorIndex(const std::string &field_name) {
-  pthread_rwlock_wrlock(&index_rwmutex_);
+std::string VectorManager::StorageRootParent(const std::string &field_name) {
+  auto raw_it = raw_vectors_.find(field_name);
+  if (raw_it == raw_vectors_.end() || raw_it->second == nullptr ||
+      raw_it->second->storage_mgr_ == nullptr) {
+    return "";
+  }
+  const std::string &data_path = raw_it->second->storage_mgr_->GetRootPath();
+  std::string::size_type pos = data_path.rfind('/');
+  return (pos != std::string::npos) ? data_path.substr(0, pos) : data_path;
+}
 
-  // Find and remove all indexes related to this field
+Status VectorManager::RemoveVectorIndex(const std::string &field_name) {
+  pthread_rwlock_wrlock(&vector_indexes_mutex_);
+
+  // Find and remove all indexes related to this field. The field's entry in
+  // field_index_params_ is dropped below so CreateVectorIndexes / Search no
+  // longer see a stale type that no longer exists in vector_indexes_.
   std::vector<std::string> indexes_to_remove;
+  bool has_diskann = false;
   for (const auto &[name, index] : vector_indexes_) {
     std::string vec_name;
     std::string index_type;
@@ -226,11 +240,15 @@ Status VectorManager::RemoveVectorIndex(const std::string &field_name) {
 
     if (vec_name == field_name) {
       indexes_to_remove.push_back(name);
+      if (index_type == "DISKANN_STATIC") {
+        has_diskann = true;
+      }
     }
   }
 
   if (indexes_to_remove.empty()) {
     LOG(DEBUG) << desc_ << "no vector index found for field: " << field_name;
+    pthread_rwlock_unlock(&vector_indexes_mutex_);
     return Status::OK();
   }
 
@@ -245,46 +263,113 @@ Status VectorManager::RemoveVectorIndex(const std::string &field_name) {
       LOG(INFO) << desc_ << "removed vector index: " << index_name;
     }
   }
-  index_types_.clear();
-  index_params_.clear();
 
-  pthread_rwlock_unlock(&index_rwmutex_);
+  // Drop this field's type/param entries so CreateVectorIndexes / Search no
+  // longer see a stale type for it. Keyed by field, so removing one field's
+  // indexes never touches another field that happens to share an index type.
+  field_index_params_.erase(field_name);
 
-  // Delete index files from disk
-  std::string delete_dir = root_path_ + "/retrieval_model_index";
-
-  if (utils::remove_dir(delete_dir.c_str(), false) != 0) {
-    LOG(WARNING) << desc_ << "failed to clean index directory: " << delete_dir;
-  } else {
-    LOG(INFO) << desc_ << "clean index directory: " << delete_dir;
+  // Drop on-disk artifacts owned by index types that persist outside Dump().
+  // Today only DiskANN keeps a runtime directory under
+  //   <storage_root_parent>/diskann_static/<vec_name>/
+  // so we only attempt the cleanup when a DiskANN index was actually removed.
+  if (has_diskann) {
+    std::string root_path = StorageRootParent(field_name);
+    if (!root_path.empty()) {
+      std::string diskann_dir =
+          root_path + "/diskann_static/" + field_name;
+      if (utils::file_exist(diskann_dir)) {
+        int ret = utils::remove_dir(diskann_dir.c_str(), /*delete_self=*/true);
+        if (ret != 0) {
+          LOG(ERROR) << desc_ << "remove diskann dir failed, dir="
+                     << diskann_dir << ", ret=" << ret;
+        } else {
+          LOG(INFO) << desc_ << "removed diskann dir: " << diskann_dir;
+        }
+      }
+    }
   }
 
-  LOG(INFO) << desc_ << "successfully cleaned " << indexes_to_remove.size()
-            << " vector index(es) for field: " << field_name;
+  // Remove this field's dumped index files so a later re-add of the SAME index
+  // type cannot read stale on-disk state after a restart. Vector index files
+  // live at <index_root>/<kDumpSubdirName>/<timestamp>/<AbsoluteName>/, where
+  // AbsoluteName == field_name + "." + version. On restart Load() reads
+  // whatever <type>.index sits there; the delete path otherwise leaves the old
+  // file behind and relies on the next Dump() overwriting it — but a re-add
+  // whose new index has not been dumped yet (e.g. below the training
+  // threshold, or a crash before Dump) would load the previous life's index.
+  // Deleting the files at removal time (independent of training/dump state)
+  // makes restart fall back to "no file → retrain", which reflects live data.
+  // We match by "field_name." prefix to cover every version subdir without
+  // depending on the exact version number.
+  {
+    std::string root_path = StorageRootParent(field_name);
+    if (!root_path.empty()) {
+      std::string dump_root =
+          root_path + "/" + std::string(kDumpSubdirName);
+      std::string prefix = field_name + ".";
+      std::vector<std::string> dump_dirs = utils::ls_folder(dump_root);
+      for (const std::string &ts_dir : dump_dirs) {
+        if (ts_dir.empty()) continue;
+        std::string ts_path = dump_root + "/" + ts_dir;
+        std::vector<std::string> field_dirs = utils::ls_folder(ts_path);
+        for (const std::string &fd : field_dirs) {
+          if (fd.compare(0, prefix.size(), prefix) != 0) continue;
+          std::string victim = ts_path + "/" + fd;
+          if (utils::remove_dir(victim.c_str(), /*delete_self=*/true) != 0) {
+            LOG(ERROR) << desc_ << "remove dumped index dir failed, dir="
+                       << victim;
+          } else {
+            LOG(INFO) << desc_ << "removed dumped index dir: " << victim;
+          }
+        }
+      }
+    }
+  }
+
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
+
+  LOG(INFO) << desc_ << "RemoveVectorIndex completed for field: " << field_name
+            << ", removed " << indexes_to_remove.size() << " index(es)";
   return Status::OK();
 }
 
 void VectorManager::DescribeVectorIndexes() {
   LOG(INFO) << desc_ << " show vector indexes detail informations";
-  pthread_rwlock_rdlock(&index_rwmutex_);
+  pthread_rwlock_rdlock(&vector_indexes_mutex_);
   for (const auto &[name, index] : vector_indexes_) {
     if (index != nullptr) {
       index->Describe();
     }
   }
-  pthread_rwlock_unlock(&index_rwmutex_);
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
 }
 
 Status VectorManager::CreateVectorIndexes(
     int training_threshold,
-    std::map<std::string, IndexModel *> &vector_indexes) {
+    std::map<std::string, IndexModel *> &vector_indexes, bool already_locked) {
+  // Snapshot field_index_params_, then build indexes off the snapshot. When the
+  // caller already holds vector_indexes_mutex_ (write mode), do NOT re-lock —
+  // pthread_rwlock is not reentrant and self-deadlocks.
+  std::map<std::string, std::map<std::string, std::string>> local_field_types;
+  if (already_locked) {
+    local_field_types = field_index_params_;
+  } else {
+    pthread_rwlock_rdlock(&vector_indexes_mutex_);
+    local_field_types = field_index_params_;
+    pthread_rwlock_unlock(&vector_indexes_mutex_);
+  }
+
   for (const auto &[name, index] : raw_vectors_) {
     if (index != nullptr) {
       std::string &vec_name = index->MetaInfo()->Name();
 
-      for (size_t i = 0; i < index_types_.size(); ++i) {
+      // Create only THIS field's index type(s), not every field's types.
+      auto fit = local_field_types.find(vec_name);
+      if (fit == local_field_types.end()) continue;
+      for (const auto &[index_type, index_param] : fit->second) {
         Status status =
-            CreateVectorIndex(index_types_[i], index_params_[i], index,
+            CreateVectorIndex(index_type, index_param, index,
                               training_threshold, false, vector_indexes);
         if (!status.ok()) {
           LOG(ERROR) << desc_ << vec_name
@@ -299,7 +384,7 @@ Status VectorManager::CreateVectorIndexes(
 
 void VectorManager::ResetVectorIndexes(
     std::map<std::string, IndexModel *> &rebuild_vector_indexes) {
-  pthread_rwlock_wrlock(&index_rwmutex_);
+  pthread_rwlock_wrlock(&vector_indexes_mutex_);
   for (const auto &[name, index] : vector_indexes_) {
     if (index != nullptr) {
       delete index;
@@ -313,11 +398,15 @@ void VectorManager::ResetVectorIndexes(
       LOG(INFO) << desc_ << "set " << name << " index";
     }
   }
-  pthread_rwlock_unlock(&index_rwmutex_);
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
 }
 
 Status VectorManager::ReCreateVectorIndexes(int training_threshold) {
-  pthread_rwlock_wrlock(&index_rwmutex_);
+  // Rebuild in place under the write lock. CreateVectorIndexes only allocates
+  // and Init()s the index objects (no training/data — that is a separate step),
+  // so the critical section is short and does not block queries meaningfully.
+  // Pass already_locked=true so it does not re-take the (non-reentrant) rwlock.
+  pthread_rwlock_wrlock(&vector_indexes_mutex_);
   for (const auto &[name, index] : vector_indexes_) {
     if (index != nullptr) {
       delete index;
@@ -325,7 +414,8 @@ Status VectorManager::ReCreateVectorIndexes(int training_threshold) {
   }
   vector_indexes_.clear();
 
-  Status status = CreateVectorIndexes(training_threshold, vector_indexes_);
+  Status status =
+      CreateVectorIndexes(training_threshold, vector_indexes_, true);
   if (!status.ok()) {
     LOG(ERROR) << desc_ << "CreateVectorIndexes failed: " << status.ToString();
 
@@ -336,7 +426,7 @@ Status VectorManager::ReCreateVectorIndexes(int training_threshold) {
     }
     vector_indexes_.clear();
   }
-  pthread_rwlock_unlock(&index_rwmutex_);
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
   return status;
 }
 
@@ -344,7 +434,7 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
                                         std::vector<int> &vector_cf_ids,
                                         StorageManager *storage_mgr) {
   Status status;
-  int ret = pthread_rwlock_init(&index_rwmutex_, NULL);
+  int ret = pthread_rwlock_init(&vector_indexes_mutex_, NULL);
   if (ret != 0) {
     LOG(ERROR) << desc_ << "init read-write lock error, ret=" << ret;
     return Status::ParamError("create vector read-write lock error");
@@ -361,12 +451,14 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
     std::string &vec_name = vector_info.name;
     std::string index_type;
     std::string index_param;
+    std::string index_name;
 
     // Find vector index type from table.Indexes() by matching field_name
     for (const auto &idx : table_indexes) {
       if (idx.field_name == vec_name && idx.type != "") {
         index_type = idx.type;
         index_param = idx.params;
+        index_name = idx.name;
         break;
       }
     }
@@ -377,8 +469,7 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
       return Status::ParamError(msg.str());
     }
 
-    index_types_.push_back(index_type);
-    index_params_.push_back(index_param);
+    field_index_params_[vec_name][index_type] = index_param;
     vec_status = CreateRawVector(vector_info, index_type, table, &vec,
                                  vector_cf_ids[i], storage_mgr);
     if (!vec_status.ok()) {
@@ -411,7 +502,7 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
       vector_memory_buffers_[vec_name] = vec_buffer;
 
       status =
-          CreateVectorIndex(flat_index_type, index_params_[i], vec_buffer,
+          CreateVectorIndex(flat_index_type, index_param, vec_buffer,
                             table.TrainingThreshold(), true, vector_memory_buffer_indexes_);
       if (!status.ok()) {
         LOG(ERROR) << desc_ << vec_name
@@ -427,28 +518,37 @@ Status VectorManager::CreateVectorTable(TableInfo &table,
       continue;
     }
 
-    for (size_t i = 0; i < index_types_.size(); ++i) {
-      status =
-          CreateVectorIndex(index_types_[i], index_params_[i], vec,
-                            table.TrainingThreshold(), true, vector_indexes_);
-      if (!status.ok()) {
-        LOG(ERROR) << desc_ << vec_name
-                   << " create index failed: " << status.ToString();
-        return status;
+    // Create this field's index (one index_type per field). Previously this
+    // looped over the global type list and mis-created every field's type on
+    // this field's vector; keying by field removes that cross-field bug.
+    status = CreateVectorIndex(index_type, index_param, vec,
+                               table.TrainingThreshold(), true, vector_indexes_);
+    if (!status.ok()) {
+      LOG(ERROR) << desc_ << vec_name
+                 << " create index failed: " << status.ToString();
+      return status;
+    }
+    // update TrainingThreshold when TrainingThreshold = 0
+    if (!table.TrainingThreshold()) {
+      IndexModel *index = vector_indexes_[IndexName(vec_name, index_type)];
+      if (index) {
+        table.SetTrainingThreshold(index->training_threshold_);
       }
-      // update TrainingThreshold when TrainingThreshold = 0
-      if (!table.TrainingThreshold()) {
-        IndexModel *index =
-            vector_indexes_[IndexName(vec_name, index_types_[i])];
-        if (index) {
-          table.SetTrainingThreshold(index->training_threshold_);
-        }
-      }
+    }
+
+    // Register the statically-created vector index by its user name and mark it
+    // READY, so it is observable in EngineStatus/describe after a restart — the
+    // same as scalar indexes (whose AddIndex path registers READY on load).
+    // Without this, a vector index reloaded via CreateTable would carry no
+    // build state and vanish from index_build_state after every restart.
+    if (!index_name.empty()) {
+      RegisterIndexName(index_name, vec_name);
+      SetIndexState(index_name, IndexState::READY);
     }
   }
   table_created_ = true;
-  LOG(INFO) << desc_ << "create vectors and indexes success! models="
-            << utils::join(index_types_, ',');
+  LOG(INFO) << desc_ << "create vectors and indexes success! fields="
+            << field_index_params_.size();
   return Status::OK();
 }
 
@@ -520,14 +620,17 @@ int VectorManager::Update(
       if (ret) return ret;
     }
 
-    pthread_rwlock_rdlock(&index_rwmutex_);
-    for (std::string &index_type : index_types_) {
-      auto it = vector_indexes_.find(IndexName(name, index_type));
-      if (it != vector_indexes_.end() && it->second->SupportIncrement()) {
-        it->second->updated_vids_.push(docid);
+    pthread_rwlock_rdlock(&vector_indexes_mutex_);
+    auto fit = field_index_params_.find(name);
+    if (fit != field_index_params_.end()) {
+      for (const auto &[index_type, index_param] : fit->second) {
+        auto it = vector_indexes_.find(IndexName(name, index_type));
+        if (it != vector_indexes_.end() && it->second->SupportIncrement()) {
+          it->second->updated_vids_.push(docid);
+        }
       }
     }
-    pthread_rwlock_unlock(&index_rwmutex_);
+    pthread_rwlock_unlock(&vector_indexes_mutex_);
   }
 
   return 0;
@@ -541,7 +644,7 @@ int VectorManager::Delete(int64_t docid) {
       return -1;
     }
   }
-  pthread_rwlock_rdlock(&index_rwmutex_);
+  pthread_rwlock_rdlock(&vector_indexes_mutex_);
   for (const auto &[name, index] : vector_indexes_) {
     if (!index->SupportIncrement()) {
       continue;
@@ -552,11 +655,11 @@ int VectorManager::Delete(int64_t docid) {
     if (0 != index->Delete(vids)) {
       LOG(ERROR) << desc_ << "delete index from " << name
                  << " failed! docid=" << docid;
-      pthread_rwlock_unlock(&index_rwmutex_);
+      pthread_rwlock_unlock(&vector_indexes_mutex_);
       return -2;
     }
   }
-  pthread_rwlock_unlock(&index_rwmutex_);
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
   return 0;
 }
 
@@ -575,7 +678,7 @@ int VectorManager::TrainIndex(
 int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
   int ret = 0;
   index_is_dirty = false;
-  pthread_rwlock_rdlock(&index_rwmutex_);
+  pthread_rwlock_rdlock(&vector_indexes_mutex_);
   for (const auto &[name, index_model] : vector_indexes_) {
     if (!index_model->SupportIncrement()) {
       int64_t vid;
@@ -697,7 +800,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
     if (raw_vec->Gets(vids, scope_vecs)) {
       LOG(ERROR) << desc_ << "get update vector error!";
       ret = -3;
-      pthread_rwlock_unlock(&index_rwmutex_);
+      pthread_rwlock_unlock(&vector_indexes_mutex_);
       return ret;
     }
     if (index_model->Update(vids, scope_vecs.Get())) {
@@ -706,7 +809,7 @@ int VectorManager::AddRTVecsToIndex(bool &index_is_dirty) {
     }
     index_is_dirty = true;
   }
-  pthread_rwlock_unlock(&index_rwmutex_);
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
   return ret;
 }
 
@@ -767,18 +870,30 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
     std::string &name = vec_query.name;
     vec_names[i] = name;
 
+    // Resolve the index type for THIS field (not a global "[0]" default).
+    // Keep rdlock held — Search needs it for vector_indexes_ access below.
+    pthread_rwlock_rdlock(&vector_indexes_mutex_);
     std::string index_name = name;
-    if (index_types_.size() == 0) {
+    auto fit = field_index_params_.find(name);
+    if (fit == field_index_params_.end() || fit->second.empty()) {
+      pthread_rwlock_unlock(&vector_indexes_mutex_);
       std::string err = "No index type specified for vector query " + name;
       return Status::InvalidArgument(err);
     }
-    std::string index_type = index_types_[0];
-    if (index_types_.size() > 1 && vec_query.index_type != "") {
+    std::string index_type;
+    if (fit->second.size() == 1) {
+      // Single index on this field → it's the default.
+      index_type = fit->second.begin()->first;
+    } else if (vec_query.index_type != "") {
+      // Multiple indexes on this field → the query must disambiguate.
       index_type = vec_query.index_type;
+    } else {
+      pthread_rwlock_unlock(&vector_indexes_mutex_);
+      std::string err = "field " + name +
+          " has multiple vector indexes; specify index_type in the query";
+      return Status::InvalidArgument(err);
     }
     index_name = IndexName(name, index_type);
-
-    pthread_rwlock_rdlock(&index_rwmutex_);
 
     std::map<std::string, IndexModel *>::iterator iter =
         vector_indexes_.find(index_name);
@@ -786,7 +901,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
       std::string err = "Query name " + index_name +
                         " not exist in created vector table " + desc_;
       LOG(ERROR) << err;
-      pthread_rwlock_unlock(&index_rwmutex_);
+      pthread_rwlock_unlock(&vector_indexes_mutex_);
       return Status::InvalidArgument(err);
     }
 
@@ -802,7 +917,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
     if (n <= 0) {
       std::string err = "Search n shouldn't less than 0!";
       LOG(ERROR) << err;
-      pthread_rwlock_unlock(&index_rwmutex_);
+      pthread_rwlock_unlock(&vector_indexes_mutex_);
       return Status::InvalidArgument(err);
     }
 
@@ -842,10 +957,10 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
       if (ret_vec == -1) {
         std::string err = desc_ + "faild search of query " + index_name;
         LOG(ERROR) << err;
-        pthread_rwlock_unlock(&index_rwmutex_);
+        pthread_rwlock_unlock(&vector_indexes_mutex_);
         return Status::InvalidArgument(err);
       } else if (ret_vec == -2) {
-        pthread_rwlock_unlock(&index_rwmutex_);
+        pthread_rwlock_unlock(&vector_indexes_mutex_);
         return Status::MemoryExceeded();
       }
 
@@ -853,7 +968,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
         int ret = ParseSearchResult(n, query.condition->topn, all_vector_results[i], index);
         if (ret == -2) {
           std::string err = "Search Request canceled";
-          pthread_rwlock_unlock(&index_rwmutex_);
+          pthread_rwlock_unlock(&vector_indexes_mutex_);
           return Status::MemoryExceeded(err);
         }
         all_vector_results[i].sort_by_docid();
@@ -874,10 +989,10 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
         if (ret_buffer == -1) {
           std::string err = desc_ + "faild search of query " + index_name;
           LOG(ERROR) << err;
-          pthread_rwlock_unlock(&index_rwmutex_);
+          pthread_rwlock_unlock(&vector_indexes_mutex_);
           return Status::InvalidArgument(err);
         } else if (ret_buffer == -2) {
-          pthread_rwlock_unlock(&index_rwmutex_);
+          pthread_rwlock_unlock(&vector_indexes_mutex_);
           return Status::MemoryExceeded();
         }
 
@@ -885,7 +1000,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
           int ret = ParseSearchResult(n, query.condition->topn, all_vector_results[i], index);
           if (ret == -2) {
             std::string err = "Search Request canceled";
-            pthread_rwlock_unlock(&index_rwmutex_);
+            pthread_rwlock_unlock(&vector_indexes_mutex_);
             return Status::MemoryExceeded(err);
           }
           all_vector_results[i].sort_by_docid();
@@ -896,7 +1011,7 @@ Status VectorManager::Search(GammaQuery &query, GammaResult *results) {
       }
     }
 
-    pthread_rwlock_unlock(&index_rwmutex_);
+    pthread_rwlock_unlock(&vector_indexes_mutex_);
 #ifdef PERFORMANCE_TESTING
     if (query.condition->GetPerfTool()) {
       std::string msg;
@@ -1150,11 +1265,11 @@ int VectorManager::GetDocVector(int docid, std::string &field_name,
 
 void VectorManager::GetTotalMemBytes(long &index_total_mem_bytes,
                                      long &vector_total_mem_bytes) {
-  pthread_rwlock_rdlock(&index_rwmutex_);
+  pthread_rwlock_rdlock(&vector_indexes_mutex_);
   for (const auto &iter : vector_indexes_) {
     index_total_mem_bytes += iter.second->GetTotalMemBytes();
   }
-  pthread_rwlock_unlock(&index_rwmutex_);
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
 
   for (const auto &iter : raw_vectors_) {
     vector_total_mem_bytes += iter.second->GetTotalMemBytes();
@@ -1163,7 +1278,7 @@ void VectorManager::GetTotalMemBytes(long &index_total_mem_bytes,
 
 int VectorManager::Dump(const std::string &path, int64_t dump_docid,
                         int64_t max_docid) {
-  pthread_rwlock_rdlock(&index_rwmutex_);
+  pthread_rwlock_rdlock(&vector_indexes_mutex_);
   std::map<std::string, int64_t> vector_index_counts;
   for (const auto &[name, index] : vector_indexes_) {
     std::string vec_name, index_type;
@@ -1172,12 +1287,12 @@ int VectorManager::Dump(const std::string &path, int64_t dump_docid,
     Status status = index->Dump(path);
     if (!status.ok()) {
       LOG(ERROR) << desc_ << "vector " << name << " dump gamma index failed!";
-      pthread_rwlock_unlock(&index_rwmutex_);
+      pthread_rwlock_unlock(&vector_indexes_mutex_);
       return status.code();
     }
     LOG(INFO) << desc_ << "vector " << name << " dump gamma index success!";
   }
-  pthread_rwlock_unlock(&index_rwmutex_);
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
 
   for (const auto &[name, vec] : raw_vectors_) {
     RawVector *raw_vector = dynamic_cast<RawVector *>(vec);
@@ -1360,8 +1475,70 @@ int VectorManager::Load(const std::vector<std::string> &index_dirs,
   return 0;
 }
 
-bool VectorManager::Contains(std::string &field_name) {
+bool VectorManager::Contains(const std::string &field_name) const {
   return raw_vectors_.find(field_name) != raw_vectors_.end();
+}
+
+bool VectorManager::RegisterIndexName(const std::string &name,
+                                      const std::string &field_name) {
+  if (name.empty()) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lk(index_name_map_mutex_);
+  auto [it, inserted] = index_name_to_field_.emplace(name, field_name);
+  return inserted;
+}
+
+void VectorManager::UnregisterIndexName(const std::string &name) {
+  if (name.empty()) {
+    return;
+  }
+  std::lock_guard<std::mutex> lk(index_name_map_mutex_);
+  index_name_to_field_.erase(name);
+  index_name_to_state_.erase(name);
+}
+
+void VectorManager::SetIndexState(const std::string &name, IndexState state) {
+  if (name.empty()) {
+    return;
+  }
+  std::lock_guard<std::mutex> lk(index_name_map_mutex_);
+  // Only track state for a registered name; a name absent from the field map
+  // was never added here (or already removed), so don't resurrect it.
+  if (index_name_to_field_.find(name) != index_name_to_field_.end()) {
+    index_name_to_state_[name] = state;
+  }
+}
+
+std::map<std::string, std::string> VectorManager::GetAllIndexStates() const {
+  std::map<std::string, std::string> out;
+  std::lock_guard<std::mutex> lk(index_name_map_mutex_);
+  for (const auto &kv : index_name_to_state_) {
+    out[kv.first] = IndexStateToString(kv.second);
+  }
+  return out;
+}
+
+bool VectorManager::FindFieldByIndexName(const std::string &name,
+                                         std::string *field_name) const {
+  if (name.empty() || field_name == nullptr) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lk(index_name_map_mutex_);
+  auto it = index_name_to_field_.find(name);
+  if (it == index_name_to_field_.end()) {
+    return false;
+  }
+  *field_name = it->second;
+  return true;
+}
+
+bool VectorManager::HasIndexName(const std::string &name) const {
+  if (name.empty()) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lk(index_name_map_mutex_);
+  return index_name_to_field_.find(name) != index_name_to_field_.end();
 }
 
 void VectorManager::Close() {
@@ -1389,38 +1566,74 @@ Status VectorManager::CompactVector() {
 }
 
 void VectorManager::ResetIndexTypesAndParams() {
-  index_types_.clear();
-  index_params_.clear();
+  pthread_rwlock_wrlock(&vector_indexes_mutex_);
+  field_index_params_.clear();
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
   LOG(INFO) << desc_ << "Reset index types and parameters";
 }
 
-void VectorManager::AddIndexTypeAndParam(const std::string &index_type,
+void VectorManager::AddIndexTypeAndParam(const std::string &field_name,
+                                         const std::string &index_type,
                                          const std::string &index_param) {
-  index_types_.push_back(index_type);
-  index_params_.push_back(index_param);
-  LOG(INFO) << desc_ << "Added index type: " << index_type
-            << ", index param: " << index_param;
+  pthread_rwlock_wrlock(&vector_indexes_mutex_);
+  field_index_params_[field_name][index_type] = index_param;
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
+  LOG(INFO) << desc_ << "Added index for field: " << field_name
+            << ", type: " << index_type << ", param: " << index_param;
+}
+
+bool VectorManager::RemoveIndexTypeAndParam(const std::string &field_name,
+                                            const std::string &index_type,
+                                            const std::string &index_param) {
+  pthread_rwlock_wrlock(&vector_indexes_mutex_);
+  bool removed = false;
+  auto fit = field_index_params_.find(field_name);
+  if (fit != field_index_params_.end()) {
+    removed = fit->second.erase(index_type) > 0;
+    if (fit->second.empty()) {
+      field_index_params_.erase(fit);
+    }
+  }
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
+  if (removed) {
+    LOG(INFO) << desc_ << "Removed index for field: " << field_name
+              << ", type: " << index_type;
+  } else {
+    LOG(WARNING) << desc_ << "RemoveIndexTypeAndParam: not found, field="
+                 << field_name << ", type=" << index_type;
+  }
+  return removed;
 }
 
 bool VectorManager::SupportIncrement() {
+  // Read under the rdlock: writers (ReCreateVectorIndexes / RemoveVectorIndex)
+  // clear/erase vector_indexes_ AND delete the IndexModel objects under the
+  // write lock. Without the lock, iterating here can hit a mid-mutation map
+  // (UB) or deref a just-deleted index (use-after-free). Callers are engine-side
+  // and never hold this VM-private lock, and idx->SupportIncrement() is an
+  // index-object method (no manager lock), so there is no re-entrancy.
+  pthread_rwlock_rdlock(&vector_indexes_mutex_);
+  bool support = true;
   for (const auto &it : vector_indexes_) {
     IndexModel *idx = it.second;
     if (idx != nullptr && !idx->SupportIncrement()) {
-      return false;
+      support = false;
+      break;
     }
   }
-  return true;
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
+  return support;
 }
 
 int VectorManager::MinIndexedNum() {
   int min = 0;
-  pthread_rwlock_rdlock(&index_rwmutex_);
+  pthread_rwlock_rdlock(&vector_indexes_mutex_);
   for (const auto &[name, index] : vector_indexes_) {
     if (index != nullptr && (index->indexed_count_ < min || min == 0)) {
       min = index->indexed_count_;
     }
   }
-  pthread_rwlock_unlock(&index_rwmutex_);
+  pthread_rwlock_unlock(&vector_indexes_mutex_);
   return min;
 }
 

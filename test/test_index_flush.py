@@ -336,3 +336,149 @@ class TestIndexFlush:
 
     def test_destroy_db(self):
         drop_db(router_url, db_name)
+
+
+def _vector_dump_dirs(base_path, partition_id, field_name):
+    """Return the on-disk dump directories for a vector FIELD across all dump
+    timestamps of one partition.
+
+    Vector index files live at:
+      <base>/data/<pid>/retrieval_model_index/<timestamp>/<field>.<ver>/<type>.index
+    RemoveVectorIndex deletes the "<field>.<ver>" dirs by "<field>." prefix
+    (vector_manager.cc), so those are exactly what we look for. Returns a list
+    of matching directory paths (may be empty)."""
+    index_root = os.path.join(
+        base_path, "data", str(partition_id), "retrieval_model_index")
+    if not os.path.isdir(index_root):
+        return []
+    prefix = field_name + "."
+    hits = []
+    for ts_dir in os.listdir(index_root):
+        ts_path = os.path.join(index_root, ts_dir)
+        if not os.path.isdir(ts_path):
+            continue
+        for fd in os.listdir(ts_path):
+            if fd.startswith(prefix) and os.path.isdir(os.path.join(ts_path, fd)):
+                hits.append(os.path.join(ts_path, fd))
+    return hits
+
+
+class TestVectorIndexRemoveClearsDumpFiles:
+    """Removing a vector index must delete its dumped files on disk, so a later
+    restart cannot resurrect the removed index from a stale file.
+
+    This is the file-level counterpart to the search-based cluster test: rather
+    than restart a PS and infer staleness from search ranking, it asserts the
+    dump directory directly. It requires the engine's data dir to be visible on
+    the test host (true for a standalone `make test` run; a dockerized PS whose
+    data dir is not bind-mounted is skipped) — the same reason this whole file
+    is standalone-only and not in the cluster CI matrix.
+
+    Flow: create an IVFPQ space, seed past the train threshold, index_flush to
+    force a real ivfpq.index dump, assert the field's dump dir exists, remove
+    the index, then assert the dump dir is gone."""
+
+    rm_db = "ts_db_vec_dump_rm"
+    rm_space = "ts_space_vec_dump_rm"
+    dim = 16
+    doc_count = 2000
+
+    def test_prepare_db(self):
+        response = create_db(router_url, self.rm_db)
+        assert response.json()["code"] == 0
+
+    def test_prepare_space(self):
+        # IVFPQ dumps a real ivfpq.index file. training_threshold below the seed
+        # count so the index trains; nprobe <= ncentroids or Init rejects it.
+        space_config = {
+            "name": self.rm_space,
+            "partition_num": 1,
+            "replica_num": 1,
+            "fields": [
+                {"name": "field_int", "type": "integer"},
+                {
+                    "name": "field_vector",
+                    "type": "vector",
+                    "dimension": self.dim,
+                    "index": {
+                        "name": "gamma",
+                        "type": "IVFPQ",
+                        "params": {"ncentroids": 32, "nsubvector": 8,
+                                   "training_threshold": 1500, "nprobe": 16},
+                    },
+                },
+            ],
+        }
+        resp = create_space(router_url, self.rm_db, space_config)
+        if resp.json().get("code", -1) != 0:
+            pytest.skip(f"IVFPQ space not supported here: {resp.json()}")
+
+    def test_seed(self):
+        url = router_url + "/document/upsert"
+        batch = 500
+        for base in range(0, self.doc_count, batch):
+            docs = [{
+                "_id": str(i),
+                "field_int": i,
+                "field_vector": [random.random() for _ in range(self.dim)],
+            } for i in range(base, min(base + batch, self.doc_count))]
+            resp = requests.post(url, auth=(username, password), json={
+                "db_name": self.rm_db, "space_name": self.rm_space,
+                "documents": docs,
+            })
+            assert resp.json()["code"] == 0, resp.json()
+        # Wait until all docs are indexed. waiting_index_finish() is hardcoded to
+        # the module-global db_name, so poll describe against our own db here.
+        deadline = time.time() + 120
+        while time.time() < deadline:
+            resp = describe_space(router_url, self.rm_db, self.rm_space)
+            parts = resp.json().get("data", {}).get("partitions", [])
+            if parts and sum(p.get("index_num", 0) for p in parts) >= self.doc_count:
+                break
+            time.sleep(5)
+
+    def test_flush_then_remove_clears_dump_dir(self):
+        # Force a dump so there are real files to clear (ordinary writes do not
+        # dump: the periodic flush needs 10min/200k, and shutdown does not dump).
+        resp = index_flush(router_url, self.rm_db, self.rm_space)
+        assert resp.json()["code"] == 0, resp.json()
+        time.sleep(2)
+
+        partition_infos = get_partition_with_path(
+            router_url, self.rm_db, self.rm_space)
+        assert len(partition_infos) > 0
+        base_path = get_partition_path_from_cluster_stats(router_url)
+        assert base_path, "base path should not be empty"
+
+        pid = partition_infos[0].get("id", 0)
+        index_root = os.path.join(
+            base_path, "data", str(pid), "retrieval_model_index")
+        if not os.path.isdir(index_root):
+            pytest.skip(
+                f"engine data dir not visible on test host ({index_root}); "
+                "run standalone with a host-visible data dir")
+
+        before = _vector_dump_dirs(base_path, pid, "field_vector")
+        assert before, \
+            f"expected a field_vector dump dir after flush, found none under {index_root}"
+
+        # Remove the vector index; RemoveVectorIndex must delete the dump dirs.
+        resp = delete_space_index(router_url, self.rm_db, self.rm_space, "gamma")
+        assert resp.json()["code"] == 0, resp.json()
+        # Removal is async on the PS (raft enqueue -> maintenance worker runs
+        # RemoveFieldIndexTask). Poll the disk until the dirs are gone.
+        deadline = time.time() + 60
+        remaining = before
+        while time.time() < deadline:
+            remaining = _vector_dump_dirs(base_path, pid, "field_vector")
+            if not remaining:
+                break
+            time.sleep(1)
+        assert not remaining, \
+            f"dump dirs not cleared after index removal: {remaining}"
+
+    def test_destroy_space(self):
+        drop_space(router_url, self.rm_db, self.rm_space)
+
+    def test_destroy_db(self):
+        drop_db(router_url, self.rm_db)

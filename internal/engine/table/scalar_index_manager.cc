@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <shared_mutex>
 #include <sstream>
 #include <unordered_set>
 
@@ -20,11 +21,55 @@
 
 namespace vearch {
 
+namespace {
+// Prefix used to synthesize a deterministic name for indexes that arrive
+// without a user-defined name (legacy schema fallback). Must stay in sync
+// with entity.AutoIndexNamePrefix on the Go side.
+constexpr const char* kAutoIndexNamePrefix = "__idx__";
+
+// Build the synthesized index name for legacy schemas.
+// Format: <kAutoIndexNamePrefix><field_name>_<index_type>
+// Must stay in sync with entity.MakeAutoIndexName on the Go side.
+std::string MakeAutoIndexName(const std::string& field_name,
+                              ScalarIndexType index_type) {
+  return std::string(kAutoIndexNamePrefix) + field_name + "_" +
+         ScalarIndexTypeToString(index_type);
+}
+}  // namespace
+
 ScalarIndexManager::ScalarIndexManager(Table *table,
                                              StorageManager *storage_mgr)
     : table_(table), storage_mgr_(storage_mgr), cf_id_(0) {}
 
 ScalarIndexManager::~ScalarIndexManager() = default;
+
+ScalarIndex* ScalarIndexManager::GetFieldIndex(int field) {
+  std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  auto it = field_indexes_.find(field);
+  if (it != field_indexes_.end()) {
+    return it->second.get();
+  }
+  return nullptr;
+}
+
+ScalarIndex* ScalarIndexManager::GetCompositeIndex(const std::string& header_key) {
+  std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  auto it = composite_indexes_.find(header_key);
+  if (it != composite_indexes_.end()) {
+    return it->second.get();
+  }
+  return nullptr;
+}
+
+bool ScalarIndexManager::HasIndexName(const std::string &name) const {
+  if (name.empty()) {
+    return false;
+  }
+  std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  return index_name_to_field_.find(name) != index_name_to_field_.end() ||
+         index_name_to_composite_key_.find(name) !=
+             index_name_to_composite_key_.end();
+}
 
 int ScalarIndexManager::Init(std::string space_name, std::vector<struct IndexInfo> indexes) {
   if (table_ == nullptr || storage_mgr_ == nullptr) {
@@ -72,7 +117,7 @@ int ScalarIndexManager::AddIndexes(std::vector<struct IndexInfo> &indexes) {
         if (composite_field_ids.size() >= 2) {
           LOG(INFO) << space_name_ << " add composite index [" << idx.name
                     << "] for " << composite_field_ids.size() << " fields";
-          AddCompositeIndex(composite_field_ids, composite_field_types);
+          AddCompositeIndex(composite_field_ids, composite_field_types, idx.name);
         } else {
           LOG(ERROR) << space_name_ << " composite index requires at least 2 fields";
           continue;
@@ -89,8 +134,9 @@ int ScalarIndexManager::AddIndexes(std::vector<struct IndexInfo> &indexes) {
         } else if (idx.type == INVERTED_INDEX_TYPE_STRING) {
           st = ScalarIndexType::Inverted;
         }
-        LOG(INFO) << space_name_ << " add scalar index for field [" << idx.field_name << "], index_type=" << static_cast<int>(st);
-        AddIndex(field_idx, attr_type[idx.field_name], idx.field_name, st);
+        LOG(INFO) << space_name_ << " add scalar index for field [" << idx.field_name << "], index_type=" << static_cast<int>(st)
+                  << ", name=" << idx.name;
+        AddIndex(field_idx, attr_type[idx.field_name], idx.field_name, st, idx.name);
       }
     }
   } else {
@@ -116,9 +162,14 @@ int ScalarIndexManager::AddIndexes(std::vector<struct IndexInfo> &indexes) {
         continue;
       }
 
+      // Synthesize a deterministic auto-name so that even when the engine
+      // boots from a legacy schema with an empty indexes list, every index
+      // registered here is addressable by name for later removal.
+      std::string auto_name = MakeAutoIndexName(field_name, index_type);
       LOG(INFO) << space_name_ << " add scalar index for field [" << field_name
-                << "], index_type=" << ScalarIndexTypeToString(index_type);
-      AddIndex(field_idx, attr_type[field_name], field_name, index_type);
+      << "], index_type=" << ScalarIndexTypeToString(index_type) << ", name=" << auto_name;
+      AddIndex(field_idx, attr_type[field_name], field_name, index_type,
+               auto_name);
     }
   }
 
@@ -127,6 +178,8 @@ int ScalarIndexManager::AddIndexes(std::vector<struct IndexInfo> &indexes) {
 
 
 int ScalarIndexManager::AddDoc(int64_t docid) {
+  std::lock_guard<std::mutex> bw(build_write_mutex_);
+  std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
   for (const auto &it : field_indexes_) {
     it.second->AddDoc(docid);
   }
@@ -138,6 +191,8 @@ int ScalarIndexManager::AddDoc(int64_t docid) {
 
 
 int ScalarIndexManager::AddDoc(int64_t docid, int field) {
+  std::lock_guard<std::mutex> bw(build_write_mutex_);
+  std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
   auto it = field_indexes_.find(field);
   if (it != field_indexes_.end()) {
     it->second->AddDoc(docid);
@@ -147,6 +202,8 @@ int ScalarIndexManager::AddDoc(int64_t docid, int field) {
 }
 
 int ScalarIndexManager::DeleteDoc(int64_t docid) {
+  std::lock_guard<std::mutex> bw(build_write_mutex_);
+  std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
   for (const auto &it : field_indexes_) {
     it.second->DeleteDoc(docid);
   }
@@ -157,6 +214,8 @@ int ScalarIndexManager::DeleteDoc(int64_t docid) {
 }
 
 int ScalarIndexManager::DeleteDoc(int64_t docid, int field) {
+  std::lock_guard<std::mutex> bw(build_write_mutex_);
+  std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
   auto it = field_indexes_.find(field);
   if (it != field_indexes_.end()) {
     it->second->DeleteDoc(docid);
@@ -167,8 +226,9 @@ int ScalarIndexManager::DeleteDoc(int64_t docid, int field) {
 
 int ScalarIndexManager::AddIndex(int field, DataType data_type,
                                    const std::string &field_name,
-                                   ScalarIndexType index_type) {
-  field_index_types_[field] = index_type;
+                                   ScalarIndexType index_type,
+                                   const std::string &name) {
+  std::unique_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
 
   if (index_type == ScalarIndexType::Bitmap) {
     field_indexes_[field] = std::make_shared<BitmapIndex>(table_, storage_mgr_, cf_id_, data_type, field);
@@ -187,18 +247,337 @@ int ScalarIndexManager::AddIndex(int field, DataType data_type,
     LOG(ERROR) << "Invalid index type: " << static_cast<int>(index_type);
     return -1;
   }
+  // Statically-created indexes (schema load) are backed by persisted RocksDB
+  // keys (Inverted) or rebuilt from storage (Bitmap), so they are usable
+  // immediately — mark READY. Dynamic publish-then-backfill uses InsertIndex
+  // with BUILDING instead.
+  field_index_state_[field] = IndexState::READY;
+  if (!name.empty()) {
+    index_name_to_field_[name] = field;
+  }
   return 0;
 }
 
-int ScalarIndexManager::RemoveIndex(int field) {
-  field_indexes_.erase(field);
-  field_index_types_.erase(field);
+int ScalarIndexManager::RemoveIndex(const std::string &name) {
+  if (name.empty()) {
+    return 0;
+  }
+  // Drop any persisted BUILDING marker up front (outside the map lock) so a
+  // crash right after removal never resurrects the index on load.
+  DeleteBuildingMarker(name);
+  // build_write_mutex_ before scalar_indexes_mutex_ (the global lock order):
+  // a remove must not interleave with a concurrent build or applier write into
+  // the same index object.
+  std::lock_guard<std::mutex> bw(build_write_mutex_);
+  std::unique_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  auto field_it = index_name_to_field_.find(name);
+  if (field_it != index_name_to_field_.end()) {
+    int field_id = field_it->second;
+    index_name_to_field_.erase(field_it);
+    field_index_state_.erase(field_id);
+    auto idx_it = field_indexes_.find(field_id);
+    if (idx_it != field_indexes_.end()) {
+      int ret = idx_it->second->DropAll();
+      if (ret != 0) {
+        LOG(ERROR) << space_name_ << " RemoveIndex by name [" << name
+                   << "] DropAll failed, ret=" << ret;
+        // Continue: in-memory removal still proceeds.
+      }
+      field_indexes_.erase(idx_it);
+    }
+    LOG(INFO) << space_name_ << " removed scalar index by name [" << name
+              << "], field_id=" << field_id;
+    return 0;
+  }
+
+  auto comp_it = index_name_to_composite_key_.find(name);
+  if (comp_it == index_name_to_composite_key_.end()) {
+    LOG(WARNING) << space_name_ << " RemoveIndex by name [" << name
+                 << "] not found, ignore";
+    return 0;
+  }
+  std::string header_key = comp_it->second;
+  index_name_to_composite_key_.erase(comp_it);
+  composite_index_state_.erase(header_key);
+
+  auto cit = composite_indexes_.find(header_key);
+  if (cit == composite_indexes_.end()) {
+    LOG(WARNING) << space_name_ << " composite index [" << name
+                 << "] header_key not found in composite_indexes_";
+    return 0;
+  }
+  int ret = cit->second->DropAll();
+  if (ret != 0) {
+    LOG(ERROR) << space_name_ << " composite index [" << name
+               << "] DropAll failed, ret=" << ret;
+    // Continue with in-memory removal regardless — the index is logically gone.
+  }
+  composite_indexes_.erase(cit);
+  LOG(INFO) << space_name_ << " removed composite index by name [" << name << "]";
   return 0;
+}
+
+void ScalarIndexManager::BuildFieldIndexUnderLock(
+    const std::string &name, const std::shared_ptr<ScalarIndex> &index,
+    const std::atomic<int64_t> &max_docid,
+    bitmap::BitmapManager *docids_bitmap) {
+  // Hold build_write_mutex_ for the whole build: it excludes the applier's
+  // AddDoc/DeleteDoc (which also take it) so no value change can interleave and
+  // leave a stale key. It does NOT block queries — they take only
+  // scalar_indexes_mutex_ (shared), which we also only take shared during the
+  // scan below. Lock order: build_write_mutex_ -> scalar_indexes_mutex_.
+  std::lock_guard<std::mutex> bw(build_write_mutex_);
+
+  // Resolve the index's state-map key under a shared lock (map structure is
+  // stable — no concurrent add/remove, those take unique). If the name is gone
+  // (a RemoveIndex serialized by build_write_mutex_ won the race), nothing to do.
+  bool is_field = false;
+  int field_id = -1;
+  std::string header_key;
+  {
+    std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+    auto fit = index_name_to_field_.find(name);
+    if (fit != index_name_to_field_.end()) {
+      is_field = true;
+      field_id = fit->second;
+    } else {
+      auto cit = index_name_to_composite_key_.find(name);
+      if (cit == index_name_to_composite_key_.end()) {
+        return;
+      }
+      header_key = cit->second;
+    }
+
+    // Build the whole index from current values under the SHARED lock (queries
+    // run concurrently; they skip this index because it is still BUILDING).
+    // build_write_mutex_ keeps the applier OUT of AddDoc/DeleteDoc, but the
+    // applier's ++max_docid_ happens AFTER it releases build_write_mutex_ (see
+    // Engine::AddOrUpdate: AddDoc(max_docid_) then later ++max_docid_). So one
+    // in-flight doc may already be written to the index at docid == max_docid_
+    // while max_docid_ has not yet been bumped. Scan the CLOSED interval
+    // [0, max_docid] so that boundary doc is re-added, not dropped — the same
+    // reason crash recovery's BackfillScalarIndex uses an inclusive bound. If
+    // docid == upper was not actually written, AddDoc's GetFieldRawValue fails
+    // and it is skipped (harmless no-op).
+    if (index != nullptr) {
+      int64_t upper = max_docid.load();
+      LOG(INFO) << space_name_ << " building index name=" << name
+                << " over [0, " << upper << "] (writes blocked, reads not)";
+      if (index->DropAll() != 0) {
+        LOG(ERROR) << space_name_ << " DropAll failed building index name="
+                   << name;
+      }
+      for (int64_t docid = 0; docid <= upper; ++docid) {
+        if (docids_bitmap != nullptr && docids_bitmap->Test(docid)) {
+          continue;
+        }
+        index->AddDoc(docid);
+      }
+    }
+  }
+
+  // Flip to READY under a BRIEF unique lock — only the state-map write, not the
+  // scan. This is the only point in the build that blocks reads, and it is
+  // O(1). Between releasing the shared lock and taking this one, the index is
+  // fully built but still BUILDING; a query in that gap just falls back to SCAN
+  // (correct, only misses the brand-new index for one query). build_write_mutex_
+  // is still held, so no write interleaves.
+  std::unique_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  if (is_field) {
+    if (field_index_state_.find(field_id) != field_index_state_.end()) {
+      field_index_state_[field_id] = IndexState::READY;
+    }
+  } else {
+    if (composite_index_state_.find(header_key) != composite_index_state_.end()) {
+      composite_index_state_[header_key] = IndexState::READY;
+    }
+  }
+}
+
+int ScalarIndexManager::InsertIndex(std::shared_ptr<ScalarIndex> index,
+                                    const std::string &name,
+                                    IndexState state) {
+  if (index == nullptr) {
+    LOG(ERROR) << space_name_ << " InsertIndex: null index";
+    return -1;
+  }
+  std::unique_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+
+  // Composite indexes share the ScalarIndex base but live in a separate map
+  // keyed by their RocksDB header_key. Detect via runtime type so callers can
+  // use a single Insert entry point.
+  auto composite = std::dynamic_pointer_cast<CompositeIndex>(index);
+  if (composite != nullptr) {
+    std::string header_key = composite->GetHeaderKey();
+    composite_indexes_[header_key] = composite;
+    composite_index_state_[header_key] = state;
+    if (!name.empty()) {
+      index_name_to_composite_key_[name] = header_key;
+    }
+    return 0;
+  }
+
+  int field = index->GetFieldId();
+  field_indexes_[field] = std::move(index);
+  field_index_state_[field] = state;
+  if (!name.empty()) {
+    index_name_to_field_[name] = field;
+  }
+  return 0;
+}
+
+void ScalarIndexManager::SetIndexStateByName(const std::string &name,
+                                             IndexState state) {
+  if (name.empty()) {
+    return;
+  }
+  std::unique_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  auto field_it = index_name_to_field_.find(name);
+  if (field_it != index_name_to_field_.end()) {
+    field_index_state_[field_it->second] = state;
+    return;
+  }
+  auto comp_it = index_name_to_composite_key_.find(name);
+  if (comp_it != index_name_to_composite_key_.end()) {
+    composite_index_state_[comp_it->second] = state;
+  }
+}
+
+std::map<std::string, std::string> ScalarIndexManager::GetAllIndexStates()
+    const {
+  std::map<std::string, std::string> out;
+  std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  for (const auto &kv : index_name_to_field_) {
+    auto sit = field_index_state_.find(kv.second);
+    IndexState st =
+        sit != field_index_state_.end() ? sit->second : IndexState::READY;
+    out[kv.first] = IndexStateToString(st);
+  }
+  for (const auto &kv : index_name_to_composite_key_) {
+    auto sit = composite_index_state_.find(kv.second);
+    IndexState st =
+        sit != composite_index_state_.end() ? sit->second : IndexState::READY;
+    out[kv.first] = IndexStateToString(st);
+  }
+  return out;
+}
+
+bool ScalarIndexManager::FieldIndexReadyLocked(int field_id) const {
+  auto it = field_index_state_.find(field_id);
+  // Absent → statically-created / untracked index → usable as before.
+  return it == field_index_state_.end() ||
+         it->second == IndexState::READY;
+}
+
+bool ScalarIndexManager::CompositeIndexReadyLocked(
+    const std::string &header_key) const {
+  auto it = composite_index_state_.find(header_key);
+  return it == composite_index_state_.end() ||
+         it->second == IndexState::READY;
+}
+
+bool ScalarIndexManager::FieldInCompositeIndexReadyLocked(int field_id) const {
+  for (const auto &kv : composite_indexes_) {
+    if (kv.second->IsIndexField(field_id) &&
+        CompositeIndexReadyLocked(kv.first)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+ScalarIndex *ScalarIndexManager::GetCompositeIndexByFieldIdReady(
+    int field_id) const {
+  for (const auto &kv : composite_indexes_) {
+    if (kv.second->IsIndexField(field_id) &&
+        kv.second->GetFieldId() == field_id &&
+        CompositeIndexReadyLocked(kv.first)) {
+      return kv.second.get();
+    }
+  }
+  return nullptr;
+}
+
+namespace {
+// Reserved prefix for the persisted BUILDING marker. It must not collide with
+// any index-data key in the scalar cf:
+//   - InvertedIndex keys begin with ToRowKey(field_id) = 4-byte big-endian id;
+//   - CompositeIndex keys begin with 0xFF (see InvertedIndex::DropAll comment).
+// 0xFE sits below 0xFF and, followed by a printable tag, cannot match a 4B-BE
+// field id prefix in practice, so this range is disjoint from both.
+constexpr const char kBuildingMarkerPrefix[] = "\xFE__idxstate__";
+}  // namespace
+
+std::string ScalarIndexManager::BuildingMarkerKey(
+    const std::string &name) const {
+  return std::string(kBuildingMarkerPrefix) + name;
+}
+
+void ScalarIndexManager::WriteBuildingMarker(const std::string &name) {
+  if (storage_mgr_ == nullptr || name.empty()) {
+    return;
+  }
+  std::string key = BuildingMarkerKey(name);
+  std::string value = "BUILDING";
+  Status s = storage_mgr_->Put(cf_id_, key, value);
+  if (!s.ok()) {
+    LOG(ERROR) << space_name_ << " failed to write BUILDING marker for ["
+               << name << "]: " << s.ToString();
+  }
+}
+
+void ScalarIndexManager::DeleteBuildingMarker(const std::string &name) {
+  if (storage_mgr_ == nullptr || name.empty()) {
+    return;
+  }
+  std::string key = BuildingMarkerKey(name);
+  Status s = storage_mgr_->Delete(cf_id_, key);
+  if (!s.ok()) {
+    LOG(ERROR) << space_name_ << " failed to delete BUILDING marker for ["
+               << name << "]: " << s.ToString();
+  }
+}
+
+std::vector<std::string> ScalarIndexManager::EnumerateBuildingMarkers() const {
+  std::vector<std::string> names;
+  if (storage_mgr_ == nullptr) {
+    return names;
+  }
+  std::string prefix(kBuildingMarkerPrefix);
+  auto it = storage_mgr_->NewIterator(cf_id_);
+  for (it->Seek(rocksdb::Slice(prefix));
+       it->Valid() && it->key().starts_with(rocksdb::Slice(prefix));
+       it->Next()) {
+    std::string key = it->key().ToString();
+    names.push_back(key.substr(prefix.size()));
+  }
+  return names;
+}
+
+std::shared_ptr<ScalarIndex> ScalarIndexManager::GetIndexByName(
+    const std::string &name) const {
+  std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  auto field_it = index_name_to_field_.find(name);
+  if (field_it != index_name_to_field_.end()) {
+    auto idx_it = field_indexes_.find(field_it->second);
+    if (idx_it != field_indexes_.end()) {
+      return idx_it->second;
+    }
+  }
+  auto comp_it = index_name_to_composite_key_.find(name);
+  if (comp_it != index_name_to_composite_key_.end()) {
+    auto cidx_it = composite_indexes_.find(comp_it->second);
+    if (cidx_it != composite_indexes_.end()) {
+      return cidx_it->second;
+    }
+  }
+  return nullptr;
 }
 
 int ScalarIndexManager::AddCompositeIndex(
     const std::vector<int>& field_ids,
-    const std::vector<enum DataType>& data_types) {
+    const std::vector<enum DataType>& data_types,
+    const std::string &name) {
   if (field_ids.empty() || field_ids.size() != data_types.size()) {
     LOG(ERROR) << "Invalid composite index: field count mismatch";
     return -1;
@@ -211,24 +590,22 @@ int ScalarIndexManager::AddCompositeIndex(
   auto composite = std::make_shared<CompositeIndex>(
       table_, storage_mgr_, cf_id_, data_types, field_ids);
 
-  composite_indexes_[composite->GetHeaderKey()] = composite;
+  std::unique_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  std::string header_key = composite->GetHeaderKey();
+  composite_indexes_[header_key] = composite;
+  // Static/load path: composite keys are persisted in RocksDB, so READY now.
+  composite_index_state_[header_key] = IndexState::READY;
+  if (!name.empty()) {
+    index_name_to_composite_key_[name] = header_key;
+  }
   std::string field_ids_str;
   for (size_t i = 0; i < field_ids.size(); ++i) {
     if (i > 0) field_ids_str += ", ";
     field_ids_str += std::to_string(field_ids[i]);
   }
-  LOG(INFO) << "Added composite index for fields [" << field_ids_str
-            << "], cf=" << cf_id_ << ")";
+  LOG(INFO) << "Added composite index [" << name << "] for fields ["
+            << field_ids_str << "], cf=" << cf_id_ << ")";
   return 0;
-}
-
-ScalarIndex* ScalarIndexManager::GetCompositeIndex(
-    const std::string& header_key) {
-  auto it = composite_indexes_.find(header_key);
-  if (it != composite_indexes_.end()) {
-    return it->second.get();
-  }
-  return nullptr;
 }
 
 int ScalarIndexManager::UpdateCompositeIndexes(int64_t docid, int field_id,
@@ -250,6 +627,12 @@ int ScalarIndexManager::UpdateCompositeIndexes(int64_t docid, int field_id,
 }
 
 int ScalarIndexManager::RebuildBitmapIndex(int field_id) {
+  std::unique_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  return RebuildBitmapIndexLocked(field_id);
+}
+
+int ScalarIndexManager::RebuildBitmapIndexLocked(int field_id) {
+  // Caller holds scalar_indexes_mutex_ in unique mode.
   auto it = field_indexes_.find(field_id);
   if (it == field_indexes_.end()) {
     LOG(ERROR) << "Field " << field_id << " does not have index";
@@ -277,10 +660,10 @@ int ScalarIndexManager::RebuildBitmapIndex(int field_id) {
 }
 
 int ScalarIndexManager::RebuildAllBitmapIndexes() {
+  std::unique_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
   for (const auto& kv : field_indexes_) {
-    auto* bitmap_idx = dynamic_cast<BitmapIndex*>(kv.second.get());
-    if (bitmap_idx != nullptr) {
-      int ret = RebuildBitmapIndex(kv.first);
+    if (dynamic_cast<BitmapIndex*>(kv.second.get()) != nullptr) {
+      int ret = RebuildBitmapIndexLocked(kv.first);
       if (ret != 0) {
         LOG(ERROR) << "Rebuild field " << kv.first << " error, ret=" << ret;
         return ret;
@@ -342,26 +725,6 @@ int ScalarIndexManager::Filter(ScalarIndex* scalar_idx, const FilterInfo &filter
     }
   }
   return 0;
-}
-
-// Check if a field belongs to any composite index
-static bool FieldInCompositeIndex(int field_id, const std::map<std::string, std::shared_ptr<CompositeIndex>>& composite_indexes) {
-  for (const auto& kv : composite_indexes) {
-    if (kv.second->IsIndexField(field_id)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-// get composite index
-static ScalarIndex* GetCompositeIndexByFieldId(int field_id, const std::map<std::string, std::shared_ptr<CompositeIndex>>& composite_indexes) {
-  for (const auto& kv : composite_indexes) {
-    if (kv.second->IsIndexField(field_id) && kv.second->GetFieldId() == field_id) {
-      return kv.second.get();
-    }
-  }
-  return nullptr;
 }
 
 // Determine the filter mode for composite index matching.
@@ -573,18 +936,24 @@ int ScalarIndexManager::OrganizeFiltersForOr(
     std::vector<FilterIndexPair>& filter_index_pairs) {
   std::map<CompositeIndex*, std::vector<FilterInfo>> or_scan_buckets;
   for (const auto& f : filters) {
-    if (auto sidx = GetFieldIndex(f.field)) {
+    // Caller holds scalar_indexes_mutex_ in shared mode, so access the maps
+    // directly — do NOT call GetFieldIndex (it re-locks the same shared_mutex,
+    // which is undefined behavior for recursive shared acquisition). A
+    // single-field index only counts if it is READY.
+    auto fit = field_indexes_.find(f.field);
+    if (fit != field_indexes_.end() && FieldIndexReadyLocked(f.field)) {
       FilterIndexPair pair;
-      pair.index = sidx;
+      pair.index = fit->second.get();
       pair.filters = {f};
       pair.is_composite = false;
       filter_index_pairs.push_back(std::move(pair));
       continue;
     }
-    // No scalar index: find a composite that owns this field.
+    // No usable scalar index: find a READY composite that owns this field.
     CompositeIndex* host = nullptr;
     for (auto& kv : composite_indexes_) {
-      if (kv.second->IsIndexField(f.field)) {
+      if (kv.second->IsIndexField(f.field) &&
+          CompositeIndexReadyLocked(kv.first)) {
         host = kv.second.get();
         break;
       }
@@ -625,6 +994,7 @@ int ScalarIndexManager::OrganizeFiltersToIndex(
   const std::vector<FilterInfo>& filters,
   std::vector<FilterIndexPair>& filter_index_pairs,
   FilterOperator query_filter_operator) {
+  // Caller (Search/Query) holds shared_lock; access maps directly.
   if (filters.empty()) {
     return 0;
   }
@@ -642,6 +1012,27 @@ int ScalarIndexManager::OrganizeFiltersToIndex(
   std::map<CompositeIndex*, std::vector<FilterInfo>> all_filters_for_idx;
   BuildCompositeViews(filters, composite_indexes_,
                       prefix_filters_for_idx, all_filters_for_idx);
+
+  // Drop composites that are not READY (still building / failed) so a query
+  // never routes through a half-built composite index. BuildCompositeViews
+  // (merged from the composite-filter rework) considers every composite; the
+  // dynamic-index state machine requires non-READY ones behave as absent.
+  for (auto it = prefix_filters_for_idx.begin();
+       it != prefix_filters_for_idx.end();) {
+    if (!CompositeIndexReadyLocked(it->first->GetHeaderKey())) {
+      it = prefix_filters_for_idx.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  for (auto it = all_filters_for_idx.begin();
+       it != all_filters_for_idx.end();) {
+    if (!CompositeIndexReadyLocked(it->first->GetHeaderKey())) {
+      it = all_filters_for_idx.erase(it);
+    } else {
+      ++it;
+    }
+  }
 
   std::map<CompositeIndex*, ChosenPlan> chosen;
   ChoosePerCompositeStrategy(prefix_filters_for_idx, all_filters_for_idx,
@@ -686,9 +1077,17 @@ int ScalarIndexManager::OrganizeFiltersToIndex(
   // Remaining filters not covered by any composite index: fall through to scalar index.
   for (const auto& f : filters) {
     if (covered_fields.find(f.field) != covered_fields.end()) continue;
-    if (auto index = GetFieldIndex(f.field)) {
+    auto fit = field_indexes_.find(f.field);
+    if (fit != field_indexes_.end()) {
+      // Skip a single-field index still building / failed: treat as absent so
+      // the filter falls through to full scan rather than reading a partial
+      // index. Downstream coverage check then returns -1 (no usable index),
+      // which the caller handles as the existing missing-index path.
+      if (!FieldIndexReadyLocked(f.field)) {
+        continue;
+      }
       FilterIndexPair pair;
-      pair.index = index;
+      pair.index = fit->second.get();
       pair.filters = {f};
       pair.is_composite = false;
       filter_index_pairs.push_back(std::move(pair));
@@ -718,6 +1117,15 @@ int64_t ScalarIndexManager::Search(
     FilterOperator query_filter_operator,
     std::vector<FilterInfo> &origin_filters,
     ScalarIndexResults *out) {
+  std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  return SearchLocked(query_filter_operator, origin_filters, out);
+}
+
+int64_t ScalarIndexManager::SearchLocked(
+    FilterOperator query_filter_operator,
+    std::vector<FilterInfo> &origin_filters,
+    ScalarIndexResults *out) {
+  // Caller holds scalar_indexes_mutex_ in shared mode.
   out->Clear();
 
   if (origin_filters.empty()) {
@@ -731,9 +1139,11 @@ int64_t ScalarIndexManager::Search(
       LOG(ERROR) << "Failed to get field type, field=" << filter.field;
       return -1;
     }
-    auto index = GetFieldIndex(filter.field);
-    if (index == nullptr &&
-      !FieldInCompositeIndex(filter.field, composite_indexes_)) {
+    auto fit = field_indexes_.find(filter.field);
+    bool has_ready_single =
+        fit != field_indexes_.end() && FieldIndexReadyLocked(filter.field);
+    if (!has_ready_single &&
+        !FieldInCompositeIndexReadyLocked(filter.field)) {
       return 0;
     }
   }
@@ -790,6 +1200,15 @@ int64_t ScalarIndexManager::Query(
     FilterOperator query_filter_operator,
     std::vector<FilterInfo> &origin_filters,
     std::vector<uint64_t> &docids, size_t topn, size_t offset) {
+  std::shared_lock<std::shared_mutex> lk(scalar_indexes_mutex_);
+  return QueryLocked(query_filter_operator, origin_filters, docids, topn, offset);
+}
+
+int64_t ScalarIndexManager::QueryLocked(
+    FilterOperator query_filter_operator,
+    std::vector<FilterInfo> &origin_filters,
+    std::vector<uint64_t> &docids, size_t topn, size_t offset) {
+  // Caller holds scalar_indexes_mutex_ in shared mode.
   docids.clear();
   docids.reserve(topn);
 
@@ -804,9 +1223,11 @@ int64_t ScalarIndexManager::Query(
       LOG(ERROR) << "Failed to get field type, field=" << filter.field;
       return -1;
     }
-    auto index = GetFieldIndex(filter.field);
-    if (index == nullptr &&
-        !FieldInCompositeIndex(filter.field, composite_indexes_)) {
+    auto fit = field_indexes_.find(filter.field);
+    bool has_ready_single =
+        fit != field_indexes_.end() && FieldIndexReadyLocked(filter.field);
+    if (!has_ready_single &&
+        !FieldInCompositeIndexReadyLocked(filter.field)) {
       return 0;
     }
   }
@@ -820,9 +1241,16 @@ int64_t ScalarIndexManager::Query(
     if (filter.lower_value.empty() && filter.upper_value.empty()) {
       return 0;
     }
-    ScalarIndex* index = GetFieldIndex(filter.field);
-    if (index == nullptr) {
-      index = GetCompositeIndexByFieldId(filter.field, composite_indexes_);
+    ScalarIndex* index = nullptr;
+    auto fit = field_indexes_.find(filter.field);
+    if (fit != field_indexes_.end() && FieldIndexReadyLocked(filter.field)) {
+      index = fit->second.get();
+    } else {
+      // Only valid when the field is the first column of a READY composite
+      // (GetCompositeIndexByFieldIdReady enforces GetFieldId()==field). For a
+      // non-prefix composite member this returns null — do NOT return here;
+      // fall through to Search so the composite SCAN fallback can serve it.
+      index = GetCompositeIndexByFieldIdReady(filter.field);
     }
     if (index != nullptr) {
       ScalarIndexResult result;
@@ -833,8 +1261,12 @@ int64_t ScalarIndexManager::Query(
     // Fall through to Search; it can route the filter through composite SCAN.
   }
 
+  // Multi-field path: call SearchLocked under the same shared_lock the caller
+  // already holds. (Re-acquiring the public Search() would recursively take
+  // shared_lock on the same std::shared_mutex on the same thread, which is
+  // undefined behavior.)
   ScalarIndexResults scalar_index_results;
-  int64_t retval = Search(query_filter_operator, origin_filters, &scalar_index_results);
+  int64_t retval = SearchLocked(query_filter_operator, origin_filters, &scalar_index_results);
   if (retval <= 0) {
     return retval;
   }

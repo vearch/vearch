@@ -40,6 +40,10 @@ func (e ErrRequest) HttpCode() int {
 	return e.httpCode
 }
 
+func (e ErrRequest) Error() string {
+	return e.msg
+}
+
 func NewErrBadRequest(err error) *ErrRequest {
 	if vErr, ok := err.(*vearchpb.VearchErr); ok {
 		return &ErrRequest{

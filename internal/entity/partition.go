@@ -97,7 +97,10 @@ type PartitionInfo struct {
 	BackupStatus int               `json:"backup_status"`
 	IndexNum     int               `json:"index_num"`
 	MaxDocid     int               `json:"max_docid"`
-	Error        string            `json:"error,omitempty"`
+	// Per-index build state for dynamically-added scalar/composite indexes
+	// (index name → "BUILDING"/"READY"/"FAILED"). Omitted when empty.
+	IndexBuildState map[string]string `json:"index_build_state,omitempty"`
+	Error           string            `json:"error,omitempty"`
 }
 
 type ResourceLimit struct {

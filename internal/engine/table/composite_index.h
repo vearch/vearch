@@ -162,6 +162,13 @@ class CompositeIndex : public InvertedIndex {
 
   std::string GetHeaderKey() const { return header_key_; }
 
+  // Drop all RocksDB entries that belong to this composite index.
+  // Uses DeleteRange over [header_key_, AdvancePrefix(header_key_)). The upper
+  // bound increments the prefix's last byte rather than appending 0xFF, because
+  // a sortable-encoded field value can itself begin with 0xFF. header_key_ is
+  // unique per composite, so this prefix range stays exclusive.
+  int DropAll() override;
+
   // Override InvertedIndex's key helpers with composite binary format:
   // Format: [\xFF: 1B][fid₁: 4B][...][fidₙ: 4B][val₁][...][valₙ][docid: 8B]
   std::string GenKeyPrefix(const std::string& index_value) const override;

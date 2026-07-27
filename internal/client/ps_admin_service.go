@@ -50,6 +50,24 @@ func UpdatePartition(addr string, space *entity.Space, pid entity.PartitionID) e
 	return operatePartition(UpdatePartitionHandler, addr, space, pid)
 }
 
+// PartitionIndexChange ships an explicit add/remove-index instruction to a
+// partition (routed to a raft CmdType_INDEXCHANGE).
+func PartitionIndexChange(addr string, pid entity.PartitionID, ic *vearchpb.IndexChange) error {
+	bytes, e := vjson.Marshal(ic)
+	if e != nil {
+		return e
+	}
+	args := &vearchpb.PartitionData{PartitionID: uint32(pid), Data: bytes}
+	reply := new(vearchpb.PartitionData)
+	if err := Execute(addr, IndexChangePartitionHandler, args, reply); err != nil {
+		return err
+	}
+	if reply.Err.Code != vearchpb.ErrorEnum_SUCCESS {
+		return vearchpb.NewError(reply.Err.Code, nil)
+	}
+	return nil
+}
+
 func GetEngineCfg(addr string, pid entity.PartitionID) (cfg *entity.SpaceConfig, err error) {
 	args := &vearchpb.PartitionData{PartitionID: pid, Type: vearchpb.OpType_GET}
 	reply := new(vearchpb.PartitionData)

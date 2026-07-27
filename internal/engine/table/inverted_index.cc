@@ -124,6 +124,53 @@ int InvertedIndex::DeleteDoc(int64_t docid) {
   return 0;
 }
 
+int InvertedIndex::DropAll() {
+  if (storage_mgr_ == nullptr) {
+    LOG(ERROR) << "InvertedIndex::DropAll: storage manager is null";
+    return -1;
+  }
+  auto& db = storage_mgr_->GetDB();
+  rocksdb::ColumnFamilyHandle* cf_handler =
+      storage_mgr_->GetColumnFamilyHandle(cf_id_);
+  if (db == nullptr || cf_handler == nullptr) {
+    LOG(ERROR) << "InvertedIndex::DropAll: db or cf handler is null";
+    return -1;
+  }
+
+  // Every key written by this index has the form
+  //   ToRowKey(field_id_) + "_" + value + "_" + ToRowKey64(docid)
+  // (see GenKeyPrefix / GenKey). The exclusive upper bound must be the prefix
+  // with its last byte incremented (AdvancePrefix), NOT prefix + 0xFF: a
+  // sortable-encoded value can begin with 0xFF (e.g. an INT near INT_MAX, whose
+  // sign-flipped big-endian form starts with 0xFF), so "prefix + 0xFF" would
+  // sort BELOW such a key and DeleteRange would skip it, leaving stale keys.
+  // AdvancePrefix covers every key under the prefix regardless of value bytes,
+  // and stays within this field: the range is
+  //   [field_be + 0x5F, field_be + 0x60)
+  // so it stops before the next field id (field_be+1, a different 4B prefix).
+  // CompositeIndex keys start with their first field-id's 4B big-endian
+  // encoding followed by more field-ids (see BuildCompositeHeader) — their 5th
+  // byte is that second field-id's high byte (~0x00), well below 0x5F, so they
+  // sort below this range and are never touched.
+  std::string begin_key = ToRowKey(field_id_) + "_";
+  std::string end_key = AdvancePrefix(begin_key);
+  if (end_key.empty()) {
+    // begin_key ends with '_' (0x5F), so this never happens; guard anyway.
+    LOG(ERROR) << "InvertedIndex::DropAll: prefix is all 0xFF, cannot bound";
+    return -1;
+  }
+
+  rocksdb::Status s = db->DeleteRange(rocksdb::WriteOptions(), cf_handler,
+                                      rocksdb::Slice(begin_key),
+                                      rocksdb::Slice(end_key));
+  if (!s.ok()) {
+    LOG(ERROR) << "InvertedIndex::DropAll DeleteRange failed: "
+               << s.ToString();
+    return -1;
+  }
+  return 0;
+}
+
 void InvertedIndex::ScanRange(const std::string& lower_key, const std::string& upper_key, 
                              ScalarIndexResult& result, int offset, int limit) {
   if (storage_mgr_ == nullptr) {

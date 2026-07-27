@@ -1748,6 +1748,27 @@ def describe_space(router_url: str, db_name: str, space_name: str):
         logger.error(e)
 
 
+def list_space_indexes(router_url: str, db_name: str, space_name: str, detail: bool = False):
+    url = f"{router_url}/dbs/{db_name}/spaces/{space_name}/indexes"
+    if detail:
+        url += "?detail=true"
+    resp = requests.get(url, auth=(username, password))
+    return resp
+
+
+def add_space_indexes(router_url: str, db_name: str, space_name: str, indexes: list):
+    url = f"{router_url}/dbs/{db_name}/spaces/{space_name}/indexes"
+    data = {"indexes": indexes}
+    resp = requests.post(url, auth=(username, password), json=data)
+    return resp
+
+
+def delete_space_index(router_url: str, db_name: str, space_name: str, index_name: str):
+    url = f"{router_url}/dbs/{db_name}/spaces/{space_name}/indexes/{index_name}"
+    resp = requests.delete(url, auth=(username, password))
+    return resp
+
+
 def index_rebuild(
     router_url: str,
     db_name: str,

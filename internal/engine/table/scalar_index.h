@@ -41,6 +41,14 @@ class ScalarIndex {
   // Delete a document from the index
   virtual int DeleteDoc(int64_t docid) = 0;
 
+  // Drop all persisted entries owned by this index. Called by
+  // ScalarIndexManager::RemoveIndex before the in-memory object is erased,
+  // so a subsequent rebuild on the same field/header_key starts from a clean
+  // slate. Pure in-memory indexes (e.g. BitmapIndex) can leave the default
+  // no-op implementation; persistent indexes (InvertedIndex / CompositeIndex)
+  // override to issue a RocksDB DeleteRange over their key prefix.
+  virtual int DropAll() { return 0; }
+
   // Get index data size
   virtual size_t GetIndexDataSize() = 0;
 

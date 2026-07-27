@@ -53,12 +53,31 @@ enum CmdType {
   UPDATESPACE = 1;
   FLUSH = 2;
   SEARCHDEL = 3;
+  INDEXCHANGE = 4;
+}
+
+// Explicit add/remove of a dynamically-managed index. The master already knows
+// the exact operation, so it ships this instruction directly instead of
+// pushing the whole space and having the PS diff old vs new index lists.
+enum IndexChangeOp {
+  ADD_INDEX = 0;
+  REMOVE_INDEX = 1;
+}
+
+message IndexChange {
+  IndexChangeOp op = 1;
+  // ADD_INDEX: JSON-encoded []*entity.Index (same bytes+json convention as
+  // UpdateSpace.Space). Empty for REMOVE_INDEX.
+  bytes indexes = 2;
+  // REMOVE_INDEX: the index name to drop. Empty for ADD_INDEX.
+  string index_name = 3;
 }
 
 message RaftCommand {
   CmdType type = 1;
   DocCmd write_command = 2;
   UpdateSpace update_space = 3;
+  IndexChange index_change = 4;
 }
 
 message SnapData {

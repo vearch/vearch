@@ -32,6 +32,15 @@ class InvertedIndex : public ScalarIndex {
   // Delete a document from the index
   int DeleteDoc(int64_t docid) override;
 
+  // Drop every (field_id_, value, docid) entry this index owns. Implemented
+  // via RocksDB DeleteRange over [ToRowKey(field_id_)+"_", AdvancePrefix(that)).
+  // The upper bound increments the prefix's last byte rather than appending
+  // 0xFF, because a sortable-encoded value can itself begin with 0xFF. The
+  // scalar cf also hosts CompositeIndex keys, but those sort below this range
+  // (their 5th byte is a field-id high byte ~0x00, under 0x5F), so they are
+  // never collided with. See the DropAll body for the full range argument.
+  int DropAll() override;
+
   // Get index data size
   size_t GetIndexDataSize() override { return 0; }
 

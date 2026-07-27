@@ -32,6 +32,8 @@
 #endif
 #include "omp.h"
 #include "table/table_io.h"
+#include "table/bitmap_index.h"
+#include "table/inverted_index.h"
 #include "third_party/nlohmann/json.hpp"
 #include "util/bitmap.h"
 #include "util/log.h"
@@ -142,6 +144,18 @@ Engine::Engine(const std::string &index_root_path,
 }
 
 Engine::~Engine() {
+  // Drain the maintenance worker first: an in-flight task may itself drive the
+  // indexing thread (vector add/remove) and touches scalar_index_manager_ /
+  // storage_mgr_, so it must finish before we stop indexing or Close().
+  {
+    std::unique_lock<std::mutex> lk(index_task_mutex_);
+    index_maint_stop_ = true;
+    index_task_cv_.notify_all();
+  }
+  if (index_maint_thread_.joinable()) {
+    index_maint_thread_.join();
+  }
+
   // Safely stop indexing if it's running
   IndexingState expected = IndexingState::RUNNING;
   if (indexing_state_.compare_exchange_strong(expected,
@@ -155,14 +169,6 @@ Engine::~Engine() {
 
   if (indexing_thread_.joinable()) {
     indexing_thread_.join();
-  }
-
-  if (add_field_index_thread_.joinable()) {
-    add_field_index_thread_.join();
-  }
-
-  if (remove_field_index_thread_.joinable()) {
-    remove_field_index_thread_.join();
   }
 
   Close();
@@ -210,7 +216,7 @@ Status Engine::Setup() {
     }
   }
 
-  dump_path_ = index_root_path_ + "/retrieval_model_index";
+  dump_path_ = index_root_path_ + "/" + std::string(kDumpSubdirName);
   if (!utils::isFolderExist(dump_path_.c_str())) {
     if (mkdir(dump_path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) {
       std::string msg = "mkdir " + dump_path_ + " error";
@@ -287,7 +293,7 @@ Status Engine::Search(Request &request, Response &response_results) {
       (max_docid_ > brute_force_search_threshold) && vec_manager_->GetEnableRealtime() == false) {
     std::string msg =
         space_name_ + " index not trained, " +
-        "brute_force_search is 0, max_docid_ = " + std::to_string(max_docid_) +
+        "brute_force_search is 0, max_docid_ = " + std::to_string(max_docid_.load()) +
         ", threshold = " + std::to_string(brute_force_search_threshold);
     LOG(WARNING) << msg;
     // for (int i = 0; i < req_num; ++i) {
@@ -421,7 +427,7 @@ Status Engine::Query(QueryRequest &request, Response &response_results) {
         docid = strtol(document_ids[i].c_str(), &endptr, 10);
         if (*endptr != '\0' || docid < 0 || docid >= max_docid_) {
           LOG(ERROR) << "document_id " << document_ids[i]
-                     << " is error, max_docid_ = " << max_docid_;
+                     << " is error, max_docid_ = " << max_docid_.load();
           continue;
         }
       } else {
@@ -710,7 +716,7 @@ int Engine::AddOrUpdate(Doc &doc) {
     return 0;
   } else if (docid >= max_docid_) {
     LOG(ERROR) << space_name_ << " add error, key=" << key
-               << ", max_docid_=" << max_docid_ << ", docid=" << docid;
+               << ", max_docid_=" << max_docid_.load() << ", docid=" << docid;
     return -2;
   } else if (docid == -1) {
     Status status = CheckDoc(fields_table, fields_vec);
@@ -731,7 +737,7 @@ int Engine::AddOrUpdate(Doc &doc) {
   // add vectors by VectorManager
   ret = vec_manager_->AddToStore(max_docid_, fields_vec);
   if (ret != 0) {
-    LOG(ERROR) << space_name_ << " add to store error max_docid [" << max_docid_
+    LOG(ERROR) << space_name_ << " add to store error max_docid [" << max_docid_.load()
                << "] err=" << ret;
     return -5;
   }
@@ -739,13 +745,13 @@ int Engine::AddOrUpdate(Doc &doc) {
   ++max_docid_;
   ret = table_->SetStorageManagerSize(max_docid_);
   if (ret != 0) {
-    LOG(ERROR) << space_name_ << " table_ set max_docid [" << max_docid_
+    LOG(ERROR) << space_name_ << " table_ set max_docid [" << max_docid_.load()
                << "] err= " << ret;
     return -6;
   };
   ret = docids_bitmap_->SetMaxID(max_docid_);
   if (ret != 0) {
-    LOG(ERROR) << space_name_ << " Bitmap set max_docid [" << max_docid_
+    LOG(ERROR) << space_name_ << " Bitmap set max_docid [" << max_docid_.load()
                << "] err= " << ret;
     return -7;
   };
@@ -766,7 +772,7 @@ int Engine::AddOrUpdate(Doc &doc) {
   if (max_docid_ % ADD_COUNT_THRESHOLD == 0) {
     LOG(DEBUG) << space_name_ << " table cost [" << end_table - start
                << "]ms, vec store cost [" << end - end_table
-               << "]ms, max_docid_=" << max_docid_;
+               << "]ms, max_docid_=" << max_docid_.load();
   }
 #endif
   is_dirty_ = true;
@@ -908,7 +914,7 @@ int Engine::GetDoc(int docid, Doc &doc, bool next) {
 
   if ((next ? docid < -1 : docid < 0) || docid >= max_docid_) {
     LOG(ERROR) << space_name_ << " docid [" << docid
-               << "] error, max_docid_ = " << max_docid_;
+               << "] error, max_docid_ = " << max_docid_.load();
     return -1;
   }
 
@@ -920,7 +926,7 @@ int Engine::GetDoc(int docid, Doc &doc, bool next) {
     }
     if (docid >= max_docid_) {
       LOG(ERROR) << space_name_ << " docid [" << docid
-                 << "] is greater then max_docid " << max_docid_;
+                 << "] is greater then max_docid " << max_docid_.load();
       return -1;
     }
   } else if (docids_bitmap_->Test(docid)) {
@@ -1012,35 +1018,7 @@ int Engine::RebuildIndex(int drop_before_rebuild, int limit_cpu, int describe) {
     return ret;
   }
 
-  // Stop current indexing process safely using compare_exchange
-  IndexingState expected = IndexingState::RUNNING;
-  if (indexing_state_.compare_exchange_strong(expected,
-                                              IndexingState::STOPPING)) {
-    LOG(INFO) << space_name_
-              << " stopping current indexing process for rebuild...";
-    if (WaitForIndexingComplete()) {
-      LOG(INFO) << space_name_
-                << " indexing process stopped, proceeding with rebuild";
-    } else {
-      LOG(WARNING)
-          << space_name_
-          << " timeout waiting for indexing to stop, proceeding anyway";
-    }
-  } else if (expected == IndexingState::STARTING) {
-    // Wait for starting to complete
-    LOG(INFO) << space_name_
-              << " waiting for indexing to start before stopping...";
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    expected = IndexingState::RUNNING;
-    if (indexing_state_.compare_exchange_strong(expected,
-                                                IndexingState::STOPPING)) {
-      WaitForIndexingComplete();
-    }
-  }
-
-  if (indexing_thread_.joinable()) {
-    indexing_thread_.join();
-  }
+  StopIndexingThread("rebuild");
 
   if (describe) {
     vec_manager_->DescribeVectorIndexes();
@@ -1159,6 +1137,38 @@ int Engine::Indexing() {
 
 int Engine::GetDocsNum() { return max_docid_ - delete_num_; }
 
+void Engine::StopIndexingThread(const std::string &reason) {
+  // Stop current indexing process safely using compare_exchange.
+  IndexingState expected = IndexingState::RUNNING;
+  if (indexing_state_.compare_exchange_strong(expected,
+                                              IndexingState::STOPPING)) {
+    LOG(INFO) << space_name_ << " stopping current indexing process for "
+              << reason << "...";
+    if (WaitForIndexingComplete()) {
+      LOG(INFO) << space_name_ << " indexing process stopped, proceeding with "
+                << reason;
+    } else {
+      LOG(WARNING)
+          << space_name_
+          << " timeout waiting for indexing to stop, proceeding anyway";
+    }
+  } else if (expected == IndexingState::STARTING) {
+    // Wait for starting to complete
+    LOG(INFO) << space_name_
+              << " waiting for indexing to start before stopping...";
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    expected = IndexingState::RUNNING;
+    if (indexing_state_.compare_exchange_strong(expected,
+                                                IndexingState::STOPPING)) {
+      WaitForIndexingComplete();
+    }
+  }
+
+  if (indexing_thread_.joinable()) {
+    indexing_thread_.join();
+  }
+}
+
 bool Engine::WaitForIndexingComplete(int timeout_ms) {
   std::unique_lock<std::mutex> lk(indexing_mutex_);
 
@@ -1186,6 +1196,25 @@ std::string Engine::EngineStatus() {
     j["min_indexed_num"] = vec_manager_->MinIndexedNum();
   } else {
     j["min_indexed_num"] = 0;
+  }
+  // Per-index build state (name → "BUILDING"/"READY"/"FAILED") for the
+  // space-describe API, merged from both managers. Empty for spaces with no
+  // dynamically-tracked index; the Go side ignores an absent/empty key
+  // (backward compatible). Names are unique across scalar and vector, so the
+  // merge cannot collide.
+  if (created_table_) {
+    std::map<std::string, std::string> states;
+    if (scalar_index_manager_ != nullptr) {
+      states = scalar_index_manager_->GetAllIndexStates();
+    }
+    if (vec_manager_ != nullptr) {
+      for (auto &kv : vec_manager_->GetAllIndexStates()) {
+        states.emplace(kv.first, kv.second);
+      }
+    }
+    if (!states.empty()) {
+      j["index_build_state"] = states;
+    }
   }
   return j.dump();
 }
@@ -1372,6 +1401,44 @@ int Engine::Load() {
     LOG(INFO) << space_name_ << " scalar bitmap indexes rebuilt successfully";
   }
 
+  // Crash recovery for dynamically-added scalar/composite indexes. A persisted
+  // BUILDING marker means a backfill was interrupted before completion. Inverted
+  // and Composite indexes are trusted-as-persisted on load (never re-scanned),
+  // so a partial one would silently return incomplete results — drop and fully
+  // rebuild it. Bitmap indexes were already fully re-derived by
+  // RebuildAllBitmapIndexes above, so just clear their marker.
+  std::vector<std::string> building = scalar_index_manager_->EnumerateBuildingMarkers();
+  for (const std::string &name : building) {
+    std::shared_ptr<ScalarIndex> idx = scalar_index_manager_->GetIndexByName(name);
+    if (idx == nullptr) {
+      // Marker without a live object: the index definition never made it back
+      // from etcd. Drop the orphan marker so it doesn't accumulate.
+      LOG(WARNING) << space_name_ << " BUILDING marker [" << name
+                   << "] has no live index, clearing marker";
+      scalar_index_manager_->DeleteBuildingMarker(name);
+      continue;
+    }
+    if (dynamic_cast<BitmapIndex *>(idx.get()) != nullptr) {
+      LOG(INFO) << space_name_ << " recovered bitmap index [" << name
+                << "] via full rebuild, clearing BUILDING marker";
+      scalar_index_manager_->SetIndexStateByName(name, IndexState::READY);
+      scalar_index_manager_->DeleteBuildingMarker(name);
+      continue;
+    }
+    LOG(WARNING) << space_name_ << " index [" << name
+                 << "] left BUILDING before crash; dropping partial keys and "
+                    "re-backfilling up to docid=" << max_docid_.load();
+    int drop_ret = idx->DropAll();
+    if (drop_ret != 0) {
+      LOG(ERROR) << space_name_ << " DropAll failed for [" << name
+                 << "] during recovery, ret=" << drop_ret;
+    }
+    scalar_index_manager_->SetIndexStateByName(name, IndexState::BUILDING);
+    // max_docid_ is the live frontier here (load is single-threaded, no
+    // concurrent writes yet); pass max_docid_ - 1 as the inclusive top valid id.
+    BackfillScalarIndex(name, idx, max_docid_ > 0 ? max_docid_ - 1 : 0);
+  }
+
   if (refresh_interval_ >= 0 and
       indexing_state_.load() == IndexingState::IDLE and
       index_status_ == UNINDEXED) {
@@ -1392,7 +1459,7 @@ int Engine::Load() {
   }
   last_dump_dir_ = last_dir;
   LOG(INFO) << "load engine success! " << space_name_
-            << " max docid=" << max_docid_ << ", delete_num=" << delete_num_
+            << " max docid=" << max_docid_.load() << ", delete_num=" << delete_num_
             << ", load directory=" << last_dir
             << ", clean directorys(not done)="
             << utils::join(folders_not_done, ',');
@@ -1485,297 +1552,520 @@ void Engine::BackupThread(int command) {
   backup_status_.store(0);
 }
 
-Status Engine::AddFieldIndex(const std::string &field_name,
+// Enqueues an ADD task onto the maintenance worker and returns immediately.
+// Cheap validations run synchronously so the caller (raft apply) gets a real
+// error code; the actual build happens asynchronously on the worker. The
+// worker processes tasks in FIFO order, so add/remove of the same or different
+// names never overlap — correctness no longer depends on the raft applier
+// being single-threaded (it still is, but concurrent enqueue would be safe).
+Status Engine::AddFieldIndex(const std::string &index_name,
+                             const std::vector<std::string> &field_names,
                              const std::string &indexType,
                              const std::string &indexParam) {
   if (table_ == nullptr) {
     return Status::IOError("table not initialized");
   }
-
-  LOG(INFO) << space_name_ << " starting async AddFieldIndex for field "
-            << field_name << " with type: " << indexType
-            << ", param: " << indexParam;
-
-  // Join previous thread if it exists
-  if (add_field_index_thread_.joinable()) {
-    add_field_index_thread_.join();
+  if (index_name.empty()) {
+    return Status::InvalidArgument("index_name is empty");
+  }
+  if (field_names.empty()) {
+    return Status::InvalidArgument("field_names is empty");
   }
 
-  // Start async execution
-  auto func_add_field_index = std::bind(&Engine::AddFieldIndexThread, this,
-                                        field_name, indexType, indexParam);
-  add_field_index_thread_ = std::thread(func_add_field_index);
+  if ((vec_manager_ != nullptr && vec_manager_->HasIndexName(index_name)) ||
+      (scalar_index_manager_ != nullptr &&
+       scalar_index_manager_->HasIndexName(index_name))) {
+    LOG(WARNING) << space_name_ << " AddFieldIndex: index name [" << index_name
+                 << "] already exists, ignore";
+    return Status::OK();
+  }
+
+  LOG(INFO) << space_name_ << " starting async AddFieldIndex name=" << index_name
+            << " fields=" << utils::join(field_names, ',') << " type=" << indexType
+            << " param=" << indexParam;
+
+  // Vector index covers exactly one vector field. Eagerly register the
+  // name->field mapping so RemoveFieldIndex(name) can route correctly even
+  // before the worker populates VectorManager state. Scalar/composite
+  // names are registered by ScalarIndexManager during the ADD task.
+  bool is_vector = (vec_manager_ != nullptr) &&
+                   vec_manager_->Contains(field_names[0]);
+  if (is_vector) {
+    if (field_names.size() != 1) {
+      return Status::InvalidArgument(
+          "vector index must reference exactly one field");
+    }
+    if (!vec_manager_->RegisterIndexName(index_name, field_names[0])) {
+      LOG(WARNING) << space_name_ << " AddFieldIndex: vector index name ["
+                   << index_name << "] already registered, ignore";
+      return Status::OK();
+    }
+  } else {
+    // Scalar / composite path: do all cheap validations synchronously so the
+    // caller (raft apply) gets a real error code instead of an OK that then
+    // silently fails inside the worker.
+    if (scalar_index_manager_ == nullptr) {
+      return Status::IOError("scalar_index_manager not initialized");
+    }
+    for (const auto &fname : field_names) {
+      if (table_->GetAttrIdx(fname) < 0) {
+        return Status::InvalidArgument(
+            "field [" + fname + "] not found in table");
+      }
+      DataType ftype;
+      if (table_->GetFieldType(fname, ftype) != 0) {
+        return Status::InvalidArgument(
+            "failed to resolve type for field [" + fname + "]");
+      }
+    }
+    // Persist the BUILDING marker HERE, synchronously on the raft-apply path,
+    // before the task is enqueued. If it were written only inside the async
+    // task (as it also is, idempotently) a crash after raft commit but before
+    // the worker runs would leave the index recorded in the schema yet with no
+    // marker: Load would recreate an empty Inverted/Composite index, find no
+    // marker, trust it as READY, and silently return incomplete results.
+    // Writing it now makes the marker part of what the raft commit durably
+    // implies, so Load always sees it and rebuilds. (Bitmap is rebuilt
+    // unconditionally and vector uses a separate retrain path, so this gap was
+    // specific to Inverted/Composite.)
+    scalar_index_manager_->WriteBuildingMarker(index_name);
+  }
+
+  IndexTask task;
+  task.type = IndexTaskType::ADD;
+  task.index_name = index_name;
+  task.field_names = field_names;
+  task.index_type = indexType;
+  task.index_param = indexParam;
+  EnqueueIndexTask(std::move(task));
 
   return Status::OK();
 }
 
-Status Engine::RemoveFieldIndex(const std::string &field_name) {
+// Enqueues a REMOVE task onto the maintenance worker and returns immediately.
+// Serialized after any earlier ADD of the same name, so a remove never races a
+// still-running backfill.
+Status Engine::RemoveFieldIndex(const std::string &index_name) {
   if (table_ == nullptr) {
     return Status::IOError("table not initialized");
   }
-
-  LOG(INFO) << space_name_ << " starting async RemoveFieldIndex for field "
-            << field_name;
-
-  // Join previous thread if it exists
-  if (remove_field_index_thread_.joinable()) {
-    remove_field_index_thread_.join();
+  if (index_name.empty()) {
+    return Status::InvalidArgument("index_name is empty");
   }
 
-  // Start async execution
-  auto func_remove_field_index =
-      std::bind(&Engine::RemoveFieldIndexThread, this, field_name);
-  remove_field_index_thread_ = std::thread(func_remove_field_index);
+  LOG(INFO) << space_name_ << " starting async RemoveFieldIndex name="
+            << index_name;
+
+  IndexTask task;
+  task.type = IndexTaskType::REMOVE;
+  task.index_name = index_name;
+  EnqueueIndexTask(std::move(task));
 
   return Status::OK();
 }
 
-void Engine::AddFieldIndexThread(const std::string &field_name,
-                                 const std::string &indexType,
-                                 const std::string &indexParam) {
-  LOG(INFO) << space_name_ << " AddFieldIndexThread started for field "
-            << field_name << " with type: " << indexType
-            << ", param: " << indexParam;
-
-  // Check if it's a vector field
-  if (vec_manager_ != nullptr &&
-      vec_manager_->Contains(const_cast<std::string &>(field_name))) {
-    LOG(INFO) << space_name_ << " adding vector index for field " << field_name
-              << " with type: " << indexType << ", param: " << indexParam;
-
-    // Stop current indexing process safely using compare_exchange (similar to
-    // RebuildIndex)
-    IndexingState expected = IndexingState::RUNNING;
-    if (indexing_state_.compare_exchange_strong(expected,
-                                                IndexingState::STOPPING)) {
-      LOG(INFO)
-          << space_name_
-          << " stopping current indexing process for field index addition...";
-      if (WaitForIndexingComplete()) {
-        LOG(INFO) << space_name_
-                  << " indexing process stopped, proceeding with field index "
-                     "addition";
-      } else {
-        LOG(WARNING)
-            << space_name_
-            << " timeout waiting for indexing to stop, proceeding anyway";
-      }
-    } else if (expected == IndexingState::STARTING) {
-      // Wait for starting to complete
-      LOG(INFO) << space_name_
-                << " waiting for indexing to start before stopping...";
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      expected = IndexingState::RUNNING;
-      if (indexing_state_.compare_exchange_strong(expected,
-                                                  IndexingState::STOPPING)) {
-        WaitForIndexingComplete();
-      }
-    }
-
-    if (indexing_thread_.joinable()) {
-      indexing_thread_.join();
-    }
-
-    // Add the new index type and parameter
-    vec_manager_->AddIndexTypeAndParam(indexType, indexParam);
-
-    // Create vector indexes with the new configuration
-    std::map<std::string, IndexModel *> vector_indexes;
-    Status status =
-        vec_manager_->CreateVectorIndexes(training_threshold_, vector_indexes);
-    if (!status.ok()) {
-      LOG(ERROR) << space_name_ << " AddFieldIndex CreateVectorIndexes failed: "
-                 << status.ToString();
-      vec_manager_->DestroyVectorIndexes();
-      return;
-    }
-
-    // Train index if we have enough documents
-    if (indexing_state_.load() == IndexingState::IDLE &&
-        max_docid_ - delete_num_ > training_threshold_) {
-      int ret = vec_manager_->TrainIndex(vector_indexes);
-      if (ret) {
-        LOG(ERROR) << space_name_
-                   << " AddFieldIndex TrainIndex failed, ret=" << ret;
-        index_status_ = IndexStatus::UNINDEXED;
-        return;
-      }
-    }
-
-    // Reset vector indexes with the new configuration
-    vec_manager_->ResetVectorIndexes(vector_indexes);
-
-    // Start indexing process if conditions are met
-    if (refresh_interval_ >= 0 &&
-        indexing_state_.load() == IndexingState::IDLE &&
-        max_docid_ - delete_num_ >= training_threshold_) {
-      int ret = BuildIndex();
-      if (ret) {
-        LOG(ERROR) << space_name_
-                   << " AddFieldIndex BuildIndex failed, ret: " << ret;
-        return;
-      }
-    }
-
-    // Compact vector storage
-    Status compact_status = vec_manager_->CompactVector();
-    if (!compact_status.ok()) {
-      LOG(ERROR) << space_name_ << " AddFieldIndex compact vector error: "
-                 << compact_status.ToString();
-      return;
-    }
-
-    LOG(INFO) << space_name_
-              << " vector index added successfully for field: " << field_name;
-    return;
-  }
-
-  // Check if field exists in table
-  int field_id = table_->GetAttrIdx(field_name);
-  if (field_id < 0) {
-    LOG(ERROR) << space_name_ << " field not found: " << field_name;
-    return;
-  }
-
-  // For other fields, add to field range index if it supports indexing
-  if (scalar_index_manager_ != nullptr) {
-    DataType field_type;
-    if (table_->GetFieldType(field_name, field_type) == 0) {
-      // Get index type for this field (default to SCALAR)
-      ScalarIndexType index_type = ScalarIndexTypeFromString(indexType);
-
-      std::map<std::string, ScalarIndexType> attr_index_type;
-      if (table_->GetAttrIndexType(attr_index_type) == 0) {
-        const auto& it = attr_index_type.find(field_name);
-        if (it != attr_index_type.end()) {
-          it->second = index_type;
-        }
-      }
-
-      // Add field to range index
-      std::string field_name_copy = field_name;
-      int result =
-          scalar_index_manager_->AddIndex(field_id, field_type, field_name_copy, index_type);
-      if (result != 0) {
-        LOG(ERROR) << space_name_
-                   << " failed to add field to range index for field: "
-                   << field_name;
-        return;
-      }
-      LOG(INFO) << space_name_
-                << " added range index for field: " << field_name;
-
-      // Add index for all existing documents
-      LOG(INFO) << space_name_
-                << " building index for existing documents for field: "
-                << field_name;
-      for (int64_t docid = 0; docid < max_docid_; ++docid) {
-        if (!docids_bitmap_->Test(docid)) {  // Only for non-deleted documents
-          scalar_index_manager_->AddDoc(docid, field_id);
-        }
-      }
-      LOG(INFO) << space_name_ << " completed building index for "
-                << (max_docid_ - delete_num_)
-                << " existing documents for field: " << field_name;
-    }
-  }
-
-  LOG(INFO) << space_name_
-            << " AddFieldIndexThread completed for field: " << field_name;
+void Engine::EnqueueIndexTask(IndexTask task) {
+  // EnsureIndexMaintThread takes index_task_mutex_ separately (once, to start
+  // the worker); we then re-acquire it to push. Two short sequential lock
+  // acquisitions, never nested — no deadlock.
+  EnsureIndexMaintThread();
+  std::unique_lock<std::mutex> lk(index_task_mutex_);
+  index_task_queue_.push_back(std::move(task));
+  index_task_cv_.notify_one();
 }
 
-void Engine::RemoveFieldIndexThread(const std::string &field_name) {
-  LOG(INFO) << space_name_ << " RemoveFieldIndexThread started for field "
-            << field_name;
+void Engine::EnsureIndexMaintThread() {
+  std::unique_lock<std::mutex> lk(index_task_mutex_);
+  if (index_maint_started_) {
+    return;
+  }
+  index_maint_started_ = true;
+  index_maint_thread_ = std::thread(&Engine::IndexMaintenanceLoop, this);
+}
 
-  // Check if it's a vector field
-  if (vec_manager_ != nullptr &&
-      vec_manager_->Contains(const_cast<std::string &>(field_name))) {
-    LOG(INFO) << space_name_ << " removing vector index for field "
-              << field_name;
-
-    IndexingState expected = IndexingState::RUNNING;
-    if (indexing_state_.compare_exchange_strong(expected,
-                                                IndexingState::STOPPING)) {
-      LOG(INFO) << space_name_
-                << " stopping current indexing process for field removal...";
-      if (WaitForIndexingComplete()) {
-        LOG(INFO) << space_name_
-                  << " indexing process stopped, proceeding with field removal";
-      } else {
-        LOG(WARNING)
-            << space_name_
-            << " timeout waiting for indexing to stop, proceeding anyway";
+void Engine::IndexMaintenanceLoop() {
+  LOG(INFO) << space_name_ << " index maintenance worker started";
+  while (true) {
+    IndexTask task;
+    {
+      std::unique_lock<std::mutex> lk(index_task_mutex_);
+      index_task_cv_.wait(lk, [this] {
+        return index_maint_stop_ || !index_task_queue_.empty();
+      });
+      if (index_maint_stop_ && index_task_queue_.empty()) {
+        break;
       }
-    } else if (expected == IndexingState::STARTING) {
-      // Wait for starting to complete
-      LOG(INFO) << space_name_
-                << " waiting for indexing to start before stopping...";
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      expected = IndexingState::RUNNING;
-      if (indexing_state_.compare_exchange_strong(expected,
-                                                  IndexingState::STOPPING)) {
-        WaitForIndexingComplete();
-      }
+      task = std::move(index_task_queue_.front());
+      index_task_queue_.pop_front();
     }
-
-    if (indexing_thread_.joinable()) {
-      indexing_thread_.join();
+    // Execute outside the queue lock so enqueue never blocks on a long backfill.
+    if (task.type == IndexTaskType::ADD) {
+      AddFieldIndexTask(task.index_name, task.field_names, task.index_type,
+                        task.index_param);
+    } else {
+      RemoveFieldIndexTask(task.index_name);
     }
+  }
+  LOG(INFO) << space_name_ << " index maintenance worker exited";
+}
 
-    Status remove_status = vec_manager_->RemoveVectorIndex(field_name);
-    if (!remove_status.ok()) {
-      LOG(ERROR) << space_name_ << " failed to remove vector index for field "
-                 << field_name << ": " << remove_status.ToString();
-      return;
-    }
+void Engine::AddFieldIndexTask(const std::string &index_name,
+                               const std::vector<std::string> &field_names,
+                               const std::string &indexType,
+                               const std::string &indexParam) {
+  LOG(INFO) << space_name_ << " AddFieldIndexTask started name=" << index_name
+            << " indexType=" << indexType << " param=" << indexParam;
 
-    index_status_ = IndexStatus::UNINDEXED;
-
-    LOG(INFO) << space_name_
-              << " vector index removed for field: " << field_name;
+  if (field_names.empty()) {
+    LOG(ERROR) << space_name_ << " AddFieldIndexTask: empty field_names";
     return;
   }
 
-  // Check if field exists in table
+  const std::string &first_field = field_names[0];
+
+  // Dispatch by index shape. A single vector field builds a vector index, 2+
+  // scalar fields build a composite index (over the whole field_names list, so
+  // first_field is unused there), and a single scalar field builds a plain
+  // scalar index. Each branch logs its own success/failure outcome.
+  if (vec_manager_ != nullptr && vec_manager_->Contains(first_field)) {
+    AddVectorFieldIndex(index_name, first_field, indexType, indexParam);
+  } else if (field_names.size() >= 2) {
+    AddCompositeFieldIndex(index_name, field_names);
+  } else {
+    AddScalarFieldIndex(index_name, first_field, indexType);
+  }
+}
+
+void Engine::AddVectorFieldIndex(const std::string &index_name,
+                                 const std::string &field_name,
+                                 const std::string &indexType,
+                                 const std::string &indexParam) {
+  LOG(INFO) << space_name_ << " adding vector index for field " << field_name
+            << " with type: " << indexType << ", param: " << indexParam;
+
+  // Mark BUILDING for the describe API. The name was registered in
+  // AddFieldIndex; rollback below unregisters it (clearing state too), so a
+  // failed add leaves no lingering entry. Flipped to READY once published.
+  vec_manager_->SetIndexState(index_name, IndexState::BUILDING);
+
+  StopIndexingThread("field index addition");
+
+  // Add the new index type and parameter
+  vec_manager_->AddIndexTypeAndParam(field_name, indexType, indexParam);
+
+  // Undo everything done so far when a build step fails before the new indexes
+  // are published: destroy the not-yet-published index objects and roll back
+  // the type/param and name registrations.
+  auto rollback = [&](std::map<std::string, IndexModel *> &indexes) {
+    for (auto &kv : indexes) {
+      if (kv.second != nullptr) delete kv.second;
+    }
+    indexes.clear();
+    vec_manager_->RemoveIndexTypeAndParam(field_name, indexType, indexParam);
+    vec_manager_->UnregisterIndexName(index_name);
+  };
+
+  // Create vector indexes with the new configuration
+  std::map<std::string, IndexModel *> vector_indexes;
+  Status status =
+      vec_manager_->CreateVectorIndexes(training_threshold_, vector_indexes);
+  if (!status.ok()) {
+    LOG(ERROR) << space_name_
+               << " AddVectorFieldIndex CreateVectorIndexes failed: "
+               << status.ToString();
+    rollback(vector_indexes);
+    return;
+  }
+
+  // Train index if we have enough documents
+  if (indexing_state_.load() == IndexingState::IDLE &&
+      max_docid_ - delete_num_ > training_threshold_) {
+    int ret = vec_manager_->TrainIndex(vector_indexes);
+    if (ret) {
+      LOG(ERROR) << space_name_
+                 << " AddVectorFieldIndex TrainIndex failed, ret=" << ret;
+      index_status_ = IndexStatus::UNINDEXED;
+      rollback(vector_indexes);
+      return;
+    }
+  }
+
+  // Reset vector indexes with the new configuration
+  vec_manager_->ResetVectorIndexes(vector_indexes);
+
+  // Start indexing process if conditions are met
+  if (refresh_interval_ >= 0 &&
+      indexing_state_.load() == IndexingState::IDLE &&
+      max_docid_ - delete_num_ >= training_threshold_) {
+    int ret = BuildIndex();
+    if (ret) {
+      // The index objects are already published via ResetVectorIndexes; a
+      // BuildIndex failure is a best-effort training trigger miss, not a
+      // structural failure. Leave the index registered (a later
+      // RebuildIndex / next AddRTVecsToIndex pass will retry) and just log.
+      LOG(ERROR) << space_name_
+                 << " AddVectorFieldIndex BuildIndex failed, ret: " << ret
+                 << "; index is published, retry will happen on next "
+                    "indexing pass";
+    }
+  }
+
+  // Compact vector storage
+  Status compact_status = vec_manager_->CompactVector();
+  if (!compact_status.ok()) {
+    // Same reasoning as BuildIndex above: index is already published and
+    // healthy; compact is a post-hoc optimization. Don't unregister.
+    LOG(ERROR) << space_name_ << " AddVectorFieldIndex compact vector error: "
+               << compact_status.ToString()
+               << "; index remains registered";
+  }
+
+  // Index objects are published (ResetVectorIndexes); mark READY for describe.
+  // A best-effort BuildIndex/compact miss above does not unpublish, so the
+  // index is usable — READY reflects that.
+  vec_manager_->SetIndexState(index_name, IndexState::READY);
+
+  LOG(INFO) << space_name_
+            << " vector index added successfully name=" << index_name
+            << " field=" << field_name;
+}
+
+void Engine::AddCompositeFieldIndex(
+    const std::string &index_name,
+    const std::vector<std::string> &field_names) {
+  if (scalar_index_manager_ == nullptr) {
+    LOG(ERROR) << space_name_
+               << " scalar_index_manager_ is null, cannot add composite";
+    return;
+  }
+  std::vector<int> composite_field_ids;
+  std::vector<enum DataType> composite_field_types;
+  for (const auto &fname : field_names) {
+    int fid = table_->GetAttrIdx(fname);
+    if (fid < 0) {
+      LOG(ERROR) << space_name_ << " composite field [" << fname
+                 << "] not found";
+      return;
+    }
+    DataType ftype;
+    if (table_->GetFieldType(fname, ftype) != 0) {
+      LOG(ERROR) << space_name_ << " GetFieldType failed for [" << fname
+                 << "]";
+      return;
+    }
+    composite_field_ids.push_back(fid);
+    composite_field_types.push_back(ftype);
+  }
+
+  // Publish-then-backfill: publish an EMPTY composite index as BUILDING so any
+  // concurrent write (docid >= snapshot) flows into it via incremental AddDoc,
+  // then backfill [0, snapshot] off-lock and flip to READY. This closes the
+  // window where docs written during backfill would be missed. Composite
+  // AddDoc is per-key idempotent, so a docid both backfilled and incrementally
+  // added is harmless.
+  auto new_composite = std::make_shared<CompositeIndex>(
+      scalar_index_manager_->table_, scalar_index_manager_->storage_mgr_,
+      scalar_index_manager_->cf_id_, composite_field_types,
+      composite_field_ids);
+
+  // Re-assert the BUILDING marker (idempotent Put). It was already written
+  // synchronously on the raft-apply path in AddFieldIndex; writing it again
+  // here is harmless and keeps this task self-contained.
+  scalar_index_manager_->WriteBuildingMarker(index_name);
+
+  int result = scalar_index_manager_->InsertIndex(
+      new_composite, index_name, IndexState::BUILDING);
+  if (result != 0) {
+    LOG(ERROR) << space_name_
+               << " failed to insert composite index name=" << index_name;
+    // Keep the BUILDING marker. If the index definition already reached etcd,
+    // this marker is the only signal that makes Load() rebuild the index after
+    // a restart; deleting it would leave the definition trusted-as-persisted
+    // but with no data. If the definition never persisted, Load() sees a marker
+    // with no live index and clears it as an orphan. Either way, retaining it
+    // is the safe choice.
+    return;
+  }
+  // Build the index fully under the write lock (blocks writes for one scan),
+  // then flip READY. Holding the lock across the build means no value change
+  // can interleave and leave a stale key. max_docid_ is read inside the lock.
+  scalar_index_manager_->BuildFieldIndexUnderLock(index_name, new_composite,
+                                                  max_docid_, docids_bitmap_);
+  scalar_index_manager_->DeleteBuildingMarker(index_name);
+}
+
+void Engine::AddScalarFieldIndex(const std::string &index_name,
+                                 const std::string &field_name,
+                                 const std::string &indexType) {
   int field_id = table_->GetAttrIdx(field_name);
   if (field_id < 0) {
     LOG(ERROR) << space_name_ << " field not found: " << field_name;
     return;
   }
 
-  // For other fields, remove from field range index if it exists
-  if (scalar_index_manager_ != nullptr) {
-    LOG(INFO) << space_name_
-              << " removing range index for field: " << field_name;
+  if (scalar_index_manager_ == nullptr) {
+    LOG(ERROR) << space_name_
+               << " scalar_index_manager_ is null, cannot add scalar index";
+    return;
+  }
+  DataType field_type;
+  if (table_->GetFieldType(field_name, field_type) != 0) {
+    LOG(ERROR) << space_name_ << " GetFieldType failed for [" << field_name
+               << "]";
+    return;
+  }
+  ScalarIndexType index_type = ScalarIndexTypeFromString(indexType);
 
-    // Remove index for all existing documents
-    LOG(INFO) << space_name_
-              << " removing index from existing documents for field: "
-              << field_name;
-    for (int64_t docid = 0; docid < max_docid_; ++docid) {
-      if (!docids_bitmap_->Test(docid)) {  // Only for non-deleted documents
-        scalar_index_manager_->DeleteDoc(docid, field_id);
-      }
+  // Publish-then-backfill (same reasoning as AddCompositeFieldIndex): publish
+  // the EMPTY index as BUILDING so concurrent writes flow in via incremental
+  // AddDoc, then backfill off-lock and flip READY.
+  std::shared_ptr<ScalarIndex> new_index;
+  if (index_type == ScalarIndexType::Bitmap) {
+    new_index = std::make_shared<BitmapIndex>(
+        scalar_index_manager_->table_, scalar_index_manager_->storage_mgr_,
+        scalar_index_manager_->cf_id_, field_type, field_id);
+  } else {
+    new_index = std::make_shared<InvertedIndex>(
+        scalar_index_manager_->table_, scalar_index_manager_->storage_mgr_,
+        scalar_index_manager_->cf_id_, field_type, field_id);
+  }
+
+  // Idempotent re-assert; the marker was already persisted synchronously in
+  // AddFieldIndex on the raft-apply path (see the note there).
+  scalar_index_manager_->WriteBuildingMarker(index_name);
+
+  int result = scalar_index_manager_->InsertIndex(
+      new_index, index_name, IndexState::BUILDING);
+  if (result != 0) {
+    LOG(ERROR) << space_name_
+               << " failed to insert index for field: " << field_name;
+    // Keep the BUILDING marker (same reasoning as AddCompositeFieldIndex): it
+    // is the only restart-time signal to rebuild if the definition already
+    // reached etcd, and Load() clears it as an orphan if it did not.
+    return;
+  }
+  // Build fully under the write lock, then flip READY — see
+  // AddCompositeFieldIndex. max_docid_ is read inside the lock.
+  scalar_index_manager_->BuildFieldIndexUnderLock(index_name, new_index,
+                                                  max_docid_, docids_bitmap_);
+  scalar_index_manager_->DeleteBuildingMarker(index_name);
+}
+
+int Engine::BackfillScalarIndex(const std::string &index_name,
+                                const std::shared_ptr<ScalarIndex> &index,
+                                int64_t snapshot_max) {
+  // Inclusive [0, snapshot_max]: snapshot_max is read AFTER the index is
+  // published, so any doc written between publish and this read is reachable
+  // by incremental AddDoc. The single in-flight doc whose ++max_docid_ has not
+  // yet run sits exactly at docid == snapshot_max (writes are serialized by the
+  // raft applier, so at most one exists) — the inclusive upper bound catches
+  // it. A docid both backfilled here and added incrementally is harmless:
+  // Inverted/Composite overwrite the same per-(value,docid) key, Bitmap's
+  // roaring add is a no-op on an already-set bit. docid == snapshot_max may not
+  // exist yet; AddDoc then fails GetFieldRawValue and is skipped.
+  LOG(INFO) << space_name_ << " backfilling index name=" << index_name
+            << " up to docid=" << snapshot_max << " (inclusive)";
+  int64_t indexed = 0;
+  for (int64_t docid = 0; docid <= snapshot_max; ++docid) {
+    if (docids_bitmap_->Test(docid)) {
+      continue;
     }
-    LOG(INFO) << space_name_ << " completed removing index from "
-              << (max_docid_ - delete_num_)
-              << " existing documents for field: " << field_name;
+    // AddDoc returns non-zero (and is skipped) if docid == snapshot_max was
+    // never actually written — GetFieldRawValue fails for a not-yet-assigned
+    // id, which is the expected no-op at the boundary.
+    if (index->AddDoc(docid) != 0) {
+      continue;
+    }
+    ++indexed;
+    // Best-effort orphan-key reconciliation. A concurrent Engine::Delete does
+    // Set(bitmap) → DeleteDoc → table_->Delete(key). If its DeleteDoc ran
+    // before our AddDoc, the key we just wrote is an orphan. The delete bitmap
+    // is monotonic (a docid is never un-deleted, and ids are never reused —
+    // AddOrUpdate only ++max_docid_), so re-testing after AddDoc DETECTS every
+    // such orphan. We then try to undo our write. This is best-effort: if the
+    // racing delete's table_->Delete already removed the field value,
+    // DeleteDoc can't reconstruct the key and the orphan lingers until the next
+    // full rebuild/DropAll. That is harmless — queries filter every result
+    // through docids_bitmap_->Test(), and the docid can never be recycled, so a
+    // lingering key can never produce a wrong result, only waste space. No
+    // write-blocking lock over the backfill is needed for correctness.
+    if (docids_bitmap_->Test(docid)) {
+      index->DeleteDoc(docid);
+      --indexed;
+    }
+  }
+  // BackfillScalarIndex is only used by crash recovery (Engine::Load), which is
+  // single-threaded with no concurrent writes, so a plain READY flip is safe —
+  // the dynamic add path instead uses BuildFieldIndexUnderLock. Set READY and
+  // clear the marker so a subsequent restart does not rebuild again.
+  scalar_index_manager_->SetIndexStateByName(index_name, IndexState::READY);
+  scalar_index_manager_->DeleteBuildingMarker(index_name);
+  LOG(INFO) << space_name_ << " index READY name=" << index_name
+            << ", backfilled docs=" << indexed;
+  return 0;
+}
 
-    // Remove field from range index
-    int result = scalar_index_manager_->RemoveIndex(field_id);
-    if (result != 0) {
-      LOG(ERROR) << space_name_
-                 << " failed to remove field from range index for field: "
-                 << field_name;
+void Engine::RemoveFieldIndexTask(const std::string &index_name) {
+  LOG(INFO) << space_name_ << " RemoveFieldIndexTask started name="
+            << index_name;
+
+  // Vector index? VectorManager owns the name->field mapping populated by
+  // Engine::AddFieldIndex when the index targets a vector field.
+  std::string vec_field;
+  bool is_vector = (vec_manager_ != nullptr) &&
+                   vec_manager_->FindFieldByIndexName(index_name, &vec_field);
+  if (is_vector) {
+    LOG(INFO) << space_name_ << " removing vector index for field "
+              << vec_field;
+
+    Status remove_status = vec_manager_->RemoveVectorIndex(vec_field);
+    if (!remove_status.ok()) {
+      LOG(ERROR) << space_name_ << " failed to remove vector index for field "
+                 << vec_field << ": " << remove_status.ToString();
+      vec_manager_->UnregisterIndexName(index_name);
       return;
     }
+
+    vec_manager_->UnregisterIndexName(index_name);
+
+    // If that was the LAST vector index, stop the indexing thread and reset
+    // index_status_ to UNINDEXED. Removing one of several must keep the thread
+    // running and index_status_ INDEXED (the others are still maintained). But
+    // once none remain, the running indexing loop rewrites index_status_ =
+    // INDEXED every iteration, so we must stop it first; otherwise the reset is
+    // immediately overwritten. With the reset in place a normal search returns
+    // a clean IndexNotTrained via the index_status_ != INDEXED gate. (Brute
+    // force is not a fallback here: it is a scan mode of an existing index
+    // object, and none remain — VectorManager::Search returns InvalidArgument.)
+    if (!vec_manager_->HasAnyVectorIndex()) {
+      StopIndexingThread("last vector index removed");
+      index_status_ = IndexStatus::UNINDEXED;
+    }
+
     LOG(INFO) << space_name_
-              << " removed range index for field: " << field_name;
+              << " vector index removed name=" << index_name
+              << " field=" << vec_field;
+    return;
+  }
+
+  if (scalar_index_manager_ != nullptr) {
+    LOG(INFO) << space_name_
+              << " removing scalar/composite index name=" << index_name;
+
+    // Unpublish under ScalarIndexManager's own scalar_indexes_mutex_
+    // (taken inside RemoveIndex), which makes the removal observable
+    // atomically by subsequent writers.
+    int result = scalar_index_manager_->RemoveIndex(index_name);
+    if (result != 0) {
+      LOG(ERROR) << space_name_
+                 << " failed to remove index name=" << index_name;
+      return;
+    }
+    LOG(INFO) << space_name_ << " removed index name=" << index_name;
   }
 
   LOG(INFO) << space_name_
-            << " RemoveFieldIndexThread completed for field: " << field_name;
+            << " RemoveFieldIndexTask completed name=" << index_name;
 }
 
 int Engine::GetConfig(std::string &conf_str) {

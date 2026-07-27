@@ -43,6 +43,26 @@ jobs:
           pytest test_index_rebuild.py -x --log-cli-level=INFO
         fi
 
+    - name: Dump vearch logs on failure
+      if: failure()
+      run: |
+        echo "===== docker ps -a ====="
+        docker ps -a || true
+        echo "===== docker logs vearch (tail 10000) ====="
+        docker logs --tail 10000 vearch 2>&1 || true
+        # Engine runtime logs go to files under /vearch/logs/ (global.log),
+        # not stdout. Copy them out (works even if the container exited).
+        echo "===== vearch: /vearch/logs/ ====="
+        rm -rf /tmp/vearch-logs || true
+        if docker cp vearch:/vearch/logs /tmp/vearch-logs 2>/dev/null; then
+          for f in /tmp/vearch-logs/*.log; do
+            echo "--- $f (tail 10000) ---"
+            tail -n 10000 "$f" 2>/dev/null || true
+          done
+        else
+          echo "(could not copy logs from vearch)"
+        fi
+
     - name: Test Go SDK
       run: |
         cd sdk/go/test

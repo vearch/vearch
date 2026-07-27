@@ -67,6 +67,7 @@ func ExportToRpcAdminHandler(server *Server) {
 		{client.DeletePartitionHandler, &DeletePartitionHandler{server: server}, true},
 		{client.DeleteReplicaHandler, &DeleteReplicaHandler{server: server}, true},
 		{client.UpdatePartitionHandler, &UpdatePartitionHandler{server: server}, true},
+		{client.IndexChangePartitionHandler, &IndexChangePartitionHandler{server: server}, true},
 		{client.IsLiveHandler, new(IsLiveHandler), false},
 		{client.PartitionInfoHandler, &PartitionInfoHandler{server: server}, false},
 		{client.StatsHandler, &StatsHandler{server: server}, false},
@@ -184,6 +185,36 @@ func (handler *UpdatePartitionHandler) Execute(ctx context.Context, req *vearchp
 	return nil
 }
 
+type IndexChangePartitionHandler struct {
+	server *Server
+}
+
+func (handler *IndexChangePartitionHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
+	reply.Err = &vearchpb.Error{Code: vearchpb.ErrorEnum_SUCCESS}
+
+	ic := new(vearchpb.IndexChange)
+	if err := json.Unmarshal(req.Data, ic); err != nil {
+		log.Error("failed to unmarshal index change data: %v", err)
+		return vearchpb.NewError(vearchpb.ErrorEnum_RPC_PARAM_ERROR, err)
+	}
+
+	store := handler.server.GetPartition(req.PartitionID)
+	if store == nil {
+		msg := fmt.Sprintf("partition not found, partitionId:[%d], nodeID:[%d], node ip:[%s]",
+			req.PartitionID, handler.server.nodeID, handler.server.ip)
+		log.Error("%s", msg)
+		return vearchpb.NewError(vearchpb.ErrorEnum_PARTITION_NOT_EXIST, errors.New(msg))
+	}
+
+	if err := store.IndexChange(ctx, ic); err != nil {
+		log.Error("failed to apply index change for partition %d: %v", req.PartitionID, err)
+		return err
+	}
+
+	log.Infof("successfully applied index change for partition %d", req.PartitionID)
+	return nil
+}
+
 type IsLiveHandler int
 
 func (*IsLiveHandler) Execute(ctx context.Context, req *vearchpb.PartitionData, reply *vearchpb.PartitionData) error {
@@ -258,6 +289,8 @@ func (pih *PartitionInfoHandler) buildPartitionInfo(store PartitionStore, opType
 		BackupStatus: int(status.BackupStatus),
 		IndexNum:     int(status.MinIndexedNum),
 		MaxDocid:     int(status.MaxDocid),
+
+		IndexBuildState: status.IndexBuildState,
 	}
 
 	if opType == vearchpb.OpType_GET {

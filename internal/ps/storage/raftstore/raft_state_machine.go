@@ -128,6 +128,8 @@ func (s *Store) innerApply(index uint64, raftCmd *vearchpb.RaftCommand) any {
 		resp.Err = s.Engine.Writer().Write(s.Ctx, raftCmd.WriteCommand)
 	case vearchpb.CmdType_UPDATESPACE:
 		resp = s.updateSchemaBySpace(raftCmd.UpdateSpace.Space)
+	case vearchpb.CmdType_INDEXCHANGE:
+		resp = s.applyIndexChange(raftCmd.IndexChange)
 	case vearchpb.CmdType_FLUSH:
 		flushC, err := s.Engine.Writer().Commit(s.Ctx, int64(index))
 		resp.FlushC = flushC
@@ -167,6 +169,62 @@ func (s *Store) updateSchemaBySpace(spaceBytes []byte) (rap *RaftApplyResponse) 
 	s.SetSpace(space)
 
 	return
+}
+
+// applyIndexChange applies an explicit add/remove-index instruction delivered
+// via a raft INDEXCHANGE command. Unlike updateSchemaBySpace it does not diff
+// the whole space — the master already resolved the exact operation. After the
+// engine op succeeds it persists the engine's updated index list to the
+// partition meta and store snapshot so describe and a restart stay consistent.
+func (s *Store) applyIndexChange(ic *vearchpb.IndexChange) (rap *RaftApplyResponse) {
+	rap = new(RaftApplyResponse)
+	if ic == nil {
+		return rap.SetErr(fmt.Errorf("index change command is nil"))
+	}
+
+	switch ic.Op {
+	case vearchpb.IndexChangeOp_ADD_INDEX:
+		var indexes []*entity.Index
+		if err := json.Unmarshal(ic.Indexes, &indexes); err != nil {
+			return rap.SetErr(fmt.Errorf("unmarshal index change indexes: %v", err))
+		}
+		if err := s.Engine.AddIndexes(indexes); err != nil {
+			return rap.SetErr(err)
+		}
+	case vearchpb.IndexChangeOp_REMOVE_INDEX:
+		if err := s.Engine.RemoveIndex(ic.IndexName); err != nil {
+			return rap.SetErr(err)
+		}
+	default:
+		return rap.SetErr(fmt.Errorf("unsupported index change op[%d]", ic.Op))
+	}
+
+	// The engine now holds the authoritative post-change index list; mirror it
+	// into the persisted partition meta and the store's space snapshot so a
+	// restart rebuilds the same indexes and describe reports them.
+	//
+	// GetSpace() returns the engine's live *entity.Space; appendSpaceIndexes /
+	// removeSpaceIndex mutate that object's Indexes slice in place under ge.lock.
+	// Handing the same pointer to SetSpace would alias it into StoreBase (guarded
+	// by a different lock), so a concurrent StoreBase.GetSpace() reader could see
+	// the slice mid-mutation — a data race. Round-trip through vjson to hand
+	// StoreBase an independent deep copy (same fresh-object pattern as
+	// updateSchemaBySpace), so the two locks guard two separate objects.
+	engineSpace := s.Engine.GetSpace()
+	if err := psutil.SavePartitionMeta(s.GetPartition().Path, s.GetPartition().Id, engineSpace); err != nil {
+		return rap.SetErr(err)
+	}
+	spaceBytes, err := json.Marshal(engineSpace)
+	if err != nil {
+		return rap.SetErr(fmt.Errorf("marshal space snapshot: %v", err))
+	}
+	spaceCopy := &entity.Space{}
+	if err := json.Unmarshal(spaceBytes, spaceCopy); err != nil {
+		return rap.SetErr(fmt.Errorf("unmarshal space snapshot: %v", err))
+	}
+	s.SetSpace(spaceCopy)
+
+	return rap
 }
 
 // ApplyMemberChange implements the raft interface.

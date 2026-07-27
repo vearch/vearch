@@ -20,4 +20,7 @@ type EngineStatus struct {
 	DocNum        int32 `json:"doc_num,omitempty"`
 	MinIndexedNum int32 `json:"min_indexed_num,omitempty"`
 	MaxDocid      int32 `json:"max_docid,omitempty"`
+	// Per-index build state (index name → "BUILDING"/"READY"/"FAILED") for
+	// dynamically-added scalar/composite indexes. Absent for older engines.
+	IndexBuildState map[string]string `json:"index_build_state,omitempty"`
 }
